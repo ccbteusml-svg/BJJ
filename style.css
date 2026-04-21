@@ -1,0 +1,116 @@
+/* ==========================================
+   CONFIGURAÇÃO DE CORES (VARIÁVEIS)
+   Para mudar a cor principal do app, mude o HEX aqui!
+========================================== */
+:root {
+    --cor-fundo: #0f1115;       /* Fundo principal bem escuro */
+    --cor-cartao: #1c1f26;      /* Fundo dos cartões (um pouco mais claro) */
+    --cor-destaque: #3b82f6;    /* A cor de destaque (Azul moderno, mude se a foto for outra cor) */
+    --cor-destaque-hover: #2563eb; 
+    --cor-texto: #ffffff;
+    --cor-texto-secundario: #94a3b8;
+    --cor-borda: rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================
+   ESTILO GERAL
+========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--cor-fundo); 
+    color: var(--cor-texto);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    /* Fundo com leve gradiente para dar profundidade */
+    background: radial-gradient(circle at top, #1a1d24 0%, var(--cor-fundo) 100%);
+}
+
+/* ==========================================
+   CARTÕES (TELA DE LOGIN E PAINEL)
+========================================== */
+.login-container, .painel-container .card-status {
+    background-color: var(--cor-cartao);
+    padding: 35px 30px;
+    border-radius: 20px; /* Bordas mais arredondadas como na foto */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--cor-borda); /* Borda sutil para efeito premium */
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+h1, h2 { 
+    color: var(--cor-texto); 
+    margin-bottom: 8px; 
+    font-size: 26px; 
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+p { 
+    color: var(--cor-texto-secundario); 
+    margin-bottom: 25px; 
+    font-size: 14px; 
+}
+
+/* ==========================================
+   CAMPOS DE TEXTO (INPUTS)
+========================================== */
+input {
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 15px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    background-color: rgba(0, 0, 0, 0.2);
+    color: var(--cor-texto);
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+input::placeholder {
+    color: #64748b;
+}
+
+/* Efeito ao clicar no campo de digitar */
+input:focus {
+    outline: none;
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* Brilho em volta do campo */
+}
+
+/* ==========================================
+   BOTÕES
+========================================== */
+button {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--cor-destaque);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); /* Sombra colorida */
+}
+
+button:active {
+    transform: scale(0.97); /* Efeito de "afundar" ao clicar */
+    background-color: var(--cor-destaque-hover);
+}
+
+/* Botão Sair menorzinho */
+#btn-sair {
+    background-color: #334155;
+    box-shadow: none;
+}
