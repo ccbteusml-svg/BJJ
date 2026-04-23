@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4L Team - Painel</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1115">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="painel-container" style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 40px;">
+        
+        <header style="width: 90%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+            <h2 style="color: white; font-size: 20px;">🥋 4L Team</h2>
+            <button id="btn-sair" style="width: auto; padding: 8px 15px; font-size: 14px;">Sair</button>
+        </header>
+
+        <h3 id="saudacao-aluno" style="color: white; margin-bottom: 25px; font-weight: normal; text-align: center;">Carregando...</h3>
+
+        <div class="card-status" id="cartao-fundo">
+            <p style="color: #aaaaaa; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Mensalidade Atual</p>
+            
+            <h3 id="mes-atual" style="color: white; margin-bottom: 20px; font-size: 22px;">Buscando...</h3>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <span id="status-pagamento" style="color: #aaaaaa; font-weight: bold; font-size: 16px;">---</span>
+                <span id="valor-pagamento" style="color: white; font-weight: bold; font-size: 20px;">R$ 0,00</span>
+            </div>
+
+            <button id="btn-pagar" style="display: none; background-color: #4CAF50; color: white; padding: 14px; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer;">
+                💳 GERAR PIX DE PAGAMENTO
+            </button>
+
+            <div id="feedback-pix" style="color: #ffffff; margin-top: 15px; text-align: center; font-size: 14px;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="painel.js?v=3"></script>
+</body>
+</html>
