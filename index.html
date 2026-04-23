@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4L Team - Login</title>
+
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <meta name="theme-color" content="#D32F2F">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="login-container">
+    <h1>🥋 4L Team</h1>
+    <p>Gestão de Mensalidades</p>
+        
+        <form id="form-login">
+            <input type="email" id="email" placeholder="Seu E-mail" required>
+            <input type="password" id="senha" placeholder="Sua Senha" required>
+            <button type="submit">Entrar</button>
+<p id="msg-erro" style="color: #ff5252; margin-top: 15px; font-size: 14px; font-weight: bold; height: 20px;"></p>
+
+        </form>
+    </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
+
