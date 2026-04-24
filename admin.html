@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>4L Academy - Admin</title>
+    <meta name="theme-color" content="#000000">
+    <link rel="stylesheet" href="style.css?v=24">
+</head>
+<body style="padding-bottom: 80px;">
+
+    <div class="painel-container" style="width: 90%; max-width: 400px; margin: 0 auto;">
+        
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-top: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--cor-destaque); font-size: 20px;">🔺</span>
+                <h2 style="font-style: italic; font-size: 22px; margin: 0;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
+            </div>
+            <button id="btn-sair" style="width: auto; padding: 5px 10px; font-size: 12px; border: none; background: none; color: #666;">Sair</button>
+        </header>
+
+        <section id="aba-pendentes" class="secao-admin">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 25px;">
+                <div class="card-status" style="padding: 15px; border-top: 3px solid #4CAF50; text-align: center;">
+                    <p style="color: #9e9e9e; font-size: 10px; text-transform: uppercase; margin-bottom: 5px;">Recebido</p>
+                    <h3 id="total-recebido" style="font-size: 18px; color: #4CAF50;">R$ 0</h3>
+                </div>
+                <div class="card-status" style="padding: 15px; border-top: 3px solid #E53935; text-align: center;">
+                    <p style="color: #9e9e9e; font-size: 10px; text-transform: uppercase; margin-bottom: 5px;">Pendente</p>
+                    <h3 id="total-pendente" style="font-size: 18px; color: #E53935;">R$ 0</h3>
+                </div>
+            </div>
+
+            <h3 style="margin-bottom: 15px; font-size: 16px; font-weight: 800; color: white;">📋 COBRANÇAS EM ABERTO</h3>
+            <div id="lista-pendentes"></div>
+        </section>
+
+        <section id="aba-alunos" class="secao-admin" style="display: none;">
+            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white;">🥋 MEUS ALUNOS</h3>
+            <div id="lista-todos-alunos"></div>
+        </section>
+
+        <section id="aba-mural" class="secao-admin" style="display: none;">
+            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white;">📢 MURAL</h3>
+            <div class="card-status" style="text-align: left; padding: 25px; margin-bottom: 20px;">
+                <input type="text" id="aviso-titulo" placeholder="Título">
+                <textarea id="aviso-mensagem" placeholder="Mensagem..." style="width: 100%; height: 80px; background: #0a0a0a; border: 1px solid var(--cor-borda); border-radius: 12px; color: white; padding: 12px; margin-bottom: 15px; font-family: inherit;"></textarea>
+                <button id="btn-publicar-aviso" style="background: transparent; border: 2px solid var(--cor-destaque);">PUBLICAR</button>
+            </div>
+            <div id="lista-avisos-admin"></div>
+        </section>
+
+        <section id="aba-config" class="secao-admin" style="display: none;">
+            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white;">⚙️ CONFIGURAÇÕES</h3>
+            
+            <div class="card-status" style="padding: 20px; margin-bottom: 20px;">
+                <h4 style="font-size: 14px; margin-bottom: 15px;">➕ NOVO ALUNO</h4>
+                <form id="form-novo-aluno">
+                    <input type="text" id="novo-nome" placeholder="Nome" required>
+                    <input type="email" id="novo-email" placeholder="E-mail" required>
+                    <input type="text" id="novo-senha" placeholder="Senha" required>
+                    <input type="tel" id="novo-telefone" placeholder="WhatsApp">
+                    <input type="text" id="novo-faixa" placeholder="Faixa/Grau">
+                    <button type="submit" id="btn-salvar-aluno" style="background: transparent; border: 2px solid var(--cor-destaque);">SALVAR</button>
+                </form>
+            </div>
+
+            <div class="card-status" style="padding: 20px;">
+                <h4 style="font-size: 14px; margin-bottom: 15px;">⚡ GERAR MENSALIDADES</h4>
+                <input type="text" id="mes-geral" placeholder="Ex: Agosto / 2026">
+                <input type="number" id="valor-geral" placeholder="Valor" value="150">
+                <button id="btn-gerar-mes" style="background: transparent; border: 2px solid var(--cor-destaque);">COBRAR TODOS</button>
+            </div>
+        </section>
+
+    </div>
+
+    <nav class="menu-inferior">
+        <div class="tab-item active" onclick="trocarAba('aba-pendentes', this)"><span>🏠</span><p>Início</p></div>
+        <div class="tab-item" onclick="trocarAba('aba-alunos', this)"><span>🥋</span><p>Alunos</p></div>
+        <div class="tab-item" onclick="trocarAba('aba-mural', this)"><span>📢</span><p>Mural</p></div>
+        <div class="tab-item" onclick="trocarAba('aba-config', this)"><span>⚙️</span><p>Config</p></div>
+    </nav>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin.js?v=24"></script>
+</body>
+</html>
