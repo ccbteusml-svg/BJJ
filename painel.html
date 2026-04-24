@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4L Academy - Aluno</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    
+    <link rel="stylesheet" href="style.css?v=16">
+</head>
+<body>
+
+    <div class="banner-aluno"></div>
+
+    <div class="painel-container" style="width: 90%; max-width: 400px; margin: 0 auto; position: relative; z-index: 10; margin-top: 130px;">
+        
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--cor-destaque); font-size: 20px;">🔺</span>
+                <h2 style="font-style: italic; font-size: 22px; margin: 0;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
+            </div>
+            <button id="btn-sair" style="width: auto; padding: 5px 10px; font-size: 13px; font-weight: bold; margin: 0;">Sair</button>
+        </header>
+
+        <h3 id="saudacao-aluno" style="color: white; margin-bottom: 25px; font-weight: normal; text-align: left; font-size: 18px;">Carregando...</h3>
+
+        <div class="card-status" id="cartao-fundo" style="text-align: left; padding: 25px;">
+            <p style="color: var(--cor-texto-secundario); margin-bottom: 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Mensalidade Atual</p>
+            
+            <h3 id="mes-atual" style="color: white; margin-bottom: 20px; font-size: 22px; font-weight: 800;">Buscando...</h3>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <span id="status-pagamento" style="font-weight: bold; font-size: 16px; letter-spacing: 1px;">---</span>
+                <span id="valor-pagamento" style="color: white; font-weight: 800; font-size: 22px;">R$ 0,00</span>
+            </div>
+
+            <button id="btn-pagar" style="display: none; background-color: var(--cor-destaque); color: white; padding: 16px; border: none; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;">
+                💳 GERAR PIX DE PAGAMENTO
+            </button>
+
+            <div id="feedback-pix" style="color: #ffffff; margin-top: 15px; text-align: center; font-size: 14px;"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script src="painel.js?v=15"></script>
+</body>
+</html>
