@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4L Academy - Criar Conta</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="banner-topo"></div>
+
+    <div class="login-container" style="margin-top: 80px; margin-bottom: 50px;">
+        <h1 style="font-style: italic;">CRIAR <span style="color: #E53935;">CONTA</span></h1>
+        <p class="subtitulo" style="font-size: 11px;">Junte-se à nossa equipe</p>
+        
+        <form id="form-cadastro">
+            <input type="text" id="cad-nome" placeholder="Nome Completo" required>
+            <input type="email" id="cad-email" placeholder="Seu E-mail" required>
+            <input type="password" id="cad-senha" placeholder="Crie uma senha (mín. 6 dígitos)" required>
+            <input type="tel" id="cad-telefone" placeholder="WhatsApp (DDD + Número)">
+            <input type="text" id="cad-faixa" placeholder="Sua Faixa Atual (Ex: Branca)">
+            
+            <button type="submit" id="btn-cadastrar">FINALIZAR CADASTRO</button>
+            
+            <p style="margin-top: 20px; font-size: 13px; color: #aaaaaa;">
+                Já tem uma conta? <a href="index.html" style="color: var(--cor-destaque); text-decoration: none; font-weight: bold;">Faça Login</a>
+            </p>
+            <p id="msg-feedback" style="margin-top: 15px; font-size: 14px; font-weight: bold; min-height: 20px;"></p>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script src="cadastro.js"></script>
+</body>
+</html>
