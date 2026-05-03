@@ -1,0 +1,470 @@
+/* ==========================================
+   COMPORTAMENTO NATIVO DE APLICATIVO
+========================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* Garante que as bordas não quebrem o tamanho das caixas */
+    -webkit-tap-highlight-color: transparent; /* Tira o piscar azul ao clicar no Android */
+    font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    width: 100vw;
+    min-height: 100vh;
+    overflow-x: hidden; /* PROÍBE a tela de rolar para os lados */
+    
+    /* Impede o usuário de selecionar os textos sem querer */
+    -webkit-user-select: none;
+    user-select: none; 
+    
+    /* ESCONDE A ROLAGEM NO FIREFOX E EDGE */
+    -ms-overflow-style: none;  
+    scrollbar-width: none;  
+    
+    background-color: var(--cor-fundo); 
+    color: var(--cor-texto);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Libera a seleção apenas para campos de digitação */
+input, textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+/* Esconde a barra de rolagem EM TODOS OS NAVEGADORES (Forçado) */
+::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+}
+
+/* ==========================================
+   CORES GLOBAIS (4L ACADEMY)
+========================================== */
+:root {
+    --cor-fundo: #000000;       /* Preto profundo absoluto */
+    --cor-cartao: #161618;      /* Cinza muito escuro para os cartões */
+    --cor-destaque: #E53935;    /* Vermelho Jiu-Jitsu (Faixa/Logotipo) */
+    --cor-destaque-hover: #D32F2F; 
+    --cor-texto: #ffffff;
+    --cor-texto-secundario: #9e9e9e;
+    --cor-borda: rgba(255, 255, 255, 0.05);
+}
+
+/* ==========================================
+   BANNERS (FUNDO COM FADE TO BLACK)
+========================================== */
+.banner-topo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 380px;
+    z-index: 0;
+    background-image:
+        linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 65%, #000000 100%),
+        url('4L.png');
+    background-size: cover;
+    background-position: center top;
+}
+
+.banner-aluno {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 380px;
+    z-index: 0;
+    background-image:
+        linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.7) 65%, #000000 100%),
+        url('fundo-aluno.png'); 
+    background-size: cover;
+    background-position: center top;
+}
+
+/* ==========================================
+   EFEITO VIDRO (GLASSMORPHISM) NOS CARTÕES
+========================================== */
+.login-container, .card-status, .secao-admin {
+    background: rgba(22, 22, 24, 0.55) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px); /* Suporte para iPhone */
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    animation: deslizarSuave 0.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.login-container {
+    padding: 25px 20px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    margin-top: 8vh;
+    margin-bottom: 20px;
+}
+
+/* ==========================================
+   TIPOGRAFIA
+========================================== */
+h1, h2 { 
+    color: var(--cor-texto); 
+    margin-bottom: 5px; 
+    font-size: 26px; 
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.subtitulo { 
+    color: var(--cor-texto-secundario); 
+    margin-bottom: 25px; 
+    font-size: 14px; 
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ==========================================
+   CAMPOS DE TEXTO (INPUTS)
+========================================== */
+input, textarea {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    background-color: #0a0a0a;
+    color: var(--cor-texto);
+    font-size: 15px;
+    transition: border 0.3s ease, box-shadow 0.3s ease;
+}
+
+input::placeholder, textarea::placeholder {
+    color: #555555;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 10px rgba(229, 57, 53, 0.2); /* Brilho vermelho ao focar */
+}
+
+/* ==========================================
+   BOTÕES E MICRO-INTERAÇÕES (FEEDBACK TÁTIL)
+========================================== */
+button {
+    width: 100%;
+    padding: 16px;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Essencial para a mola do botão */
+}
+
+/* O Efeito do toque: Encolhe e reduz opacidade */
+button:active {
+    transform: scale(0.95); 
+    opacity: 0.85; 
+}
+
+/* Botões Vermelhos (Ação Principal) com Brilho e Gradiente */
+button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
+    background: linear-gradient(135deg, var(--cor-destaque) 0%, #B71C1C 100%);
+    box-shadow: 0 4px 15px rgba(229, 57, 53, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Botões Escuros Secundários */
+#btn-copiar-pix, #btn-pagar {
+    background: linear-gradient(135deg, #333333 0%, #1a1a1a 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    color: white; 
+}
+
+/* Botão Transparente (Sair) */
+#btn-sair {
+    background: transparent;
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+    box-shadow: none;
+    padding: 8px 15px;
+}
+
+/* ==========================================
+   NAVEGAÇÃO POR ABAS (MENU INFERIOR)
+========================================== */
+.menu-inferior {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #0d0d0d;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    z-index: 100;
+}
+
+.tab-item {
+    text-align: center;
+    color: #666;
+    transition: all 0.3s ease;
+}
+
+.tab-item span {
+    font-size: 20px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.tab-item p {
+    font-size: 10px;
+    margin: 0;
+    text-transform: uppercase;
+    font-weight: bold;
+}
+
+.tab-item.active {
+    color: var(--cor-destaque);
+}
+
+/* ==========================================
+   MENU LATERAL (DRAWER) SOFISTICADO
+========================================== */
+.menu-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5) !important; 
+    backdrop-filter: blur(4px); /* Fundo desfocado */
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999; display: none; opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.menu-lateral {
+    position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+    background-color: var(--cor-cartao); z-index: 1000;
+    transition: left 0.3s ease; display: flex; flex-direction: column;
+    box-shadow: 15px 0 40px rgba(0,0,0,0.8);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.menu-lateral.aberto { left: 0; }
+
+.menu-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px 10px; }
+.menu-items { display: flex; flex-direction: column; flex: 1; padding: 0 10px 20px; overflow-y: auto; }
+
+.menu-item {
+    padding: 15px 20px; color: var(--cor-texto); font-size: 15px; font-weight: bold;
+    border-radius: 8px; cursor: pointer; margin: 4px 10px; display: flex; align-items: center; gap: 15px;
+    transition: all 0.2s ease;
+}
+
+.menu-item:hover, .menu-item.active { 
+    background-color: rgba(229, 57, 53, 0.1); 
+    color: var(--cor-destaque); 
+}
+
+.menu-item:active {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(0.98); /* Feedback tátil suave no menu */
+}
+
+.menu-item.disabled { color: #555; cursor: not-allowed; font-weight: normal; }
+.menu-item.disabled:hover { background-color: transparent; color: #555; }
+
+.admin-body .menu-inferior { display: none; }
+
+/* ==========================================
+   ANIMAÇÕES DE ENTRADA
+========================================== */
+.secao-admin {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes deslizarSuave {
+    0% { opacity: 0; transform: translateY(15px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================
+   RODAPÉ COMPACTO E ÍCONES METÁLICOS
+========================================== */
+.social-footer {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+}
+
+.social-title {
+    color: #cccccc;
+    font-size: 12px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.icon-metal {
+    width: 42px; 
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #3a3a3a, #1f1f1f);
+    box-shadow: 4px 4px 8px #111111, -4px -4px 8px #333333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 20px;
+    text-decoration: none;
+    border: 2px solid #444;
+    transition: all 0.2s ease-in-out;
+}
+
+.icon-metal:active {
+    box-shadow: inset 4px 4px 8px #111111, inset -4px -4px 8px #333333;
+    color: #e53935; 
+}
+
+.social-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #aaaaaa;
+    font-size: 12px;
+}
+
+/* O Segredo: Se o celular do aluno for muito pequeno, ele diminui a fonte do rodapé automaticamente */
+@media (max-height: 700px) {
+    .login-container { margin-top: 4vh; padding: 15px; }
+    .social-title { margin-bottom: 8px; }
+    .social-icons { margin-bottom: 8px; }
+    .icon-metal { width: 35px; height: 35px; font-size: 16px; }
+}
+/* ==========================================
+   ESTILO DO BANNER VIP (CORRIGIDO: RELATIVO E VERMELHO)
+========================================== */
+.banner-vip {
+    background: rgba(22, 22, 24, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--cor-destaque);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 25px; 
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(229, 57, 53, 0.25);
+    
+    /* Faz o banner ficar quieto lá no topo */
+    position: relative; 
+    z-index: 10;
+    animation: fadeIn 0.5s ease;
+}
+
+.btn-vip {
+    /* Força o botão a ficar com o gradiente vermelho oficial */
+    background: linear-gradient(135deg, #E53935 0%, #B71C1C 100%) !important;
+    color: white !important;
+    font-weight: bold;
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(229, 57, 53, 0.35);
+    transition: transform 0.2s ease;
+}
+
+/* Efeito tátil de afundar o botão ao clicar */
+.btn-vip:active {
+    transform: scale(0.96);
+}
+/* ==========================================
+   ESTILO DA CARTEIRINHA DIGITAL DO ATLETA
+========================================== */
+.carteirinha-atleta {
+    background: linear-gradient(135deg, #161618 0%, #0a0a0a 100%);
+    border: 1px solid #E53935;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 30px rgba(229, 57, 53, 0.15);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Fundo com leve textura */
+.carteirinha-atleta::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background-image: radial-gradient(circle at 50% 50%, rgba(229, 57, 53, 0.05) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.carteirinha-foto-container {
+    width: 90px; height: 90px; margin: 0 auto 15px;
+    border-radius: 50%; border: 3px solid #E53935; padding: 3px; background: #000;
+}
+
+.carteirinha-foto-container img {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+}
+
+.carteirinha-dados .cart-label {
+    font-size: 9px; color: #888; letter-spacing: 1px; margin-bottom: 2px;
+}
+
+.carteirinha-dados .cart-valor {
+    font-size: 16px; color: white; font-weight: 800; text-transform: uppercase; margin-bottom: 0;
+}
+
+/* Simulação de uma Faixa de Jiu-Jitsu */
+.cart-faixa-box {
+    background: #fff; color: #000; padding: 5px; margin: 15px auto; width: 85%;
+    border-radius: 4px; 
+    border-right: 20px solid #E53935; /* Tarja Vermelha */
+    border-left: 15px solid #222; /* Ponta Preta */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.carteirinha-qr {
+    background: white; padding: 10px; border-radius: 8px; width: 140px; margin: 15px auto;
+}
+
+.carteirinha-qr img { width: 100%; height: auto; }
+.carteirinha-qr p { color: #000; font-size: 9px; font-weight: bold; margin-top: 5px; margin-bottom: 0; }
+
+.carteirinha-info-rodape {
+    text-align: left; font-size: 11px; color: #aaa; line-height: 1.6;
+    margin-top: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.carteirinha-info-rodape span { color: white; font-weight: bold; }
+.carteirinha-footer-br { font-size: 10px; color: #888; margin-top: 15px; }
