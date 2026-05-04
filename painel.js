@@ -222,7 +222,7 @@ async function verificarAcesso() {
                 },
                 callbacks: {
                     onReady: () => { Swal.close(); },
-                    onSubmit: (dadosRecebidos) => {
+                                        onSubmit: (dadosRecebidos) => {
                         return new Promise(async (resolve, reject) => {
                             const feedback = document.getElementById('feedback-pix');
                             feedback.innerHTML = `⏳ Processando ${tipoPagamento === 'assinatura' ? 'Assinatura' : 'Pagamento'}...`;
@@ -231,14 +231,19 @@ async function verificarAcesso() {
                                 let form = dadosRecebidos.formData || dadosRecebidos;
                                 let emailAluno = form.payer?.email || "aluno@4lacademy.com";
                                 
-                                // Monta o pacote de dados para enviar ao Supabase
+                                // 1. Pegamos a sessão atual para enviar o ID do aluno para o servidor
+                                const { data: { session } } = await window.supabase.auth.getSession();
+                                
+                                // 2. Monta o pacote de dados ADICIONANDO os IDs vitais para o servidor
                                 const payload = {
                                     email: emailAluno,
                                     card_token: form.token,
                                     payment_method_id: form.payment_method_id,
                                     issuer_id: form.issuer_id,
                                     payer: form.payer,
-                                    installments: form.installments
+                                    installments: form.installments,
+                                    aluno_id: session.user.id,             // 👈 NOVO: Manda quem é o aluno
+                                    mensalidade_id: mensalidadeAtualId     // 👈 NOVO: Manda qual fatura pagar
                                 };
 
                                 if (tipoPagamento === 'assinatura') {
@@ -248,18 +253,14 @@ async function verificarAcesso() {
                                     payload.mes = document.getElementById('mes-atual').innerText.replace(" (Pagamento Único)", "");
                                 }
 
-                                // Chama a função certa lá no Supabase!
                                 const { data, error } = await window.supabase.functions.invoke(nomeFuncaoSupabase, { body: payload });
 
                                 if (error) throw error;
 
                                 if (data.id && (data.status === "authorized" || data.status === "approved")) {
-                                    const { data: { session } } = await window.supabase.auth.getSession();
-                                    await window.supabase.from('mensalidades').update({ status: 'pago' }).eq('id', mensalidadeAtualId);
                                     
-                                    if (tipoPagamento === 'assinatura' && session) {
-                                        await window.supabase.from('perfis').update({ assinante: true }).eq('id', session.user.id);
-                                    }
+                                    // 🚨 REMOVEMOS AS LINHAS DE UPDATE QUE ESTAVAM AQUI! 
+                                    // Agora o próprio Supabase já fez isso lá na Edge Function.
 
                                     Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Pagamento aprovado! Oss!', background: '#161618', color: '#fff' }).then(() => location.reload());
                                     resolve();
@@ -274,7 +275,8 @@ async function verificarAcesso() {
                                 reject();
                             }
                         });
-                    },
+                    }
+,
                     onError: (error) => { console.error("Erro Brick:", error); }
                 }
             };
