@@ -562,35 +562,57 @@ async function verificarAcesso() {
         }
     });
 
-        // ==========================================
+    // ==========================================
     // 10.CARREGAR HISTÓRICO FINANCEIRO
     // ==========================================
     async function carregarHistorico() {
         const lista = document.getElementById('lista-historico');
         lista.innerHTML = `<p style="color: #aaaaaa; text-align: center; margin-top: 20px;">Buscando histórico...</p>`;
 
-        // Pega quem é o aluno logado
-        async function verificarManutencao() {
-    const { data, error } = await _supabase
-        .from('sistema_config')
-        .select('manutencao_ativa, mensagem_manutencao')
-        .eq('id', 1)
-        .single();
+        const { data: { session } } = await window.supabase.auth.getSession();
+        if (!session) return;
 
-    if (data && data.manutencao_ativa) {
-        // Se o usuário NÃO for o Admin, a gente trava a tela
-        const userEmail = localStorage.getItem('userEmail'); // Ou como você salva o login
-        if (userEmail !== 'seu-email-admin@gmail.com') {
-            document.body.innerHTML = `
-                <div style="height: 100vh; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: sans-serif;">
-                    <img src="4L.png" style="width: 120px; margin-bottom: 20px;">
-                    <h2 style="color: #e53935;">AVISO DO SENSEI</h2>
-                    <p style="font-size: 18px;">${data.mensagem_manutencao}</p>
-                </div>
-            `;
+        // Busca todas as mensalidades desse aluno no banco, da mais nova para a mais velha
+        const { data: historico, error } = await window.supabase
+            .from('mensalidades')
+            .select('*')
+            .eq('aluno_id', session.user.id)
+            .order('id', { ascending: false });
+
+        if (error || !historico || historico.length === 0) {
+            lista.innerHTML = `
+                <div class="card-status" style="padding: 20px; text-align: center;">
+                    <p style="color: #aaaaaa; margin: 0;">Você ainda não possui histórico de pagamentos.</p>
+                </div>`;
+            return;
+        }
+
+        lista.innerHTML = ""; 
+        
+        // Monta os cartões na tela
+        for (const mens of historico) {
+            const isPago = mens.status.toLowerCase() === 'pago';
+            const corBorda = isPago ? '#4CAF50' : '#ff5252';
+            const textoStatus = isPago ? '✅ PAGO' : '🔴 EM ABERTO';
+            
+            // NOVO: Só cria o botão se a fatura estiver paga
+            const btnRecibo = isPago 
+                ? `<button onclick="abrirRecibo('${mens.mes}', '${mens.valor}')" style="background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto; margin-top: 6px;">🧾 RECIBO</button>` 
+                : '';
+
+            lista.innerHTML += `
+                <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid ${corBorda}; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h4 style="color: white; font-size: 15px; margin: 0 0 5px 0;">${mens.mes}</h4>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <p style="color: ${corBorda}; font-size: 11px; font-weight: bold; margin: 0;">${textoStatus}</p>
+                            ${btnRecibo}
+                        </div>
+                    </div>
+                    <span style="color: white; font-size: 16px; font-weight: bold;">R$ ${mens.valor}</span>
+                </div>`;
         }
     }
-}
 
 // Chama a função assim que o app carregar
 verificarManutencao();

@@ -51,59 +51,73 @@ async function carregarPendentes() {
     const lista = document.getElementById('lista-pendentes');
     const txtRecebido = document.getElementById('total-recebido');
     const txtPendente = document.getElementById('total-pendente');
+    const txtPrevisao = document.getElementById('total-previsao');
+    const txtAlunosCount = document.getElementById('total-alunos-count');
     
     lista.innerHTML = `<p style="color: #aaaaaa; text-align: center;">Buscando...</p>`;
-
-    const { data: mensalidades } = await supabase.from('mensalidades').select('*');
     
-    let totalPago = 0;
-    let totalEmAberto = 0;
+    try {
+        // 1. Busca mensalidades
+        const { data: mensalidades } = await supabase.from('mensalidades').select('*');
+        
+        // 2. Busca todos os alunos (para contar os ativos e usar na lista)
+        const { data: todosAlunos } = await supabase.from('perfis').select('id, nome, telefone, plano_pausado, cargo').neq('cargo', 'professor');
 
-    (mensalidades || []).forEach(m => {
-        let valor = parseFloat(m.valor) || 0;
-        if (m.status.toLowerCase().trim() === 'pago') {
-            totalPago += valor;
-        } else {
-            totalEmAberto += valor;
+        // 3. Atualiza os Cards do Dashboard Financeiro
+        let totalPago = 0;
+        let totalEmAberto = 0;
+        
+        (mensalidades || []).forEach(m => {
+            let valor = parseFloat(m.valor) || 0;
+            if (m.status.toLowerCase().trim() === 'pago') {
+                totalPago += valor;
+            } else {
+                totalEmAberto += valor;
+            }
+        });
+
+        const totalAtivos = (todosAlunos || []).filter(a => a.plano_pausado !== true).length;
+
+        if(txtRecebido) txtRecebido.innerText = `R$ ${totalPago},00`;
+        if(txtPendente) txtPendente.innerText = `R$ ${totalEmAberto},00`;
+        if(txtPrevisao) txtPrevisao.innerText = `R$ ${totalPago + totalEmAberto},00`;
+        if(txtAlunosCount) txtAlunosCount.innerText = totalAtivos;
+
+        // 4. Monta a lista de pendentes logo abaixo
+        const pendentes = (mensalidades || []).filter(m => m.status.toLowerCase().trim() === 'pendente');
+        
+        if (pendentes.length === 0) {
+            lista.innerHTML = `<p style="color: #4CAF50; text-align: center; margin-top: 20px;">✅ Tudo em dia!</p>`;
+            return;
         }
-    });
-
-    txtRecebido.innerText = `R$ ${totalPago}`;
-    txtPendente.innerText = `R$ ${totalEmAberto}`;
-
-    const pendentes = (mensalidades || []).filter(m => m.status.toLowerCase().trim() === 'pendente');
-
-    if (pendentes.length === 0) {
-        lista.innerHTML = `<p style="color: #4CAF50; text-align: center; margin-top: 20px;">✅ Tudo em dia!</p>`;
-        return;
-    }
 
         lista.innerHTML = ""; 
-    for (const mens of pendentes) {
-        // 1. Buscamos a palavra plano_pausado no banco de dados
-        const { data: aluno } = await supabase.from('perfis').select('nome, telefone, plano_pausado').eq('id', mens.aluno_id).single();
-        
-        // 🛑 TRAVA 1: Se o aluno estiver inativo, "continue" faz o sistema pular e não desenhar a fatura dele!
-        if (aluno && aluno.plano_pausado === true) {
-            continue;
-        }
+        for (const mens of pendentes) {
+            const aluno = (todosAlunos || []).find(a => a.id === mens.aluno_id);
+            if (aluno && aluno.plano_pausado === true) continue;
 
-        const nome = aluno ? aluno.nome : "Desconhecido";
-        const tel = aluno ? aluno.telefone : "";
-        
-        lista.innerHTML += `
-            <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--cor-destaque);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                    <div><p style="color: white; font-weight: bold; margin: 0;">${nome}</p><p style="color: #666; font-size: 11px; margin: 0;">${mens.mes} | R$ ${mens.valor}</p></div>
-                    <button onclick="cancelarCobranca('${mens.id}')" style="background: transparent; border: none; color: #ff5252; font-size: 18px; width: auto;">🗑️</button>
-                </div>
-                <div style="display: flex; gap: 8px;">
-                    <button onclick="darBaixa('${mens.id}')" style="flex: 2; padding: 8px; font-size: 11px;">RECEBER</button>
-                    <button onclick="cobrarNoZap('${tel}', '${nome}', '${mens.mes}', '${mens.valor}')" style="flex: 1; background-color: #25D366; border: none; padding: 8px; font-size: 14px;">📲</button>
-                </div>
-            </div>`;
+            const nome = aluno ? aluno.nome : "Desconhecido";
+            const tel = aluno ? aluno.telefone : "";
+            
+            lista.innerHTML += `
+                <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--cor-destaque);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                        <div><p style="color: white; font-weight: bold; margin: 0;">${nome}</p><p style="color: #666; font-size: 11px; margin: 0;">${mens.mes} | R$ ${mens.valor}</p></div>
+                        <button onclick="cancelarCobranca('${mens.id}')" style="background: transparent; border: none; color: #ff5252; font-size: 18px; width: auto;">🗑️</button>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button onclick="darBaixa('${mens.id}')" style="flex: 2; padding: 8px; font-size: 11px;">RECEBER</button>
+                        <button onclick="cobrarNoZap('${tel}', '${nome}', '${mens.mes}', '${mens.valor}')" style="flex: 1; background-color: #25D366; border: none; padding: 8px; font-size: 14px;">📲</button>
+                    </div>
+                </div>`;
+        }
+    } catch (err) {
+        console.error("Erro ao carregar dashboard:", err);
+        lista.innerHTML = `<p style="color: #ff5252; text-align: center;">Erro ao buscar dados.</p>`;
     }
 }
+
+
 
 // ==========================================
 // 5.AÇÕES DE COBRANÇA INDIVIDUAL
@@ -117,7 +131,7 @@ window.cobrarNoZap = function(telefone, nome, mes, valor) {
     }
 
     const numeroLimpo = telefone.replace(/\D/g, '');
-    const linkApp = "https://sml-svg.github.io/?modo=app";
+    const linkApp = "https://ccbteusml-svg.github.io/?modo=app";
     const chavePix = "92985589868"; 
 
     const mensagem = `Olá, *${nome}*! Oss! 🥋\n\n` +
@@ -132,6 +146,7 @@ window.cobrarNoZap = function(telefone, nome, mes, valor) {
     const linkFinal = `https://wa.me/55${numeroLimpo}?text=${encodeURIComponent(mensagem)}`;
     window.open(linkFinal, '_blank');
 };
+
 
 // 2. Apagar Cobrança (Lixeira)
 window.cancelarCobranca = async function(id) {
@@ -163,11 +178,12 @@ window.darBaixa = async function(id) {
 
 
 // ==========================================
-// 6.CADASTRAR NOVO ALUNO PELO ADMIN
+// 6. CADASTRAR NOVO ALUNO (VIA EDGE FUNCTION - ANTI-DESLOGUE)
 // ==========================================
 document.getElementById('form-novo-aluno').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector('button');
+    
     const dados = {
         nome: document.getElementById('novo-nome').value,
         email: document.getElementById('novo-email').value,
@@ -175,19 +191,47 @@ document.getElementById('form-novo-aluno').addEventListener('submit', async (e) 
         telefone: document.getElementById('novo-telefone').value.replace(/\D/g,''),
         faixa: document.getElementById('novo-faixa').value
     };
-    btn.innerText = "⏳...";
+
+    btn.innerText = "Cadastrando... 🥋";
+    btn.disabled = true;
     
-    // O Supabase Auth lida com a criação, RLS protege a tabela 'perfis'
-    const { data, error } = await supabase.auth.signUp({ email: dados.email, password: dados.senha });
-    if (!error) {
-        await supabase.from('perfis').insert([{ id: data.user.id, nome: dados.nome, telefone: dados.telefone, faixa: dados.faixa, cargo: 'aluno' }]);
-        Swal.fire({ icon: 'success', title: 'Oss!', text: 'Aluno cadastrado com sucesso!', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+    try {
+        // Chamamos a Edge Function em vez do auth.signUp
+        const { data, error } = await supabase.functions.invoke('criar-aluno-admin', {
+            body: dados
+        });
+
+        if (error || (data && data.error)) {
+            throw new Error(error?.message || data?.error);
+        }
+
+        Swal.fire({ 
+            icon: 'success', 
+            title: 'Aluno Criado!', 
+            text: 'O acesso foi gerado e você continua logado como Sensei.', 
+            background: '#161618', 
+            color: '#fff', 
+            confirmButtonColor: '#4CAF50' 
+        });
+        
         e.target.reset();
-    } else {
-        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+        carregarTodosAlunos(); // Atualiza a lista na hora
+
+    } catch (err) {
+        Swal.fire({ 
+            icon: 'error', 
+            title: 'Falha no Cadastro', 
+            text: err.message, 
+            background: '#161618', 
+            color: '#fff', 
+            confirmButtonColor: '#E53935' 
+        });
+    } finally {
+        btn.innerText = "SALVAR";
+        btn.disabled = false;
     }
-    btn.innerText = "SALVAR";
 });
+
 
 // ==========================================
 // 7.CARREGAR LISTA DE ALUNOS COM TAGS E ESTATÍSTICAS
@@ -273,19 +317,15 @@ async function carregarTodosAlunos() {
             btnVIP = `<button onclick="cancelarAssinaturaVIP('${aluno.id}', '${aluno.nome}')" style="width: auto; padding: 6px 12px; font-size: 11px; border: 1px solid #ff5252; background: transparent; color: #ff5252; margin-left: 5px;">❌ CANCELAR VIP</button>`;
         }
 
-                lista.innerHTML += `
-            <div class="card-status" onclick="abrirDossie('${aluno.id}', event)" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid #ffffff; cursor: pointer;">
-
+                        lista.innerHTML += `
+            <div class="card-status" onclick="abrirDossie('${aluno.id}', event)" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid #ffffff; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <p style="color: white; font-weight: bold; margin: 0;">${aluno.nome} ${tagAssinante} ${tagCongelado}</p>
-                    <p style="color: #9e9e9e; font-size: 11px; margin: 0;">${aluno.faixa || 'Branca'}</p>
+                    <p style="color: white; font-weight: bold; margin: 0; font-size: 15px;">${aluno.nome} ${tagAssinante} ${tagCongelado}</p>
+                    <p style="color: #9e9e9e; font-size: 12px; margin: 3px 0 0 0;">🥋 ${aluno.faixa || 'Branca'}</p>
                 </div>
-                <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                    <button onclick="promoverAluno('${aluno.id}', '${aluno.nome}', '${aluno.faixa || 'Branca'}')" style="padding: 6px 12px; font-size: 11px; border: 1px solid var(--cor-destaque); background: transparent; color: white;">ATUALIZAR</button>
-                    ${btnCongelar}
-                    ${btnVIP}
-                </div>
+                <span style="color: #444; font-size: 18px;">›</span>
             </div>`;
+
     });
 filtrarAlunos(); 
 
@@ -651,54 +691,91 @@ window.atualizarMeusDados = async function() {
 };
 
 // ==========================================
-// 15. DOSSIÊ RÁPIDO DO ALUNO (POP-UP DETALHADO)
+// 15. DOSSIÊ RÁPIDO DO ALUNO (ATUALIZADO)
 // ==========================================
 window.abrirDossie = async function(alunoId, event) {
-    // Impede que o dossiê abra se o professor clicar nos botões de "Atualizar" ou "Inativar"
     if (event && event.target.tagName === 'BUTTON') return;
 
-    Swal.fire({ title: 'Abrindo Dossiê...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+    Swal.fire({ title: 'Buscando Ficha...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
 
     try {
         const { data: aluno, error } = await supabase.from('perfis').select('*').eq('id', alunoId).single();
         if (error) throw error;
 
-        // Limpa espaços no nome para não bugar a API de fotos
+        const { data: mensalidade } = await supabase.from('mensalidades')
+            .select('mes, status, valor')
+            .eq('aluno_id', alunoId)
+            .order('id', { ascending: false })
+            .limit(1)
+            .single();
+
         const nomeParaFoto = aluno.nome.replace(/\s/g, '+');
-        const foto = aluno.foto_url || `https://ui-avatars.com/api/?name=${nomeParaFoto}&background=E53935&color=fff`;
+        const foto = aluno.foto_url || `https://ui-avatars.com/api/?name=${nomeParaFoto}&background=161618&color=fff`;
         
-        const statusPlano = aluno.plano_pausado ? '🔴 INATIVO' : (aluno.assinante ? '💳 VIP (Recorrente)' : '✅ ATIVO (Pix/Manual)');
-        const valorCobranca = aluno.valor_mensalidade ? `R$ ${aluno.valor_mensalidade},00 (Especial)` : 'Valor Padrão da Academia';
+        let corBorda = '#E53935'; 
+        let textoFaixa = (aluno.faixa || 'Branca').toLowerCase();
+        if(textoFaixa.includes('azul')) corBorda = '#1976D2';
+        else if(textoFaixa.includes('roxa')) corBorda = '#6a1b9a';
+        else if(textoFaixa.includes('marrom')) corBorda = '#5D4037';
+        else if(textoFaixa.includes('preta')) corBorda = '#212121';
+
+        const statusPlano = aluno.plano_pausado ? '<span style="color:#ff5252; font-weight:bold;">🔴 INATIVO</span>' : (aluno.assinante ? '<span style="color:#2196F3; font-weight:bold;">💳 VIP (Recorrente)</span>' : '<span style="color:#4CAF50; font-weight:bold;">✅ ATIVO (Pix)</span>');
+
+        let statusFinanceiro = '<span style="color:#aaa">Sem histórico</span>';
+        if (mensalidade) {
+            statusFinanceiro = mensalidade.status === 'pago' 
+                ? `<span style="color:#4CAF50; font-weight:bold;">✅ Em dia (${mensalidade.mes})</span>`
+                : `<span style="color:#ff5252; font-weight:bold;">🔴 Pendente: ${mensalidade.mes} (R$ ${mensalidade.valor})</span>`;
+        }
+
+        const acaoPausa = aluno.plano_pausado ? 'reativar' : 'congelar';
+        const iconePausa = aluno.plano_pausado ? '▶️ REATIVAR' : '⏸️ INATIVAR';
+        const corPausa = aluno.plano_pausado ? '#4CAF50' : '#9e9e9e';
+
+        // MONTAGEM DOS BOTÕES
+        let htmlBotoesAcao = `
+            <div style="display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; justify-content: center;">
+                <button onclick="Swal.close(); editarPerfilCompleto('${aluno.id}')" style="flex: 1; padding: 10px; font-size: 11px; border: 1px solid var(--cor-destaque); background: var(--cor-destaque); color: white; border-radius: 6px; font-weight: bold;">✏️ EDITAR PERFIL</button>
+                <button onclick="Swal.close(); alternarPausaPlano('${aluno.id}', '${aluno.nome}', '${acaoPausa}')" style="flex: 1; padding: 10px; font-size: 11px; border: 1px solid ${corPausa}; background: transparent; color: ${corPausa}; border-radius: 6px;">${iconePausa}</button>
+            </div>
+        `;
+
+        if (aluno.assinante) {
+            htmlBotoesAcao += `<button onclick="Swal.close(); cancelarAssinaturaVIP('${aluno.id}', '${aluno.nome}')" style="width: 100%; margin-top: 8px; padding: 10px; font-size: 11px; border: 1px solid #ff5252; background: transparent; color: #ff5252; border-radius: 6px;">❌ CANCELAR STATUS VIP</button>`;
+        }
+
+        const msgZap = encodeURIComponent(`Olá, *${aluno.nome}*! Oss! 🥋`);
 
         Swal.fire({
-            title: `<span style="color: #E53935; font-style: italic; font-weight: 800;">FICHA DO ATLETA</span>`,
             html: `
-                <div style="text-align: center; padding: 10px;">
-                    <img src="${foto}" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid #E53935; object-fit: cover; margin-bottom: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-                    <h3 style="color: white; margin-bottom: 5px; font-size: 20px;">${aluno.nome}</h3>
-                    <p style="color: #E53935; font-weight: bold; margin-bottom: 20px; font-size: 14px;">🥋 ${aluno.faixa || 'Branca'}</p>
-                    
-                    <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 10px; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);">
-                        <p style="margin-bottom: 8px;"><strong>📱 WhatsApp:</strong> ${aluno.telefone || 'Não cadastrado'}</p>
-                        <p style="margin-bottom: 8px;"><strong>📊 Status:</strong> ${statusPlano}</p>
-                        <p style="margin-bottom: 0;"><strong>💰 Mensalidade:</strong> ${valorCobranca}</p>
+                <div style="text-align: center; padding: 5px;">
+                    <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 15px;">
+                        <img src="${foto}" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid ${corBorda}; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                     </div>
-
-                    <a href="https://wa.me/55${aluno.telefone || ''}" target="_blank" style="display: block; background: #25D366; color: white; text-decoration: none; padding: 14px; border-radius: 8px; margin-top: 15px; font-weight: bold; font-size: 14px; border: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="color: white; margin-bottom: 5px; font-size: 22px; font-weight: 800; text-transform: uppercase;">${aluno.nome}</h3>
+                    <p style="color: ${corBorda}; font-weight: bold; margin-bottom: 20px; font-size: 14px; text-transform: uppercase;">🥋 FAIXA ${aluno.faixa || 'BRANCA'}</p>
+                    <div style="text-align: left; background: #0a0a0a; padding: 15px; border-radius: 12px; font-size: 13px; border: 1px solid #333; margin-bottom: 20px;">
+                        <p style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px;"><strong>📱 Zap:</strong> ${aluno.telefone || 'Não informado'}</p>
+                        <p style="margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px;"><strong>📋 Conta:</strong> ${statusPlano}</p>
+                        <p style="margin-bottom: 0;"><strong>💰 Mensalidade:</strong> ${statusFinanceiro}</p>
+                    </div>
+                    <a href="https://wa.me/55${aluno.telefone || ''}?text=${msgZap}" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: #25D366; color: white; text-decoration: none; padding: 14px; border-radius: 8px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(37, 211, 102, 0.3);">
                         📲 CHAMAR NO WHATSAPP
                     </a>
+                    <div style="margin-top: 20px; border-top: 1px dashed #333; padding-top: 15px;">
+                        <p style="color: #888; font-size: 10px; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px;">⚙️ Ações do Sensei</p>
+                        ${htmlBotoesAcao}
+                    </div>
                 </div>
             `,
-            background: '#161618',
-            showConfirmButton: false,
-            showCloseButton: true,
-            width: '90%'
+            background: '#161618', showConfirmButton: false, showCloseButton: true, width: '90%', padding: '20px 15px'
         });
-
     } catch (err) {
         Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível carregar a ficha.', background: '#161618', color: '#fff' });
     }
 };
+
+
 
 // ==========================================
 // 16. EFEITO SANFONA (CONFIGURAÇÕES)
@@ -811,3 +888,71 @@ async function checarStatusInicial() {
 
 // Executa a checagem ao carregar a página
 checarStatusInicial();
+// ==========================================
+// 17. EDIÇÃO COMPLETA DO PERFIL (NOME, ZAP, FAIXA, VALOR)
+// ==========================================
+window.editarPerfilCompleto = async function(alunoId) {
+    Swal.fire({ title: 'Carregando dados...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+
+    try {
+        const { data: aluno, error } = await supabase.from('perfis').select('*').eq('id', alunoId).single();
+        if (error) throw error;
+
+        const { value: formValues } = await Swal.fire({
+            title: 'Editar Atleta',
+            html: `
+                <div style="text-align: left; padding: 0 5px;">
+                    <label style="color: #aaa; font-size: 11px; text-transform: uppercase;">Nome Completo:</label>
+                    <input id="swal-nome" class="swal2-input" value="${aluno.nome}" style="background: #0a0a0a; color: white; border: 1px solid #333; margin-top: 5px; margin-bottom: 15px;">
+                    
+                    <label style="color: #aaa; font-size: 11px; text-transform: uppercase;">WhatsApp (com DDD):</label>
+                    <input id="swal-tel" class="swal2-input" value="${aluno.telefone || ''}" style="background: #0a0a0a; color: white; border: 1px solid #333; margin-top: 5px; margin-bottom: 15px;">
+                    
+                    <label style="color: #aaa; font-size: 11px; text-transform: uppercase;">Faixa / Grau:</label>
+                    <input id="swal-faixa" class="swal2-input" value="${aluno.faixa || 'Branca'}" style="background: #0a0a0a; color: white; border: 1px solid #333; margin-top: 5px; margin-bottom: 15px;">
+                    
+                    <label style="color: #aaa; font-size: 11px; text-transform: uppercase;">Valor Mensalidade (Especial):</label>
+                    <input id="swal-valor" type="number" class="swal2-input" value="${aluno.valor_mensalidade || ''}" placeholder="Padrão (R$ 25)" style="background: #0a0a0a; color: white; border: 1px solid #333; margin-top: 5px;">
+                </div>
+            `,
+            focusConfirm: false,
+            showCancelButton: true,
+            confirmButtonColor: '#4CAF50',
+            cancelButtonColor: '#333',
+            confirmButtonText: 'SALVAR ALTERAÇÕES',
+            cancelButtonText: 'CANCELAR',
+            background: '#161618',
+            color: '#fff',
+            preConfirm: () => {
+                return {
+                    nome: document.getElementById('swal-nome').value,
+                    telefone: document.getElementById('swal-tel').value.replace(/\D/g,''),
+                    faixa: document.getElementById('swal-faixa').value,
+                    valor: document.getElementById('swal-valor').value
+                }
+            }
+        });
+
+        if (formValues) {
+            Swal.fire({ title: 'Salvando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+            
+            const { error: updateError } = await supabase.from('perfis').update({ 
+                nome: formValues.nome,
+                telefone: formValues.telefone,
+                faixa: formValues.faixa,
+                valor_mensalidade: formValues.valor ? parseInt(formValues.valor) : null
+            }).eq('id', alunoId);
+
+            if (updateError) throw updateError;
+
+            Swal.fire({ icon: 'success', title: 'Perfil Atualizado!', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
+            
+            // Atualiza as listas e reabre o dossiê com os novos dados
+            if(typeof carregarTodosAlunos === 'function') carregarTodosAlunos();
+            if(typeof carregarPendentes === 'function') carregarPendentes();
+            setTimeout(() => window.abrirDossie(alunoId), 1600);
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Erro ao Salvar', text: err.message, background: '#161618', color: '#fff' });
+    }
+};
