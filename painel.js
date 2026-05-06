@@ -615,55 +615,12 @@ async function verificarAcesso() {
     }
 
 // Chama a função assim que o app carregar
-verificarManutencao();
+//verificarManutencao(); <-- Deixei comentada caso a função não esteja definida neste ficheiro. Se estiver definida noutro lado, pode descomentar.
 
-        const { data: { session } } = await window.supabase.auth.getSession();
-        if (!session) return;
-
-        // Busca todas as mensalidades desse aluno no banco, da mais nova para a mais velha
-        const { data: historico, error } = await window.supabase
-            .from('mensalidades')
-            .select('*')
-            .eq('aluno_id', session.user.id)
-            .order('id', { ascending: false });
-
-        if (error || !historico || historico.length === 0) {
-            lista.innerHTML = `
-                <div class="card-status" style="padding: 20px; text-align: center;">
-                    <p style="color: #aaaaaa; margin: 0;">Você ainda não possui histórico de pagamentos.</p>
-                </div>`;
-            return;
-        }
-
-        lista.innerHTML = ""; 
-        
-        // Monta os cartões na tela
-        for (const mens of historico) {
-            const isPago = mens.status.toLowerCase() === 'pago';
-            const corBorda = isPago ? '#4CAF50' : '#ff5252';
-            const textoStatus = isPago ? '✅ PAGO' : '🔴 EM ABERTO';
-            
-            // NOVO: Só cria o botão se a fatura estiver paga
-            const btnRecibo = isPago 
-                ? `<button onclick="abrirRecibo('${mens.mes}', '${mens.valor}')" style="background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto; margin-top: 6px;">🧾 RECIBO</button>` 
-                : '';
-
-            lista.innerHTML += `
-                <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid ${corBorda}; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h4 style="color: white; font-size: 15px; margin: 0 0 5px 0;">${mens.mes}</h4>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <p style="color: ${corBorda}; font-size: 11px; font-weight: bold; margin: 0;">${textoStatus}</p>
-                            ${btnRecibo}
-                        </div>
-                    </div>
-                    <span style="color: white; font-size: 16px; font-weight: bold;">R$ ${mens.valor}</span>
-                </div>`;
-        }
-    }
     // ==========================================
     // 11. GERADOR DE RECIBO DIGITAL EM PDF
     // ==========================================
+
     window.abrirRecibo = async function(mesReferencia, valorPago) {
         Swal.fire({ title: 'Gerando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
 
@@ -816,45 +773,46 @@ verificarManutencao();
             // --------------------------------------------------
             let textoFaixaDB = (perfil.faixa || 'Branca').toLowerCase();
             let nomeLimpoFaixa = 'BRANCA';
-            let fundoFaixaVisual = '#f4f4f4'; // Quase branca para não estourar na tela
-            let corPontaFaixa = '#111111'; // Ponta Preta padrão
+            let fundoFaixaVisual = '#f4f4f4'; 
+            let corPontaFaixa = '#111111';
             
-            // Verificação de Cores Completa (Infantil ao Mestre)
+            // NOVAS VARIÁVEIS PARA A BORDA E O BRILHO!
+            let corBorda = '#dddddd'; 
+            let corSombra = 'rgba(255, 255, 255, 0.2)'; 
+
             if (textoFaixaDB.includes('cinza')) { 
-                nomeLimpoFaixa = 'CINZA'; fundoFaixaVisual = '#9E9E9E'; 
+                nomeLimpoFaixa = 'CINZA'; fundoFaixaVisual = '#9E9E9E'; corBorda = '#9E9E9E'; corSombra = 'rgba(158, 158, 158, 0.4)';
             } else if (textoFaixaDB.includes('amarela')) { 
-                nomeLimpoFaixa = 'AMARELA'; fundoFaixaVisual = '#FBC02D'; 
+                nomeLimpoFaixa = 'AMARELA'; fundoFaixaVisual = '#FBC02D'; corBorda = '#FBC02D'; corSombra = 'rgba(251, 192, 45, 0.4)';
             } else if (textoFaixaDB.includes('laranja')) { 
-                nomeLimpoFaixa = 'LARANJA'; fundoFaixaVisual = '#FF9800'; 
+                nomeLimpoFaixa = 'LARANJA'; fundoFaixaVisual = '#FF9800'; corBorda = '#FF9800'; corSombra = 'rgba(255, 152, 0, 0.4)';
             } else if (textoFaixaDB.includes('verde')) { 
-                nomeLimpoFaixa = 'VERDE'; fundoFaixaVisual = '#4CAF50'; 
+                nomeLimpoFaixa = 'VERDE'; fundoFaixaVisual = '#4CAF50'; corBorda = '#4CAF50'; corSombra = 'rgba(76, 175, 80, 0.4)';
             } else if (textoFaixaDB.includes('azul')) { 
-                nomeLimpoFaixa = 'AZUL'; fundoFaixaVisual = '#1976D2'; 
+                nomeLimpoFaixa = 'AZUL'; fundoFaixaVisual = '#1976D2'; corBorda = '#1976D2'; corSombra = 'rgba(25, 118, 210, 0.4)';
             } else if (textoFaixaDB.includes('roxa')) { 
-                nomeLimpoFaixa = 'ROXA'; fundoFaixaVisual = '#6a1b9a'; 
+                nomeLimpoFaixa = 'ROXA'; fundoFaixaVisual = '#6a1b9a'; corBorda = '#ab47bc'; corSombra = 'rgba(171, 71, 188, 0.4)';
             } else if (textoFaixaDB.includes('marrom')) { 
-                nomeLimpoFaixa = 'MARROM'; fundoFaixaVisual = '#5D4037'; 
+                nomeLimpoFaixa = 'MARROM'; fundoFaixaVisual = '#5D4037'; corBorda = '#8d6e63'; corSombra = 'rgba(141, 110, 99, 0.4)';
             } else if (textoFaixaDB.includes('preta')) { 
-                nomeLimpoFaixa = 'PRETA'; fundoFaixaVisual = '#212121'; corPontaFaixa = '#D32F2F'; // Faixa preta = ponta vermelha
+                nomeLimpoFaixa = 'PRETA'; fundoFaixaVisual = '#212121'; corPontaFaixa = '#D32F2F'; corBorda = '#666666'; corSombra = 'rgba(255, 255, 255, 0.15)';
             } else if (textoFaixaDB.includes('coral')) { 
-                nomeLimpoFaixa = 'CORAL'; 
-                // Gradiente CSS para simular a faixa vermelho e preta
-                fundoFaixaVisual = 'repeating-linear-gradient(to right, #D32F2F 0, #D32F2F 15px, #111111 15px, #111111 30px)'; 
+                nomeLimpoFaixa = 'CORAL'; fundoFaixaVisual = 'repeating-linear-gradient(to right, #D32F2F 0, #D32F2F 15px, #111111 15px, #111111 30px)'; corBorda = '#D32F2F'; corSombra = 'rgba(211, 47, 47, 0.4)';
             } else if (textoFaixaDB.includes('vermelha')) { 
-                nomeLimpoFaixa = 'VERMELHA'; fundoFaixaVisual = '#D32F2F'; 
+                nomeLimpoFaixa = 'VERMELHA'; fundoFaixaVisual = '#D32F2F'; corBorda = '#D32F2F'; corSombra = 'rgba(211, 47, 47, 0.4)';
             }
 
             // Extrai a quantidade exata de graus
             let qtdGraus = 0;
-            let matchGrau = textoFaixaDB.match(/(\d+)/); // Permite graus acima de 9
+            let matchGrau = textoFaixaDB.match(/(\d+)/); 
             if (matchGrau) {
                 qtdGraus = parseInt(matchGrau[1]);
             }
             
-            // Trava de segurança: Máximo de 6 tiras desenhadas para não bugar o visual no celular
+            // Trava de segurança
             let grausVisuais = qtdGraus > 6 ? 6 : qtdGraus; 
 
-            // Desenha os graus (tirinhas brancas retas)
+            // Desenha os graus
             let htmlGraus = '';
             for(let i=0; i<grausVisuais; i++) {
                 htmlGraus += `<div style="width: 4px; height: 100%; background-color: #fff; border-radius: 1px;"></div>`;
@@ -864,14 +822,14 @@ verificarManutencao();
             // --------------------------------------------------
 
             const htmlCarteirinha = `
-                <div style="background: linear-gradient(135deg, #111 0%, #000 100%); border: 2px solid #E53935; border-radius: 16px; padding: 25px 20px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(229, 57, 53, 0.4);">
+                <div style="background: linear-gradient(135deg, #111 0%, #000 100%); border: 2px solid ${corBorda}; border-radius: 16px; padding: 25px 20px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 0 30px ${corSombra};">
                     
                     <div style="margin-bottom: 20px; position: relative; z-index: 2;">
-                        <h2 style="font-style: italic; font-size: 22px; margin: 0; color: white; font-weight: 900;">4L <span style="color: #E53935;">ACADEMY</span></h2>
+                        <h2 style="font-style: italic; font-size: 22px; margin: 0; color: white; font-weight: 900;">4L <span style="color: ${corBorda};">ACADEMY</span></h2>
                         <p style="font-size: 10px; color: #aaa; letter-spacing: 1px; margin-top: 2px;">CARTEIRINHA DIGITAL DO ATLETA</p>
                     </div>
 
-                    <div style="position: relative; z-index: 2; width: 110px; height: 110px; margin: 0 auto 15px; border-radius: 50%; border: 3px solid #E53935; padding: 4px; background: #000;">
+                    <div style="position: relative; z-index: 2; width: 110px; height: 110px; margin: 0 auto 15px; border-radius: 50%; border: 3px solid ${corBorda}; padding: 4px; background: #000;">
                         <img src="${foto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                     </div>
 
@@ -901,9 +859,7 @@ verificarManutencao();
                                         ${htmlGraus}
                                     </div>
                                 </div>
-
                             </div>
-                            
                             <p style="color: #ccc; font-size: 11px; margin-top: 8px; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">${textoFinalFaixa}</p>
                         </div>
                     </div>
@@ -920,6 +876,7 @@ verificarManutencao();
                     </div>
                 </div>
             `;
+
 
             Swal.fire({
                 html: htmlCarteirinha,
