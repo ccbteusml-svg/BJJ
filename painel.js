@@ -178,6 +178,23 @@ async function verificarAcesso() {
     // ==========================================
     // 3.MÁQUINA DE CARTÃO INTELIGENTE (ASSINATURA OU AVULSO)
     // ==========================================
+    // BOTÃO VOLTAR (CANCELA PAGAMENTO E MOSTRA OPÇÕES)
+    // ==========================================
+    window.voltarParaOpcoes = function() {
+        // 1. Desmonta a máquina de cartão se ela estiver aberta
+        if (window.cardPaymentBrickController) {
+            window.cardPaymentBrickController.unmount();
+        }
+        
+        // 2. Limpa a área de feedback (QR Code do Pix ou botões antigos)
+        document.getElementById('feedback-pix').innerHTML = "";
+        
+        // 3. 🚨 A MÁGICA: Recarrega a tela financeira do zero!
+        // Isso devolve os botões e reseta os textos para o mês/valor corretos.
+        verificarAcesso(); 
+    };
+
+
     async function abrirMaquinaCartao(tipoPagamento) {
         try {
             Swal.fire({ title: 'Abrindo Máquina...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
@@ -186,6 +203,15 @@ async function verificarAcesso() {
             // 🛑 CORREÇÃO: Esconde o botão de Adiantar quando a máquina abre
             const btnAdiantar = document.getElementById('btn-adiantar-fatura');
             if(btnAdiantar) btnAdiantar.style.display = "none";
+                        // 🔙 INJETA O BOTÃO DE VOLTAR NA MÁQUINA
+            const feedback = document.getElementById('feedback-pix');
+            feedback.innerHTML = `
+                <button id="btn-voltar-cartao" style="background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;">
+                    ⬅️ Escolher outra forma de pagamento
+                </button>
+            `;
+            document.getElementById('btn-voltar-cartao').addEventListener('click', window.voltarParaOpcoes);
+
 
             let configTextos, configMetodos, nomeFuncaoSupabase;
             
@@ -265,11 +291,18 @@ async function verificarAcesso() {
                                     Swal.fire({ icon: 'success', title: 'Sucesso!', text: 'Pagamento aprovado! Oss!', background: '#161618', color: '#fff' }).then(() => location.reload());
                                     resolve();
                                 } else {
-                                    let erroMsg = data.message || "Cartão recusado pelo banco.";
+                                    // 🚨 A MÁGICA DO DEBUG: Pegando o motivo real do Mercado Pago
+                                    let motivoReal = data.status_detail ? data.status_detail : "Desconhecido";
+                                    let erroMsg = data.message || `Cartão recusado. Motivo: ${motivoReal}`;
+                                    
+                                    // Salva a resposta completa no console do navegador para termos certeza
+                                    console.log("RESPOSTA COMPLETA DO MERCADO PAGO:", data);
+
                                     Swal.fire({ icon: 'error', title: 'Recusado', text: erroMsg, background: '#161618', color: '#fff' });
                                     feedback.innerHTML = `❌ Erro: ${erroMsg}`;
                                     reject();
                                 }
+
                             } catch (err) {
                                 Swal.fire({ icon: 'error', title: 'Falha', text: err.message, background: '#161618', color: '#fff' });
                                 reject();
@@ -361,11 +394,17 @@ async function verificarAcesso() {
                     <button id="btn-copiar-pix" style="background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">
                         📋 Copiar Código Pix
                     </button>
+                                        <button id="btn-cancelar-pix" style="background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">
+                        ⬅️ Cancelar Pix
+                    </button>
+
                     <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: rgba(33, 150, 243, 0.1); border: 1px solid #2196F3;">
                         <p style="color: #2196F3; font-size: 13px; margin: 0; font-weight: bold;">📡 Aguardando pagamento...</p>
                     </div>
                 `;
-                
+                                // Ativa o botão de voltar do Pix
+                document.getElementById('btn-cancelar-pix').addEventListener('click', window.voltarParaOpcoes);
+
                 document.getElementById('btn-copiar-pix').addEventListener('click', () => {
                     navigator.clipboard.writeText(copiaCola).then(() => {
                         Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Código Copiado!', showConfirmButton: false, timer: 2000, background: '#161618', color: '#fff' });
@@ -873,5 +912,50 @@ verificarManutencao();
             Swal.fire({ icon: 'error', title: 'Erro', text: 'Não foi possível gerar a carteirinha.', background: '#161618', color: '#fff' });
         }
     }
+    // ==========================================
+    // 14. FORÇAR ATUALIZAÇÃO (LIMPAR CACHE DO PWA)
+    // ==========================================
+    window.forcarAtualizacao = async function() {
+        const result = await Swal.fire({
+            title: 'Forçar Atualização?',
+            text: "Isso vai limpar a memória do aplicativo e baixar a versão mais nova. Continuar?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#E53935',
+            cancelButtonColor: '#333',
+            confirmButtonText: 'Sim, atualizar!',
+            cancelButtonText: 'Cancelar',
+            background: '#161618',
+            color: '#fff'
+        });
+
+        if (result.isConfirmed) {
+            Swal.fire({ title: 'Limpando o tatame...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+
+            try {
+                // 1. Apaga os arquivos velhos guardados no cache do celular
+                if ('caches' in window) {
+                    const nomesCaches = await caches.keys();
+                    await Promise.all(nomesCaches.map(nome => caches.delete(nome)));
+                }
+
+                // 2. Desliga o "motor" offline (Service Worker) para forçar o download
+                if ('serviceWorker' in navigator) {
+                    const registros = await navigator.serviceWorker.getRegistrations();
+                    for (let registro of registros) {
+                        await registro.unregister();
+                    }
+                }
+
+                // 3. Recarrega a página na mesma hora com um "carimbo de tempo" 
+                // Isso obriga o navegador a ignorar qualquer lixo que sobrou e buscar do servidor.
+                window.location.href = window.location.pathname + '?v=' + new Date().getTime();
+
+            } catch (erro) {
+                console.error("Erro ao limpar cache:", erro);
+                window.location.reload(true); // Tenta o reload forçado padrão se o código acima falhar
+            }
+        }
+    };
 
 }); // <-- ESTA É A ÚLTIMA LINHA DO SEU ARQUIVO PAINEL.JS
