@@ -52,7 +52,8 @@
         <p style="color: #aaaaaa; font-size: 13px; margin-bottom: 25px; text-align: left;">Acompanhe tudo da sua academia</p>
 
         <section id="aba-pendentes" class="secao-admin">
-            
+         <div id="widget-aniversarios"></div>
+   
            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
     <div style="background: linear-gradient(135deg, #1b5e20 0%, #161618 100%); border: 1px solid #4CAF50; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.1);">
         <p style="color: #4CAF50; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">🟢 Recebido</p>
@@ -152,6 +153,9 @@
                         <input type="email" id="novo-email" placeholder="E-mail" required>
                         <input type="text" id="novo-senha" placeholder="Senha" required>
                         <input type="tel" id="novo-telefone" placeholder="WhatsApp">
+                        <label style="color: #aaa; font-size: 11px; text-transform: uppercase; display: block; margin-top: 15px;">Data de Nascimento:</label>
+                        <input type="date" id="novo-nascimento" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0a0a0a; color: white; margin-top: 5px; margin-bottom: 15px;">
+
                         <input type="text" id="novo-faixa" placeholder="Faixa/Grau">
                         <button type="submit" id="btn-salvar-aluno" style="background: transparent; border: 2px solid var(--cor-destaque);">SALVAR</button>
                     </form>
@@ -190,11 +194,12 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <script src="admin.js?v=28"></script>
+    <script src="admin-core.js?v=31"></script>
+    <script src="admin-alunos.js?v=31"></script>
+    <script src="admin-financeiro.js?v=31"></script>
 </body>
 </html>

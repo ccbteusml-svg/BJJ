@@ -22,6 +22,9 @@ document.getElementById('form-cadastro').addEventListener('submit', async functi
     const senha = document.getElementById('cad-senha').value;
     const telefone = document.getElementById('cad-telefone').value.replace(/\D/g,'');
     const faixa = document.getElementById('cad-faixa').value || "Branca";
+    
+    // 👇 NOVA LINHA: Captura a data de nascimento
+    const nascimento = document.getElementById('cad-nascimento').value;
 
     btn.innerText = "Processando... 🥋";
     btn.disabled = true;
@@ -35,10 +38,14 @@ document.getElementById('form-cadastro').addEventListener('submit', async functi
             data: { 
                 nome: nome,
                 telefone: telefone,
-                faixa: faixa
+                faixa: faixa,
+                data_nascimento: nascimento // 👇 NOVA LINHA: Envia a data para o banco
             }
         }
     });
+
+
+
 
         if (authError) {
         feedback.style.color = "#E53935";
