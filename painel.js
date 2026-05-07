@@ -99,6 +99,30 @@ async function verificarAcesso() {
         // ========================================================
         
         const { data: perfil } = await window.supabase.from('perfis').select('nome, faixa, foto_url, assinante').eq('id', usuarioId).single(); 
+         // ========================================================
+        // 🎨 TEMA CAMALEÃO: PINTA O APP COM A COR DA FAIXA
+        // ========================================================
+        if (perfil && perfil.faixa) {
+            let textoFaixaDB = perfil.faixa.toLowerCase();
+            let corTema = '#E53935'; // Vermelho padrão 4L Academy
+
+            // 👇 AQUI ESTÁ A CORREÇÃO! Adicionamos a Faixa Branca.
+            if (textoFaixaDB.includes('branca')) corTema = '#ffffff'; 
+            else if (textoFaixaDB.includes('cinza')) corTema = '#9E9E9E';
+            else if (textoFaixaDB.includes('amarela')) corTema = '#FBC02D';
+            else if (textoFaixaDB.includes('laranja')) corTema = '#FF9800';
+            else if (textoFaixaDB.includes('verde')) corTema = '#4CAF50';
+            else if (textoFaixaDB.includes('azul')) corTema = '#1976D2';
+            else if (textoFaixaDB.includes('roxa')) corTema = '#ab47bc'; 
+            else if (textoFaixaDB.includes('marrom')) corTema = '#8d6e63';
+            else if (textoFaixaDB.includes('preta')) corTema = '#ffffff'; 
+            else if (textoFaixaDB.includes('coral') || textoFaixaDB.includes('vermelha')) corTema = '#D32F2F';
+
+            // Injeta a nova cor em todo o CSS do aplicativo!
+            document.documentElement.style.setProperty('--cor-destaque', corTema);
+        }
+        // ========================================================
+
  
         const saudacao = document.getElementById('saudacao-aluno');
         if (perfil) {
