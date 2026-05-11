@@ -1,4 +1,49 @@
 // ==========================================
+// 🎬 TELA DE CARREGAMENTO ANIMADA (LOTTIE)
+// ==========================================
+window.mostrarCarregamento = function(mensagem) {
+    Swal.fire({
+        html: `
+            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 20px;">
+                <lottie-player 
+                    src="loading.json" 
+                    background="transparent" speed="1.5" style="width: 200px; height: 200px;" loop autoplay>
+                </lottie-player>
+                <h3 style="color: white; margin-top: 10px; font-size: 16px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
+                    ${mensagem}
+                </h3>
+            </div>
+        `,
+        background: '#161618',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+};
+
+window.fecharCarregamento = function() {
+    Swal.close();
+};
+
+window.mostrarCarregamentocartao = function(mensagem) {
+    Swal.fire({
+        html: `
+            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 20px;">
+                <lottie-player 
+                    src="cartao.json" 
+                    background="transparent" speed="1.5" style="width: 200px; height: 200px;" loop autoplay>
+                </lottie-player>
+                <h3 style="color: white; margin-top: 10px; font-size: 16px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
+                    ${mensagem}
+                </h3>
+            </div>
+        `,
+        background: '#161618',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+};
+
+// ==========================================
 // 1. SISTEMA DE DEFESA: MODO MANUTENÇÃO
 // ==========================================
 async function verificarManutencaoPainel() {

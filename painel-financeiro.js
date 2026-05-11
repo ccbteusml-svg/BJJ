@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.abrirMaquinaCartao = async function(tipoPagamento) {
         try {
-            Swal.fire({ title: 'Abrindo Máquina...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+            window.mostrarCarregamentocartao('Abrindo Máquina...');
             document.getElementById('opcoes-pagamento').style.display = "none";
 
             const btnAdiantar = document.getElementById('btn-adiantar-fatura');

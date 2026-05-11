@@ -1,4 +1,54 @@
 // ==========================================
+// 🎬 TELA DE CARREGAMENTO ANIMADA (LOTTIE)
+// ==========================================
+window.mostrarCarregamento = function(mensagem) {
+    Swal.fire({
+        html: `
+            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 20px;">
+                <lottie-player 
+                    src="loading.json" 
+                    background="transparent" speed="1.5" style="width: 200px; height: 200px;" loop autoplay>
+                </lottie-player>
+                <h3 style="color: white; margin-top: 10px; font-size: 16px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
+                    ${mensagem}
+                </h3>
+            </div>
+        `,
+        background: '#161618',
+        showConfirmButton: false,
+        allowOutsideClick: false
+    });
+};
+
+window.fecharCarregamento = function() {
+    Swal.close();
+};
+
+// ==========================================
+// 🏆 TELA DE SUCESSO ANIMADA (LOTTIE)
+// ==========================================
+window.mostrarSucesso = function(titulo, mensagem) {
+    Swal.fire({
+        html: `
+            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 10px;">
+                <lottie-player 
+                    src="closer.json" 
+                    background="transparent" speed="1" style="width: 150px; height: 150px;" autoplay>
+                </lottie-player>
+                <h3 style="color: #4CAF50; margin-top: 0px; font-size: 22px; font-weight: 900; text-transform: uppercase;">
+                    ${titulo}
+                </h3>
+                <p style="color: #ccc; font-size: 14px; margin-top: 5px;">${mensagem}</p>
+            </div>
+        `,
+        background: '#161618',
+        showConfirmButton: true,
+        confirmButtonColor: '#4CAF50',
+        confirmButtonText: 'OSS! 🥋'
+    });
+};
+
+// ==========================================
 // 1. CONTROLE DO MENU LATERAL
 // ==========================================
 window.abrirMenu = function() {
