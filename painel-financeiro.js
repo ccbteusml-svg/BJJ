@@ -152,18 +152,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             try {
                 const { data: dados, error } = await window.supabase.functions.invoke('gerar-pix', {
-                    body: { valor: valorCobrado, mes: mesCobrado }
-                });
+                 body: { 
+                 valor: valorCobrado, 
+                 mes: mesCobrado, 
+                 mensalidade_id: window.mensalidadeAtualId // <-- Adicionamos isso aqui!
+    }
+});
+
                 
                 if (error) throw error;
                 
                 if (dados.status === "pending") {
-                    const mp_id_texto = String(dados.id);
-                    const { error: erroAoSalvar } = await window.supabase.from('mensalidades')
-                        .update({ mp_payment_id: mp_id_texto })
-                        .eq('id', window.mensalidadeAtualId);
-                    
-                    if (erroAoSalvar) throw erroAoSalvar;
                     
                     const transacaoInfo = dados?.point_of_interaction?.transaction_data;
                     if (!transacaoInfo || !transacaoInfo.qr_code_base64) {

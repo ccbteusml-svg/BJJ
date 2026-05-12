@@ -1,6 +1,12 @@
 /* ==========================================
    COMPORTAMENTO NATIVO DE APLICATIVO
 ========================================== */
+html {
+    background-color: #050505; /* Fundo super escuro para o tablet/PC */
+    display: flex;
+    justify-content: center; /* Centraliza o app na tela grande */
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -10,7 +16,13 @@
 }
 
 body {
-    width: 100vw;
+    /* 📱 MODO APLICATIVO ATIVADO */
+    width: 100%; 
+    max-width: 450px; /* Trava o crescimento máximo no tamanho de um celular grande */
+    margin: 0;
+    position: relative;
+    box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.9); /* Sombra 3D elegante ao redor do app */
+    
     min-height: 100vh;
     overflow-x: hidden; /* PROÍBE a tela de rolar para os lados */
     

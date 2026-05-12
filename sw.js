@@ -1,4 +1,4 @@
-const NOME_DO_CACHE = '4l-academy-v7'; 
+const NOME_DO_CACHE = '4l-academy-v8'; 
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
@@ -55,10 +55,20 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    fetch(event.request)
-      .catch(() => {
-        // Se a internet falhar (fetch deu erro), ele busca o arquivo salvo no cache
-        return caches.match(event.request);
-      })
-  );
+  caches.match(event.request).then(cachedResponse => {
+    // Dispara a busca na rede em segundo plano para atualizar o cache
+    const fetchPromise = fetch(event.request).then(networkResponse => {
+      caches.open(NOME_DO_CACHE).then(cache => {
+        cache.put(event.request, networkResponse.clone());
+      });
+      return networkResponse;
+    }).catch(() => {
+        // Ignora erros de rede aqui, pois o cache já vai salvar o usuário
+    });
+    
+    // O pulo do gato: Retorna o cache IMEDIATAMENTE se existir. 
+    // Se for o primeiro acesso e não tiver cache, ele aguarda a rede.
+    return cachedResponse || fetchPromise;
+  })
+);
 });

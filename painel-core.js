@@ -175,14 +175,19 @@ window.verificarAcesso = async function() {
         const mens = mensalidades[0];
         window.mensalidadeAtualId = mens.id; // Guarda o ID para a máquina de cartão
 
-        if (mens.mp_payment_id) {
-            const { data: foiPago } = await supabase.functions.invoke('verificar-pagamento', { body: { payment_id: mens.mp_payment_id } });
+               if (mens.mp_payment_id) {
+            // Agora enviamos também o ID da mensalidade, e a Edge Function faz o trabalho pesado
+            const { data: foiPago } = await supabase.functions.invoke('verificar-pagamento', { 
+                body: { payment_id: mens.mp_payment_id, mensalidade_id: mens.id } 
+            });
+            
+            // Se a função confirmou que tá pago (e ela mesma já atualizou o banco), a gente só atualiza a tela
             if (foiPago && foiPago.status === "approved") {
-                await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', mens.id);
                 window.verificarAcesso();
                 return; 
             }
         }
+
 
         document.getElementById('mes-atual').innerText = mens.mes;
         document.getElementById('valor-pagamento').innerText = `R$ ${mens.valor},00`;
