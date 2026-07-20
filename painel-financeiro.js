@@ -3,15 +3,26 @@
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // ⚠️ SUAS CREDENCIAIS DO MERCADO PAGO (Apenas a Pública, 100% seguro!)
+    // ⚠️ SUAS CREDENCIAIS DO MERCADO PAGO
     const MP_PUBLIC_KEY = "APP_USR-2dcd1a56-a86a-4967-b8ae-466813eabb1e"; 
-    const mp = new window.MercadoPago(MP_PUBLIC_KEY);
-    const bricksBuilder = mp.bricks();
+    
+    // Variáveis vazias inicialmente
+    let mp;
+    let bricksBuilder;
+
+    // VERIFICAÇÃO DE DEFESA: Só liga a máquina se o SDK existir
+    if (typeof window.MercadoPago !== 'undefined') {
+        mp = new window.MercadoPago(MP_PUBLIC_KEY);
+        bricksBuilder = mp.bricks();
+    } else {
+        console.warn("Mercado Pago offline. Modo restrito ativado.");
+    }
 
     // ==========================================
     // 2. MÁQUINA DE CARTÃO INTELIGENTE
     // ==========================================
     window.voltarParaOpcoes = function() {
+
         if (window.cardPaymentBrickController) {
             window.cardPaymentBrickController.unmount();
         }
@@ -19,9 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof window.verificarAcesso === 'function') window.verificarAcesso(); 
     };
 
-    window.abrirMaquinaCartao = async function(tipoPagamento) {
+        window.abrirMaquinaCartao = async function(tipoPagamento) {
+        // DEFESA: Avisa o aluno se ele tentar abrir a máquina sem internet
+        if (!bricksBuilder) {
+            Swal.fire({ icon: 'error', title: 'Sem Conexão', text: 'Você precisa de internet para abrir a máquina de cartão.', background: '#161618', color: '#fff' });
+            return;
+        }
+
         try {
             window.mostrarCarregamentocartao('Abrindo Máquina...');
+
             document.getElementById('opcoes-pagamento').style.display = "none";
 
             const btnAdiantar = document.getElementById('btn-adiantar-fatura');

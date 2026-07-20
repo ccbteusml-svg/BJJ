@@ -5,16 +5,23 @@ const ARQUIVOS_PARA_SALVAR = [
   './index.html',
   './cadastro.html',
   './painel.html',
-  './admin.html',
+  './admin.html',            // ✅ O HTML do admin
   './style.css',
   './app.js',
   './cadastro.js',
-  './painel.js',
-  './admin.js',
+  './painel-core.js',
+  './painel-financeiro.js',
+  './painel-perfil.js',
+  './admin-core.js',         // ✅ Script principal do admin adicionado
+  './admin-alunos.js',       // ✅ Script de alunos adicionado
+  './admin-financeiro.js',   // ✅ Script financeiro adicionado
   './manifest.json',
   './4L.png',
-  './fundo-aluno.png'
+  './fundo-aluno.png',
+  './loading.json'
 ];
+
+
 
 // 1. INSTALAÇÃO: O navegador baixa e salva os arquivos da lista acima
 self.addEventListener('install', event => {
@@ -49,13 +56,14 @@ self.addEventListener('fetch', event => {
   // Ignora requisições para o Supabase, ImgBB, Mercado Pago (não podemos fazer cache de banco de dados/API)
   if (event.request.url.includes('supabase.co') || 
       event.request.url.includes('mercadopago.com') ||
-      event.request.url.includes('imgbb.com') || 
       event.request.url.includes('ui-avatars.com')) {
       return; 
   }
 
+
   event.respondWith(
-  caches.match(event.request).then(cachedResponse => {
+    caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
+
     // Dispara a busca na rede em segundo plano para atualizar o cache
     const fetchPromise = fetch(event.request).then(networkResponse => {
       caches.open(NOME_DO_CACHE).then(cache => {

@@ -20,13 +20,10 @@ window.obterCorDaFaixa = function(nomeFaixa) {
 // ==========================================
 // 1. WIDGET DE ANIVERSARIANTES
 // ==========================================
-window.carregarAniversariantes = async function() {
+window.renderizarAniversariantes = function(alunos) {
     const widget = document.getElementById('widget-aniversarios');
     if(!widget) return;
     
-    widget.innerHTML = `<div class="skeleton" style="width: 100%; height: 80px; margin-bottom: 20px; border-radius: 10px;"></div>`;
-
-    const { data: alunos } = await supabase.from('perfis').select('nome, data_nascimento, foto_url, telefone').neq('cargo', 'professor').not('data_nascimento', 'is', null);
     const mesAtual = new Date().getMonth() + 1;
     
     const aniversariantes = (alunos || []).filter(aluno => {
@@ -49,6 +46,7 @@ window.carregarAniversariantes = async function() {
     });
     widget.innerHTML = `<div class="card-status" style="padding: 15px; margin-bottom: 20px; background: linear-gradient(135deg, #1a1a1c, #2a1a1c); border-left: 4px solid #E53935;"><h4 style="color: #E53935; margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; font-weight: 900;">🎉 Aniversariantes do Mês</h4>${htmlLista}</div>`;
 };
+
 
 // ==========================================
 // 2. CADASTRAR NOVO ALUNO

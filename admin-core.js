@@ -76,7 +76,8 @@ window.trocarAba = function(idAba, elemento) {
     fecharMenu(); 
     window.scrollTo(0, 0); 
     
-    if(idAba === 'aba-pendentes' && typeof carregarPendentes === 'function') carregarPendentes();
+    if(idAba === 'aba-pendentes' && typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
+
     if(idAba === 'aba-alunos' && typeof carregarTodosAlunos === 'function') carregarTodosAlunos(); 
     if(idAba === 'aba-mural' && typeof carregarAvisosAdmin === 'function') carregarAvisosAdmin(); 
 };
@@ -91,8 +92,10 @@ async function verificarAcessoAdmin() {
     const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
     if (!perfil || perfil.cargo !== 'professor') { window.location.href = "painel.html"; return; }
     
-    if(typeof carregarPendentes === 'function') carregarPendentes();
+    // AQUI: Chama a função nova de otimização em vez da antiga!
+    if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
 }
+
 
 window.alterarModoManutencao = async function() {
     const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
@@ -154,9 +157,24 @@ window.deletarAviso = async function(id) {
 // 5. EFEITO SANFONA E CONFIGURAÇÕES DA CONTA
 // ==========================================
 window.toggleSanfona = function(idSecao) {
+    // 1. Lista de todos os menus sanfona que existem na tela
+    const todasSanfonas = ['config-seguranca', 'config-novo-aluno', 'config-mensalidades', 'config-manutencao'];
+
+    // 2. Fecha automaticamente todos os menus que NÃO foram o que você clicou agora
+    todasSanfonas.forEach(id => {
+        if (id !== idSecao) {
+            const secaoFechada = document.getElementById(id);
+            const setaFechada = document.getElementById('seta-' + id);
+            if (secaoFechada) secaoFechada.style.display = 'none';
+            if (setaFechada) setaFechada.innerText = '▼';
+        }
+    });
+
+    // 3. Abre ou fecha o menu que você efetivamente clicou
     const c = document.getElementById(idSecao); 
     const s = document.getElementById('seta-' + idSecao);
     if(!c) return;
+    
     c.style.display = (c.style.display === 'none' || c.style.display === '') ? 'block' : 'none';
     if(s) s.innerText = c.style.display === 'block' ? '▲' : '▼';
 };
@@ -174,6 +192,26 @@ window.atualizarMeusDados = async function() {
         const { error: errSenha } = await supabase.auth.updateUser({ password: novaSenha });
         if (errSenha) Swal.fire({ icon: 'error', title: 'Erro', text: errSenha.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
         else Swal.fire({ icon: 'success', title: 'Senha Atualizada!', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+    }
+};
+
+// ==========================================
+// FUNÇÃO MESTRE: BUSCA CENTRALIZADA (OTIMIZAÇÃO)
+// ==========================================
+window.iniciarPainelAdmin = async function() {
+    try {
+        // Dispara as buscas AO MESMO TEMPO no Supabase uma única vez
+        const [ { data: alunos }, { data: mensalidades } ] = await Promise.all([
+            supabase.from('perfis').select('id, nome, telefone, plano_pausado, cargo, data_nascimento, foto_url, faixa').neq('cargo', 'professor'),
+            supabase.from('mensalidades').select('*')
+        ]);
+
+        // Distribui os dados prontos para as abas montarem as telas
+        if (typeof window.renderizarAniversariantes === 'function') window.renderizarAniversariantes(alunos);
+        if (typeof window.renderizarPendentes === 'function') window.renderizarPendentes(mensalidades, alunos);
+
+    } catch (err) {
+        console.error("Erro na busca central:", err);
     }
 };
 
@@ -203,7 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Verifica a manutenção e o acesso
+    // Verifica a manutenção e o acesso (que agora puxa a inicialização correta)
     checarStatusInicial();
     verificarAcessoAdmin();
 });

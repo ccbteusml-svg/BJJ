@@ -1,70 +1,59 @@
 // ==========================================
 // 1. CARREGAR DASHBOARD E PENDENTES
 // ==========================================
-window.carregarPendentes = async function() {
-    if (typeof carregarAniversariantes === 'function') carregarAniversariantes(); 
-    
+window.renderizarPendentes = function(mensalidades, todosAlunos) {
     const lista = document.getElementById('lista-pendentes');
     const txtRecebido = document.getElementById('total-recebido');
     const txtPendente = document.getElementById('total-pendente');
     const txtPrevisao = document.getElementById('total-previsao');
     const txtAlunosCount = document.getElementById('total-alunos-count');
     
-    if(!lista) return;
-
-    lista.innerHTML = `
-        <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid #333;"><div style="display: flex; justify-content: space-between; margin-bottom: 15px;"><div class="skeleton" style="width: 140px; height: 18px;"></div><div class="skeleton" style="width: 25px; height: 18px;"></div></div><div style="display: flex; gap: 8px;"><div class="skeleton" style="flex: 2; height: 32px; border-radius: 6px;"></div><div class="skeleton" style="flex: 1; height: 32px; border-radius: 6px;"></div></div></div>
-        <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid #333;"><div style="display: flex; justify-content: space-between; margin-bottom: 15px;"><div class="skeleton" style="width: 110px; height: 18px;"></div><div class="skeleton" style="width: 25px; height: 18px;"></div></div><div style="display: flex; gap: 8px;"><div class="skeleton" style="flex: 2; height: 32px; border-radius: 6px;"></div><div class="skeleton" style="flex: 1; height: 32px; border-radius: 6px;"></div></div></div>
-    `;
-
-    try {
-        const { data: mensalidades } = await supabase.from('mensalidades').select('*');
-        const { data: todosAlunos } = await supabase.from('perfis').select('id, nome, telefone, plano_pausado, cargo').neq('cargo', 'professor');
-
-        let totalPago = 0; let totalEmAberto = 0;
+    if (!lista) return;
+    
+    let totalPago = 0;
+    let totalEmAberto = 0;
+    
+    (mensalidades || []).forEach(m => {
+        let valor = parseFloat(m.valor) || 0;
+        if (m.status.toLowerCase().trim() === 'pago') totalPago += valor;
+        else totalEmAberto += valor;
+    });
+    
+    if (txtRecebido) txtRecebido.innerText = `R$ ${totalPago},00`;
+    if (txtPendente) txtPendente.innerText = `R$ ${totalEmAberto},00`;
+    if (txtPrevisao) txtPrevisao.innerText = `R$ ${totalPago + totalEmAberto},00`;
+    if (txtAlunosCount) txtAlunosCount.innerText = (todosAlunos || []).filter(a => a.plano_pausado !== true).length;
+    
+    const pendentes = (mensalidades || []).filter(m => m.status.toLowerCase().trim() === 'pendente');
+    
+    if (pendentes.length === 0) {
+        lista.innerHTML = `<p style="color: #4CAF50; text-align: center; margin-top: 20px;">✅ Tudo em dia!</p>`;
+        return;
+    }
+    
+    lista.innerHTML = "";
+    for (const mens of pendentes) {
+        const aluno = (todosAlunos || []).find(a => a.id === mens.aluno_id);
+        if (aluno && aluno.plano_pausado === true) continue;
         
-        (mensalidades || []).forEach(m => {
-            let valor = parseFloat(m.valor) || 0;
-            if (m.status.toLowerCase().trim() === 'pago') totalPago += valor;
-            else totalEmAberto += valor;
-        });
-
-        if(txtRecebido) txtRecebido.innerText = `R$ ${totalPago},00`;
-        if(txtPendente) txtPendente.innerText = `R$ ${totalEmAberto},00`;
-        if(txtPrevisao) txtPrevisao.innerText = `R$ ${totalPago + totalEmAberto},00`;
-        if(txtAlunosCount) txtAlunosCount.innerText = (todosAlunos || []).filter(a => a.plano_pausado !== true).length;
-
-        const pendentes = (mensalidades || []).filter(m => m.status.toLowerCase().trim() === 'pendente');
+        const nome = aluno ? aluno.nome : "Desconhecido";
+        const tel = aluno ? aluno.telefone : "";
         
-        if (pendentes.length === 0) {
-            lista.innerHTML = `<p style="color: #4CAF50; text-align: center; margin-top: 20px;">✅ Tudo em dia!</p>`;
-            return;
-        }
-
-        lista.innerHTML = ""; 
-        for (const mens of pendentes) {
-            const aluno = (todosAlunos || []).find(a => a.id === mens.aluno_id);
-            if (aluno && aluno.plano_pausado === true) continue;
-
-            const nome = aluno ? aluno.nome : "Desconhecido";
-            const tel = aluno ? aluno.telefone : "";
-            
-            lista.innerHTML += `
-            <div class="card-status" style="padding: 16px; margin-bottom: 15px; border-left: 4px solid #ff5252; background: #1a1a1c; border-radius: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <div>
-                        <p style="color: white; font-weight: 800; font-size: 16px; margin: 0 0 4px 0;">${nome}</p>
-                        <p style="color: #888; font-size: 12px; margin: 0; text-transform: uppercase;">${mens.mes} &bull; <strong style="color: #ff5252; font-size: 13px;">R$ ${mens.valor}</strong></p>
-                    </div>
-                    <button onclick="cancelarCobranca('${mens.id}')" style="background: rgba(255, 82, 82, 0.1); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer;">🗑️</button>
+        lista.innerHTML += `
+        <div class="card-status" style="padding: 16px; margin-bottom: 15px; border-left: 4px solid #ff5252; background: #1a1a1c; border-radius: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div>
+                    <p style="color: white; font-weight: 800; font-size: 16px; margin: 0 0 4px 0;">${nome}</p>
+                    <p style="color: #888; font-size: 12px; margin: 0; text-transform: uppercase;">${mens.mes} &bull; <strong style="color: #ff5252; font-size: 13px;">R$ ${mens.valor}</strong></p>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="darBaixa('${mens.id}')" style="flex: 2; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; padding: 12px; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; cursor: pointer;">✅ Dar Baixa</button>
-                    <button onclick="cobrarNoZap('${tel}', '${nome}', '${mens.mes}', '${mens.valor}')" style="flex: 1; background: #25D366; border: none; color: #000; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 900; text-transform: uppercase; display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer;">💬 Zap</button>
-                </div>
-            </div>`;
-        }
-    } catch (err) { lista.innerHTML = `<p style="color: #ff5252; text-align: center;">Erro ao buscar dados.</p>`; }
+                <button onclick="cancelarCobranca('${mens.id}')" style="background: rgba(255, 82, 82, 0.1); border: none; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer;">🗑️</button>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="darBaixa('${mens.id}')" style="flex: 2; background: rgba(76, 175, 80, 0.1); border: 1px solid #4CAF50; color: #4CAF50; padding: 12px; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; cursor: pointer;">✅ Dar Baixa</button>
+                <button onclick="cobrarNoZap('${tel}', '${nome}', '${mens.mes}', '${mens.valor}')" style="flex: 1; background: #25D366; border: none; color: #000; padding: 12px; border-radius: 8px; font-size: 13px; font-weight: 900; text-transform: uppercase; display: flex; justify-content: center; align-items: center; gap: 6px; cursor: pointer;">💬 Zap</button>
+            </div>
+        </div>`;
+    }
 };
 
 // ==========================================
