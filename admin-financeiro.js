@@ -71,13 +71,21 @@ window.cobrarNoZap = function(telefone, nome, mes, valor) {
 
 window.cancelarCobranca = async function(id) {
     const result = await Swal.fire({ title: 'Apagar?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#E53935', cancelButtonColor: '#333', confirmButtonText: 'Sim', cancelButtonText: 'Não', background: '#161618', color: '#fff' });
-    if(result.isConfirmed) { await supabase.from('mensalidades').delete().eq('id', id); carregarPendentes(); }
+    if(result.isConfirmed) { 
+        await supabase.from('mensalidades').delete().eq('id', id); 
+        if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin(); 
+    }
 };
+
 
 window.darBaixa = async function(id) {
     const result = await Swal.fire({ title: 'Recebido?', icon: 'question', showCancelButton: true, confirmButtonColor: '#4CAF50', cancelButtonColor: '#333', confirmButtonText: 'Sim', cancelButtonText: 'Não', background: '#161618', color: '#fff' });
-    if(result.isConfirmed) { await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', id); carregarPendentes(); }
+    if(result.isConfirmed) { 
+        await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', id); 
+        if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin(); 
+    }
 };
+
 
 // ==========================================
 // 3. GERAR MENSALIDADES E ROBÔ
@@ -118,10 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     aluno_id: aluno.id, mes: mes, valor: aluno.valor_mensalidade || parseFloat(valorPadrao), status: 'pendente'
                 }));
 
-                await supabase.from('mensalidades').insert(cobrancas);
-                Swal.fire({ icon: 'success', title: 'Geradas!', text: `${alunosParaCobrar.length} cobranças.`, background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
-                document.getElementById('mes-geral').value = '';
-                carregarPendentes(); 
+                        await supabase.from('mensalidades').insert(cobrancas);
+        Swal.fire({ icon: 'success', title: 'Geradas!', text: `${alunosParaCobrar.length} cobranças.`, background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+        document.getElementById('mes-geral').value = '';
+        if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin(); // <--- SOLUÇÃO
+
 
             } catch (err) { Swal.fire({ icon: 'error', title: 'Erro', text: err.message, background: '#161618', color: '#fff' }); }
         });
