@@ -136,18 +136,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const btnRobo = document.getElementById('btn-disparar-robos');
+        const btnRobo = document.getElementById('btn-disparar-robos');
     if(btnRobo) {
         btnRobo.addEventListener('click', async (e) => {
             const btn = e.target; btn.innerText = "⏳ Disparando..."; btn.disabled = true;
             try {
-                await supabase.functions.invoke('robo-cobranca');
-                Swal.fire({ icon: 'success', title: 'Enviado!', text: 'Cobranças disparadas.', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+                // Chamando o robô e guardando a resposta dele na variável 'data'
+                const { data, error } = await supabase.functions.invoke('robo-financeiro');
+                
+                if (error) throw error; // Se a rede cair ou der erro grave
+
+                // Mostrando na tela EXATAMENTE o que o robô disse
+                Swal.fire({ 
+                    icon: 'info', 
+                    title: 'Aviso do Robô', 
+                    text: data.message || 'Comando executado.', 
+                    background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' 
+                });
+
             } catch (err) {
-                Swal.fire({ icon: 'error', title: 'Falhou!', text: 'Erro ao enviar avisos.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+                // Se o robô barrar por causa do Resend, vai cair aqui
+                Swal.fire({ 
+                    icon: 'error', 
+                    title: 'Deu erro no Robô!', 
+                    text: err.message, 
+                    background: '#161618', color: '#fff', confirmButtonColor: '#E53935' 
+                });
             } finally {
                 btn.innerText = "🤖 FORÇAR DISPARO DE AVISOS"; btn.disabled = false;
             }
         });
     }
+
 });
