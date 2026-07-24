@@ -1,4 +1,4 @@
-const NOME_DO_CACHE = '4l-academy-v8'; 
+const NOME_DO_CACHE = '4l-academy-v9'; 
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
