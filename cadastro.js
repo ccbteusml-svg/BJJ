@@ -31,7 +31,8 @@ document.getElementById('form-cadastro').addEventListener('submit', async functi
     feedback.innerText = "";
 
     // Criando o Auth e já mandando os dados extras (metadados) para o Gatilho do banco de dados
-    const { data, error: authError } = await supabase.auth.signUp({
+    const { data, error: authError } = await window.supabase.auth.signUp({
+
         email: email,
         password: senha,
         options: {
@@ -47,13 +48,20 @@ document.getElementById('form-cadastro').addEventListener('submit', async functi
 
 
 
-        if (authError) {
+            if (authError) {
         feedback.style.color = "#E53935";
-        feedback.innerText = "Erro: " + authError.message;
+        
+        // Força a extração do texto de erro seja qual for o formato que o Supabase mandar
+        let motivoReal = authError.message || JSON.stringify(authError);
+        
+        // Muda o texto para termos certeza absoluta de que o código novo rodou
+        feedback.innerText = "Bloqueio do Banco: " + motivoReal;
+        
         btn.innerText = "FINALIZAR CADASTRO";
         btn.disabled = false;
         return;
     }
+
 
     // ==========================================
     // 2.NOVA MENSAGEM: AVISO DE VALIDAÇÃO DE E-MAIL

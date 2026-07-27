@@ -2,6 +2,15 @@
 // 🚀1. REDIRECIONAMENTO AUTOMÁTICO (ANTI-LOGIN REPETIDO)
 // ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
+    
+    // 🛑 A TRAVA CONTRA O BUG DA RECUPERAÇÃO:
+    // Se a pessoa estiver voltando do e-mail para trocar a senha, 
+    // a URL terá "type=recovery". Se tiver, nós ABORTAMOS o redirecionamento aqui!
+    if (window.location.hash.includes('type=recovery')) {
+        console.log("Recuperação de senha detectada. Aguardando o usuário digitar a nova senha...");
+        return; // O return faz o código parar aqui e não descer para o redirecionamento.
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session) {
@@ -22,6 +31,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 });
 
 console.log("Supabase conectado!", supabase);
+
 
 // ==========================================
 // 🕵️‍♂️ 2.SENSOR: DETECTAR VOLTA DO E-MAIL DE SENHA (VISUAL PREMIUM)
