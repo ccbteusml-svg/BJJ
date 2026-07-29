@@ -32,15 +32,17 @@ document.getElementById('form-cadastro').addEventListener('submit', async functi
 
     // Criando o Auth e já mandando os dados extras (metadados) para o Gatilho do banco de dados
     const { data, error: authError } = await window.supabase.auth.signUp({
-
         email: email,
         password: senha,
         options: {
+            // 👇 SOLUÇÃO DO ERRO 404: Força o aluno a voltar para a sua tela inicial correta
+            emailRedirectTo: 'https://ccbteusml-svg.github.io/BJJ/index.html',
+            
             data: { 
                 nome: nome,
                 telefone: telefone,
                 faixa: faixa,
-                data_nascimento: nascimento // 👇 NOVA LINHA: Envia a data para o banco
+                data_nascimento: nascimento // Envia a data para o banco
             }
         }
     });
