@@ -2,20 +2,20 @@
 // 🚀1. REDIRECIONAMENTO AUTOMÁTICO (ANTI-LOGIN REPETIDO)
 // ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
-    
+
     // 🛑 A TRAVA CONTRA O BUG DA RECUPERAÇÃO:
     // Se a pessoa estiver voltando do e-mail para trocar a senha, 
     // a URL terá "type=recovery". Se tiver, nós ABORTAMOS o redirecionamento aqui!
-    if (window.location.hash.includes('type=recovery')) {
+    if (window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery')) {
         console.log("Recuperação de senha detectada. Aguardando o usuário digitar a nova senha...");
         return; // O return faz o código parar aqui e não descer para o redirecionamento.
     }
 
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (session) {
         console.log("Sessão ativa encontrada! Redirecionando...");
-        
+
         const { data: perfil } = await supabase
             .from('perfis')
             .select('cargo')
@@ -32,6 +32,19 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 console.log("Supabase conectado!", supabase);
 
+// 👁️ Toggle de visibilidade da senha
+window.toggleSenha = function() {
+    const input = document.getElementById('senha');
+    if (!input) return;
+    const btn = input.parentElement.querySelector('button[type="button"]');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (btn) btn.innerText = '🙈';
+    } else {
+        input.type = 'password';
+        if (btn) btn.innerText = '👁️';
+    }
+};
 
 // ==========================================
 // 🕵️‍♂️ 2.SENSOR: DETECTAR VOLTA DO E-MAIL DE SENHA (VISUAL PREMIUM)
@@ -58,7 +71,7 @@ supabase.auth.onAuthStateChange(async (event, session) => {
         Swal.fire({ icon: 'error', title: 'Erro', text: error.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
       } else {
         await Swal.fire({ icon: 'success', title: 'Oss! 🥋', text: 'Senha alterada com sucesso! Entre no app.', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
-        
+
         await supabase.auth.signOut();
         window.location.href = "index.html"; 
       }
@@ -71,13 +84,13 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 // ==========================================
 document.getElementById('form-login').addEventListener('submit', async function(event) {
     event.preventDefault(); 
-    
+
     const email = document.getElementById('email').value;
     const senha = document.getElementById('senha').value;
-    const botao = event.target.querySelector('button');
-    
+    const botao = event.target.querySelector('button[type="submit"]');
+
     botao.innerText = "Carregando...";
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: senha
@@ -89,13 +102,13 @@ document.getElementById('form-login').addEventListener('submit', async function(
         botao.innerText = "Entrar";
     } else {
         botao.innerText = "Verificando acesso... 🥋";
-        
+
         const { data: perfil } = await supabase
             .from('perfis')
             .select('cargo')
             .eq('id', data.user.id)
             .single();
-            
+
         if (perfil && perfil.cargo === 'professor') {
             window.location.href = "admin.html"; 
         } else {
@@ -121,7 +134,7 @@ document.getElementById('btn-esqueci-senha').addEventListener('click', async () 
         cancelButtonText: 'Cancelar',
         cancelButtonColor: '#333'
     });
-    
+
     if (!emailAluno) return; 
 
     Swal.fire({ title: 'Enviando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });

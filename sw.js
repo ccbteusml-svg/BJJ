@@ -1,41 +1,49 @@
-const NOME_DO_CACHE = '4l-academy-v9'; 
+const NOME_DO_CACHE = '4l-academy-v10'; 
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
   './index.html',
   './cadastro.html',
   './painel.html',
-  './admin.html',            // ✅ O HTML do admin
+  './admin.html',
   './style.css',
   './app.js',
   './cadastro.js',
   './painel-core.js',
   './painel-financeiro.js',
   './painel-perfil.js',
-  './admin-core.js',         // ✅ Script principal do admin adicionado
-  './admin-alunos.js',       // ✅ Script de alunos adicionado
-  './admin-financeiro.js',   // ✅ Script financeiro adicionado
+  './admin-core.js',
+  './admin-alunos.js',
+  './admin-financeiro.js',
   './manifest.json',
   './4L.png',
   './fundo-aluno.png',
-  './loading.json'
+  './loading.json',
+  './closer.json'
 ];
 
-
-
-// 1. INSTALAÇÃO: O navegador baixa e salva os arquivos da lista acima
+// 1. INSTALAÇÃO: Salva os arquivos um por um (não falha se um estiver faltando)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(NOME_DO_CACHE)
       .then(cache => {
         console.log('[Service Worker] Salvando arquivos no cache local...');
-        return cache.addAll(ARQUIVOS_PARA_SALVAR);
+        return Promise.all(
+          ARQUIVOS_PARA_SALVAR.map(url => 
+            fetch(url).then(response => {
+              if (response.ok) return cache.put(url, response);
+              console.warn('[SW] Arquivo não encontrado (ignorado):', url);
+            }).catch(err => {
+              console.warn('[SW] Falha ao cachear:', url, err);
+            })
+          )
+        );
       })
-      .then(() => self.skipWaiting()) // Força a instalação imediata
+      .then(() => self.skipWaiting())
   );
 });
 
-// 2. ATIVAÇÃO (A FAXINA): Limpa os caches antigos se você mudou o "NOME_DO_CACHE"
+// 2. ATIVAÇÃO: Limpa caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(nomesDosCaches => {
@@ -47,36 +55,40 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim()) // Assume o controle da tela imediatamente
+    }).then(() => self.clients.claim())
   );
 });
 
-// 3. INTERCEPTAÇÃO: Tenta pegar da rede, se estiver sem internet, pega do cache
+// 3. FETCH: Cache primeiro, rede em segundo plano. Nunca retorna undefined.
 self.addEventListener('fetch', event => {
-  // Ignora requisições para o Supabase, ImgBB, Mercado Pago (não podemos fazer cache de banco de dados/API)
+  // Ignora requisições externas
   if (event.request.url.includes('supabase.co') || 
       event.request.url.includes('mercadopago.com') ||
-      event.request.url.includes('ui-avatars.com')) {
+      event.request.url.includes('ui-avatars.com') ||
+      event.request.url.includes('cdn.jsdelivr.net') ||
+      event.request.url.includes('unpkg.com') ||
+      event.request.url.includes('sdk.mercadopago.com') ||
+      event.request.url.includes('lottiefiles.com') ||
+      event.request.url.includes('qrserver.com')) {
       return; 
   }
 
-
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
-
-    // Dispara a busca na rede em segundo plano para atualizar o cache
-    const fetchPromise = fetch(event.request).then(networkResponse => {
-      caches.open(NOME_DO_CACHE).then(cache => {
-        cache.put(event.request, networkResponse.clone());
+      const fetchPromise = fetch(event.request).then(networkResponse => {
+        if (networkResponse && networkResponse.ok) {
+          caches.open(NOME_DO_CACHE).then(cache => {
+            cache.put(event.request, networkResponse.clone());
+          });
+        }
+        return networkResponse;
+      }).catch(() => {
+        // Se a rede falhar, retorna o cache (se existir)
+        return cachedResponse;
       });
-      return networkResponse;
-    }).catch(() => {
-        // Ignora erros de rede aqui, pois o cache já vai salvar o usuário
-    });
-    
-    // O pulo do gato: Retorna o cache IMEDIATAMENTE se existir. 
-    // Se for o primeiro acesso e não tiver cache, ele aguarda a rede.
-    return cachedResponse || fetchPromise;
-  })
-);
+
+      // Retorna cache imediatamente se existir, senão aguarda a rede
+      return cachedResponse || fetchPromise;
+    })
+  );
 });

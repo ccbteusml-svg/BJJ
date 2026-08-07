@@ -1,21 +1,26 @@
 {
-  "name": "Academia 4L Team - Gestão de Mensalidades",
-  "short_name": "4L Team",
-  "start_url": "/index.html",
+  "name": "4L Academy — Gestão de Mensalidades",
+  "short_name": "4L Academy",
+  "description": "Aplicativo oficial da 4L Team para alunos e professores de Jiu-Jitsu. Acompanhe mensalidades, avisos e evolução no tatame.",
+  "start_url": "./index.html",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#D32F2F",
+  "theme_color": "#E53935",
   "orientation": "portrait",
+  "categories": ["sports", "finance", "lifestyle"],
   "icons": [
     {
       "src": "icone-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "icone-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

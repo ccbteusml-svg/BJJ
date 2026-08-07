@@ -3,8 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4L Academy - Criar Conta</title>
-    <link rel="stylesheet" href="style.css">
+    <title>🥋 4L Academy — Criar Conta</title>
+    <meta name="description" content="Cadastre-se na 4L Academy e comece sua jornada no Jiu-Jitsu.">
+    <meta name="theme-color" content="#E53935">
+
+    <link rel="icon" type="image/png" href="4L.png">
+    <link rel="apple-touch-icon" href="4L.png">
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
     <div class="banner-topo"></div>
@@ -12,22 +19,27 @@
     <div class="login-container" style="margin-top: 80px; margin-bottom: 50px;">
         <h1 style="font-style: italic;">CRIAR <span style="color: #E53935;">CONTA</span></h1>
         <p class="subtitulo" style="font-size: 11px;">Junte-se à nossa equipe</p>
-        
+
         <form id="form-cadastro">
             <input type="text" id="cad-nome" placeholder="Nome Completo" required>
             <input type="email" id="cad-email" placeholder="Seu E-mail" required>
-            <input type="password" id="cad-senha" placeholder="Crie uma senha (mín. 6 dígitos)" required>
+
+            <div style="position: relative;">
+                <input type="password" id="cad-senha" placeholder="Crie uma senha (mín. 6 dígitos)" required>
+                <button type="button" onclick="toggleSenhaCadastro()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; width: auto; padding: 0; font-size: 18px;">👁️</button>
+            </div>
+
             <input type="tel" id="cad-telefone" placeholder="WhatsApp (DDD + Número)">
-            
+
             <div style="margin-bottom: 15px; text-align: left;">
                 <label style="color: #666; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; display: block; padding-left: 5px;">Data de Nascimento</label>
                 <input type="date" id="cad-nascimento" required style="width: 100%; padding: 15px; border-radius: 8px; border: 1px solid #1a1a1a; background: #0a0a0a; color: white; font-size: 14px; box-sizing: border-box;">
             </div>
             <input type="text" id="cad-faixa" placeholder="Sua Faixa Atual (Ex: Branca)">
-            
+
             <button type="submit" id="btn-cadastrar">FINALIZAR CADASTRO</button>
 
-            
+
             <p style="margin-top: 20px; font-size: 13px; color: #aaaaaa;">
                 Já tem uma conta? <a href="index.html" style="color: var(--cor-destaque); text-decoration: none; font-weight: bold;">Faça Login</a>
             </p>
@@ -36,11 +48,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script src="cadastro.js?v=2"></script>
-
+    <script src="cadastro.js?v=11" defer></script>
+    <script>
+        window.toggleSenhaCadastro = function() {
+            const input = document.getElementById('cad-senha');
+            if (!input) return;
+            const btn = input.parentElement.querySelector('button[type="button"]');
+            if (input.type === 'password') {
+                input.type = 'text';
+                if (btn) btn.innerText = '🙈';
+            } else {
+                input.type = 'password';
+                if (btn) btn.innerText = '👁️';
+            }
+        };
+    </script>
 </body>
 </html>

@@ -3,12 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4L Academy - Login</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>🥋 4L Academy — Login</title>
+    <meta name="description" content="Aplicativo oficial da 4L Academy. Gerencie treinos, mensalidades e acompanhe sua evolução no Jiu-Jitsu.">
+    <meta name="theme-color" content="#E53935">
+
+    <link rel="icon" type="image/png" href="4L.png">
+    <link rel="apple-touch-icon" href="4L.png">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
-    
-    <link rel="stylesheet" href="style.css?v=10">
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -17,24 +22,29 @@
     <div class="login-container">
         <h1 style="font-style: italic;">4L <span style="color: #E53935;">ACADEMY</span></h1>
         <p class="subtitulo" style="font-size: 11px;">Jiu-Jitsu</p>
-        
+
         <form id="form-login">
-            
+            <input type="email" id="email" placeholder="Seu E-mail" required autocomplete="email">
+
+            <div style="position: relative;">
+                <input type="password" id="senha" placeholder="Sua Senha" required autocomplete="current-password">
+                <button type="button" onclick="toggleSenha()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; width: auto; padding: 0; font-size: 18px;">👁️</button>
+            </div>
+
+            <button type="submit">Entrar</button>
+            <p id="msg-erro" style="color: #E53935; margin-top: 15px; font-size: 14px; font-weight: bold; height: 20px;"></p>
+
+            <button type="button" id="btn-esqueci-senha" style="background: none; border: none; color: var(--cor-destaque); margin-top: 15px; font-size: 13px; font-weight: bold; cursor: pointer; width: auto;">
+                Esqueci minha senha
+            </button>
+
             <p style="margin-top: 20px; font-size: 13px; color: #aaaaaa;">
                 Não tem uma conta? <a href="cadastro.html" style="color: var(--cor-destaque); text-decoration: none; font-weight: bold;">Cadastre-se aqui</a>
             </p>
 
-            <input type="email" id="email" placeholder="Seu E-mail" required>
-            <input type="password" id="senha" placeholder="Sua Senha" required>
-            <button type="submit">Entrar</button>
-            <p id="msg-erro" style="color: #E53935; margin-top: 15px; font-size: 14px; font-weight: bold; height: 20px;"></p>
-            <p id="btn-esqueci-senha" style="margin-top: 15px; font-size: 13px; color: var(--cor-destaque); cursor: pointer; font-weight: bold;">
-                Esqueci minha senha
-            </p>
-            
             <div class="social-footer">
                 <p class="social-title">Nossas Redes Sociais e Contato</p>
-                
+
                 <div class="social-icons">
                     <a href="https://www.instagram.com/4l_teamjj?igsh=MTZqZWF3eXB5YjBrNw%3D%3D&utm_source=qr" target="_blank" class="icon-metal">
                         <i class="fab fa-instagram"></i>
@@ -64,11 +74,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script src="supabase-config.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script src="app.js"></script>
+    <script src="app.js?v=11" defer></script>
 </body>
 </html>
