@@ -1,22 +1,15 @@
 // ==========================================
-// 🎬 TELA DE CARREGAMENTO ANIMADA (LOTTIE)
+// LOADING ULTRA RÁPIDO (SEM ANIMAÇÃO PESADA)
 // ==========================================
 window.mostrarCarregamento = function(mensagem) {
     Swal.fire({
-        html: `
-            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 20px;">
-                <lottie-player 
-                    src="loading.json" 
-                    background="transparent" speed="1.5" style="width: 200px; height: 200px;" loop autoplay>
-                </lottie-player>
-                <h3 style="color: white; margin-top: 10px; font-size: 16px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;">
-                    ${mensagem}
-                </h3>
-            </div>
-        `,
+        title: mensagem,
         background: '#161618',
+        color: '#fff',
         showConfirmButton: false,
-        allowOutsideClick: false
+        allowOutsideClick: false,
+        timerProgressBar: true,
+        didOpen: () => { Swal.showLoading() }
     });
 };
 
@@ -25,31 +18,24 @@ window.fecharCarregamento = function() {
 };
 
 // ==========================================
-// 🏆 TELA DE SUCESSO ANIMADA (LOTTIE)
+// SUCESSO INSTANTÂNEO
 // ==========================================
 window.mostrarSucesso = function(titulo, mensagem) {
-    Swal.fire({
-        html: `
-            <div style="display: flex; flex-direction: column; align-items: center; overflow: hidden; padding-top: 10px;">
-                <lottie-player 
-                    src="closer.json" 
-                    background="transparent" speed="1" style="width: 150px; height: 150px;" autoplay>
-                </lottie-player>
-                <h3 style="color: #4CAF50; margin-top: 0px; font-size: 22px; font-weight: 900; text-transform: uppercase;">
-                    ${titulo}
-                </h3>
-                <p style="color: #ccc; font-size: 14px; margin-top: 5px;">${mensagem}</p>
-            </div>
-        `,
-        background: '#161618',
-        showConfirmButton: true,
-        confirmButtonColor: '#4CAF50',
-        confirmButtonText: 'OSS! 🥋'
+    Swal.fire({ 
+        icon: 'success', 
+        title: titulo, 
+        text: mensagem, 
+        background: '#161618', 
+        color: '#fff', 
+        confirmButtonColor: '#4CAF50', 
+        confirmButtonText: 'OK',
+        timer: 2000,
+        showConfirmButton: false
     });
 };
 
 // ==========================================
-// 1. CONTROLE DO MENU LATERAL
+// CONTROLE DO MENU LATERAL
 // ==========================================
 window.abrirMenu = function() {
     document.getElementById('menu-lateral').classList.add('aberto');
@@ -64,7 +50,7 @@ window.fecharMenu = function() {
 };
 
 // ==========================================
-// 2. TROCA DE ABAS
+// TROCA DE ABAS
 // ==========================================
 window.trocarAba = function(idAba, elemento) {
     document.querySelectorAll('.secao-admin').forEach(s => s.style.display = 'none');
@@ -77,13 +63,12 @@ window.trocarAba = function(idAba, elemento) {
     window.scrollTo(0, 0); 
     
     if(idAba === 'aba-pendentes' && typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
-
     if(idAba === 'aba-alunos' && typeof carregarTodosAlunos === 'function') carregarTodosAlunos(); 
     if(idAba === 'aba-mural' && typeof carregarAvisosAdmin === 'function') carregarAvisosAdmin(); 
 };
 
 // ==========================================
-// 3. VERIFICAR AUTORIZAÇÃO E MODO MANUTENÇÃO
+// VERIFICAR AUTORIZAÇÃO
 // ==========================================
 async function verificarAcessoAdmin() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -92,10 +77,8 @@ async function verificarAcessoAdmin() {
     const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
     if (!perfil || perfil.cargo !== 'professor') { window.location.href = "painel.html"; return; }
     
-    // AQUI: Chama a função nova de otimização em vez da antiga!
     if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
 }
-
 
 window.alterarModoManutencao = async function() {
     const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
@@ -118,23 +101,19 @@ async function checarStatusInicial() {
 }
 
 // ==========================================
-// 4. MURAL DE AVISOS
+// MURAL DE AVISOS
 // ==========================================
 async function carregarAvisosAdmin() {
     const lista = document.getElementById('lista-avisos-admin');
     if(!lista) return;
-
-    lista.innerHTML = `
-        <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid #333;">
-            <div class="skeleton" style="width: 40%; height: 18px; margin-bottom: 12px;"></div>
-            <div class="skeleton" style="width: 90%; height: 12px; margin-bottom: 6px;"></div>
-            <div class="skeleton" style="width: 60%; height: 12px;"></div>
-        </div>
-    `;
-
+    lista.innerHTML = `<p style="color: #aaaaaa; text-align: center;">Carregando...</p>`;
     const { data: avisos } = await supabase.from('avisos').select('*');
     
     lista.innerHTML = "";
+    if (!avisos || avisos.length === 0) {
+        lista.innerHTML = `<p style="color: #aaaaaa; text-align: center;">Nenhum aviso.</p>`;
+        return;
+    }
     (avisos || []).reverse().forEach(aviso => {
         lista.innerHTML += `
             <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--cor-destaque); position: relative;">
@@ -154,13 +133,10 @@ window.deletarAviso = async function(id) {
 };
 
 // ==========================================
-// 5. EFEITO SANFONA E CONFIGURAÇÕES DA CONTA
+// SANFONA E CONFIGURAÇÕES
 // ==========================================
 window.toggleSanfona = function(idSecao) {
-    // 1. Lista de todos os menus sanfona que existem na tela
     const todasSanfonas = ['config-seguranca', 'config-novo-aluno', 'config-mensalidades', 'config-manutencao'];
-
-    // 2. Fecha automaticamente todos os menus que NÃO foram o que você clicou agora
     todasSanfonas.forEach(id => {
         if (id !== idSecao) {
             const secaoFechada = document.getElementById(id);
@@ -169,12 +145,9 @@ window.toggleSanfona = function(idSecao) {
             if (setaFechada) setaFechada.innerText = '▼';
         }
     });
-
-    // 3. Abre ou fecha o menu que você efetivamente clicou
     const c = document.getElementById(idSecao); 
     const s = document.getElementById('seta-' + idSecao);
     if(!c) return;
-    
     c.style.display = (c.style.display === 'none' || c.style.display === '') ? 'block' : 'none';
     if(s) s.innerText = c.style.display === 'block' ? '▲' : '▼';
 };
@@ -186,7 +159,6 @@ window.atualizarMeusDados = async function() {
         if (errEmail) Swal.fire({ icon: 'error', title: 'Erro', text: errEmail.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
         else Swal.fire({ icon: 'success', title: 'E-mail Atualizado!', text: 'Verifique a caixa de entrada.', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
     }
-
     const { value: novaSenha } = await Swal.fire({ title: 'Atualizar Senha', input: 'password', inputPlaceholder: 'Nova senha (mín. 6 caracteres)', background: '#161618', color: '#fff', confirmButtonColor: '#E53935', showCancelButton: true, cancelButtonColor: '#333', cancelButtonText: 'Pular' });
     if (novaSenha) {
         const { error: errSenha } = await supabase.auth.updateUser({ password: novaSenha });
@@ -196,26 +168,22 @@ window.atualizarMeusDados = async function() {
 };
 
 // ==========================================
-// FUNÇÃO MESTRE: BUSCA CENTRALIZADA (OTIMIZAÇÃO)
+// BUSCA CENTRALIZADA OTIMIZADA
 // ==========================================
 window.iniciarPainelAdmin = async function() {
     try {
-        // Dispara as buscas AO MESMO TEMPO no Supabase uma única vez
         const [ { data: alunos }, { data: mensalidades } ] = await Promise.all([
             supabase.from('perfis').select('id, nome, telefone, plano_pausado, cargo, data_nascimento, foto_url, faixa').neq('cargo', 'professor'),
             supabase.from('mensalidades').select('*')
         ]);
-
-        // Distribui os dados prontos para as abas montarem as telas
         if (typeof window.renderizarAniversariantes === 'function') window.renderizarAniversariantes(alunos);
         if (typeof window.renderizarPendentes === 'function') window.renderizarPendentes(mensalidades, alunos);
-
     } catch (err) {
         console.error("Erro na busca central:", err);
     }
 };
 
-// Dá o start na Tela
+// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     const btnSair = document.getElementById('btn-sair');
     if(btnSair) {
@@ -231,9 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const titulo = document.getElementById('aviso-titulo').value;
             const mensagem = document.getElementById('aviso-mensagem').value;
             if(!titulo || !mensagem) return;
-            
             await supabase.from('avisos').insert([{ titulo, mensagem }]);
-            
             Swal.fire({ icon: 'success', title: 'Aviso Publicado!', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
             document.getElementById('aviso-titulo').value = "";
             document.getElementById('aviso-mensagem').value = "";
@@ -241,7 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Verifica a manutenção e o acesso (que agora puxa a inicialização correta)
     checarStatusInicial();
     verificarAcessoAdmin();
 });

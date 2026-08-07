@@ -5,73 +5,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.supabase) {
         const { data: { session } } = await window.supabase.auth.getSession();
         if (session) {
-            // Se já tem sessão, manda direto para o painel
             window.location.href = "painel.html";
         }
     }
 });
 
-document.getElementById('form-cadastro').addEventListener('submit', async function(event) {
-    event.preventDefault();
+const formCadastro = document.getElementById('form-cadastro');
+if (formCadastro) {
+    formCadastro.addEventListener('submit', async function(event) {
+        event.preventDefault();
 
-    const btn = document.getElementById('btn-cadastrar');
-    const feedback = document.getElementById('msg-feedback');
+        const btn = document.getElementById('btn-cadastrar');
+        const feedback = document.getElementById('msg-feedback');
 
-    const nome = document.getElementById('cad-nome').value;
-    const email = document.getElementById('cad-email').value;
-    const senha = document.getElementById('cad-senha').value;
-    const telefone = document.getElementById('cad-telefone').value.replace(/\D/g,'');
-    const faixa = document.getElementById('cad-faixa').value || "Branca";
+        const nome = document.getElementById('cad-nome').value;
+        const email = document.getElementById('cad-email').value;
+        const senha = document.getElementById('cad-senha').value;
+        const telefone = document.getElementById('cad-telefone').value.replace(/\D/g,'');
+        const faixa = document.getElementById('cad-faixa').value || "Branca";
+        const nascimento = document.getElementById('cad-nascimento').value;
 
-    // 👇 NOVA LINHA: Captura a data de nascimento
-    const nascimento = document.getElementById('cad-nascimento').value;
-
-    btn.innerText = "Processando... 🥋";
-    btn.disabled = true;
-    feedback.innerText = "";
-
-    // Criando o Auth e já mandando os dados extras (metadados) para o Gatilho do banco de dados
-    const { data, error: authError } = await window.supabase.auth.signUp({
-        email: email,
-        password: senha,
-        options: {
-            // 👇 CORREÇÃO: URL dinâmica para funcionar em qualquer domínio/pasta
-            emailRedirectTo: window.location.origin + window.location.pathname.replace('cadastro.html', 'index.html'),
-
-            data: { 
-                nome: nome,
-                telefone: telefone,
-                faixa: faixa,
-                data_nascimento: nascimento // Envia a data para o banco
-            }
+        if (btn) {
+            btn.innerText = "Processando... 🥋";
+            btn.disabled = true;
         }
+        if (feedback) feedback.innerText = "";
+
+        const { data, error: authError } = await window.supabase.auth.signUp({
+            email: email,
+            password: senha,
+            options: {
+                emailRedirectTo: window.location.origin + window.location.pathname.replace('cadastro.html', 'index.html'),
+                data: { 
+                    nome: nome,
+                    telefone: telefone,
+                    faixa: faixa,
+                    data_nascimento: nascimento
+                }
+            }
+        });
+
+        if (authError) {
+            if (feedback) {
+                feedback.style.color = "#E53935";
+                let motivoReal = authError.message || JSON.stringify(authError);
+                feedback.innerText = "Bloqueio do Banco: " + motivoReal;
+            }
+            if (btn) {
+                btn.innerText = "FINALIZAR CADASTRO";
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        if (feedback) {
+            feedback.style.color = "#2196F3";
+            feedback.innerHTML = `📩 <b>Quase lá, ${nome.split(' ')[0]}!</b><br>Enviamos um link para <b>${email}</b>. Acesse a sua caixa de entrada (ou lixo eletrônico) e confirme o seu e-mail para liberar o acesso.`;
+        }
+        if (btn) btn.innerText = "VERIFIQUE O SEU E-MAIL";
+
+        setTimeout(() => {
+            window.location.href = "index.html";
+        }, 5000);
     });
-
-    if (authError) {
-        feedback.style.color = "#E53935";
-
-        // Força a extração do texto de erro seja qual for o formato que o Supabase mandar
-        let motivoReal = authError.message || JSON.stringify(authError);
-
-        // Muda o texto para termos certeza absoluta de que o código novo rodou
-        feedback.innerText = "Bloqueio do Banco: " + motivoReal;
-
-        btn.innerText = "FINALIZAR CADASTRO";
-        btn.disabled = false;
-        return;
-    }
-
-    // ==========================================
-    // 2.NOVA MENSAGEM: AVISO DE VALIDAÇÃO DE E-MAIL
-    // ==========================================
-    feedback.style.color = "#2196F3"; // Azul informativo
-    feedback.innerHTML = `📩 <b>Quase lá, ${nome.split(' ')[0]}!</b><br>Enviamos um link para <b>${email}</b>. Acesse a sua caixa de entrada (ou lixo eletrônico) e confirme o seu e-mail para liberar o acesso.`;
-
-    btn.innerText = "VERIFIQUE O SEU E-MAIL";
-
-    // Manda o aluno de volta para a tela de Login depois de 5 segundos, 
-    // pois ele precisa confirmar o e-mail antes de conseguir entrar no painel.
-    setTimeout(() => {
-        window.location.href = "index.html";
-    }, 5000);
-});
+}

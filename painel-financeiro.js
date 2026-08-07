@@ -2,15 +2,12 @@
 // 1. INICIALIZAÇÃO DO MERCADO PAGO E EVENTOS DA TELA
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    
-    // ⚠️ SUAS CREDENCIAIS DO MERCADO PAGO
+
     const MP_PUBLIC_KEY = "APP_USR-2dcd1a56-a86a-4967-b8ae-466813eabb1e"; 
-    
-    // Variáveis vazias inicialmente
+
     let mp;
     let bricksBuilder;
 
-    // VERIFICAÇÃO DE DEFESA: Só liga a máquina se o SDK existir
     if (typeof window.MercadoPago !== 'undefined') {
         mp = new window.MercadoPago(MP_PUBLIC_KEY);
         bricksBuilder = mp.bricks();
@@ -18,76 +15,83 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn("Mercado Pago offline. Modo restrito ativado.");
     }
 
-    // ==========================================
-    // 2. MÁQUINA DE CARTÃO INTELIGENTE
-    // ==========================================
-    window.voltarParaOpcoes = function() {
+    // Guarda o texto original do mês para evitar acúmulo de sufixos
+    let _mesOriginal = null;
 
+    window.voltarParaOpcoes = function() {
         if (window.cardPaymentBrickController) {
             window.cardPaymentBrickController.unmount();
         }
-        document.getElementById('feedback-pix').innerHTML = "";
+        const feedback = document.getElementById('feedback-pix');
+        if (feedback) feedback.innerHTML = "";
+
+        // Restaura o texto original do mês se existir
+        const mesEl = document.getElementById('mes-atual');
+        if (_mesOriginal && mesEl) mesEl.innerText = _mesOriginal;
+
         if (typeof window.verificarAcesso === 'function') window.verificarAcesso(); 
     };
 
-        window.abrirMaquinaCartao = async function(tipoPagamento) {
-        // DEFESA: Avisa o aluno se ele tentar abrir a máquina sem internet
+    window.abrirMaquinaCartao = async function() {
         if (!bricksBuilder) {
             Swal.fire({ icon: 'error', title: 'Sem Conexão', text: 'Você precisa de internet para abrir a máquina de cartão.', background: '#161618', color: '#fff' });
             return;
         }
 
         try {
-            window.mostrarCarregamentocartao('Abrindo Máquina...');
+            if (typeof window.mostrarCarregamentocartao === 'function') {
+                window.mostrarCarregamentocartao('Abrindo Máquina...');
+            }
 
-            document.getElementById('opcoes-pagamento').style.display = "none";
+            const opcoes = document.getElementById('opcoes-pagamento');
+            if (opcoes) opcoes.style.display = "none";
 
             const btnAdiantar = document.getElementById('btn-adiantar-fatura');
             if(btnAdiantar) btnAdiantar.style.display = "none";
 
             const feedback = document.getElementById('feedback-pix');
-            feedback.innerHTML = `
-                <button id="btn-voltar-cartao" style="background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;">
-                    ⬅️ Escolher outra forma de pagamento
-                </button>
-            `;
-            document.getElementById('btn-voltar-cartao').addEventListener('click', window.voltarParaOpcoes);
+            if (feedback) {
+                feedback.innerHTML = `
+                    <button id="btn-voltar-cartao" style="background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;">
+                        ⬅️ Escolher outra forma de pagamento
+                    </button>
+                `;
+                const btnVoltar = document.getElementById('btn-voltar-cartao');
+                if (btnVoltar) btnVoltar.addEventListener('click', window.voltarParaOpcoes);
+            }
 
-            let configTextos, configMetodos, nomeFuncaoSupabase;
-            const valorNaTela = document.getElementById('valor-pagamento').innerText.replace('R$ ', '').replace(',00', '');
+            const mesEl = document.getElementById('mes-atual');
+            if (mesEl && !_mesOriginal) _mesOriginal = mesEl.innerText;
+            if (mesEl) mesEl.innerText = (_mesOriginal || mesEl.innerText) + " (Pagamento Único)";
 
-            if (tipoPagamento === 'assinatura') {
-                document.getElementById('mes-atual').innerText = "Plano VIP (Recorrente)";
-                document.getElementById('status-pagamento').innerText = "💳 ASSINATURA";
-                document.getElementById('status-pagamento').style.color = "#2196F3";
-                document.getElementById('valor-pagamento').innerText = "R$ 25,00 /mês";
-                configTextos = { formTitle: "Cartão de Crédito (Assinatura)" };
-                configMetodos = { maxInstallments: 1, types: { excluded: ['debit_card'] } }; // Bloqueia débito no VIP
-                nomeFuncaoSupabase = 'gerar-assinatura';
-            } else {
-                document.getElementById('mes-atual').innerText += " (Pagamento Único)";
-                document.getElementById('status-pagamento').innerText = "💳 DÉBITO/CRÉDITO";
-                document.getElementById('status-pagamento').style.color = "#4CAF50";
-                configTextos = { formTitle: "Pagar com Cartão" };
-                configMetodos = { maxInstallments: 1 }; // Débito liberado avulso
-                nomeFuncaoSupabase = 'gerar-pagamento-cartao';
+            const valorEl = document.getElementById('valor-pagamento');
+            const valorNaTela = valorEl ? valorEl.innerText.replace('R$ ', '').replace(',00', '').replace(',', '.') : '25';
+
+            const statusEl = document.getElementById('status-pagamento');
+            if (statusEl) {
+                statusEl.innerText = "💳 DÉBITO/CRÉDITO";
+                statusEl.style.color = "#4CAF50";
             }
 
             const settings = {
                 initialization: { amount: parseFloat(valorNaTela) || 25 },
-                customization: { visual: { style: { theme: 'dark' }, texts: configTextos }, paymentMethods: configMetodos },
+                customization: { 
+                    visual: { style: { theme: 'dark' }, texts: { formTitle: "Pagar com Cartão" } }, 
+                    paymentMethods: { maxInstallments: 1 } 
+                },
                 callbacks: {
                     onReady: () => { Swal.close(); },
                     onSubmit: (dadosRecebidos) => {
                         return new Promise(async (resolve, reject) => {
                             const feedback = document.getElementById('feedback-pix');
-                            feedback.innerHTML = `⏳ Processando ${tipoPagamento === 'assinatura' ? 'Assinatura' : 'Pagamento'}...`;
+                            if (feedback) feedback.innerHTML = `⏳ Processando Pagamento...`;
 
                             try {
                                 let form = dadosRecebidos.formData || dadosRecebidos;
                                 let emailAluno = form.payer?.email || "aluno@4lacademy.com";
                                 const { data: { session } } = await window.supabase.auth.getSession();
-                                
+                                if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+
                                 const payload = {
                                     email: emailAluno,
                                     card_token: form.token,
@@ -96,17 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     payer: form.payer,
                                     installments: form.installments,
                                     aluno_id: session.user.id,             
-                                    mensalidade_id: window.mensalidadeAtualId     
+                                    mensalidade_id: window.mensalidadeAtualId,
+                                    valor: parseFloat(valorNaTela),
+                                    mes: _mesOriginal || document.getElementById('mes-atual').innerText.replace(" (Pagamento Único)", "")
                                 };
 
-                                if (tipoPagamento === 'assinatura') {
-                                    payload.plan_id = "867728a336404feca158d63874ccea3b";
-                                } else {
-                                    payload.valor = parseFloat(valorNaTela);
-                                    payload.mes = document.getElementById('mes-atual').innerText.replace(" (Pagamento Único)", "");
-                                }
-
-                                const { data, error } = await window.supabase.functions.invoke(nomeFuncaoSupabase, { body: payload });
+                                const { data, error } = await window.supabase.functions.invoke('gerar-pagamento-cartao', { body: payload });
                                 if (error) throw error;
 
                                 if (data.id && (data.status === "authorized" || data.status === "approved")) {
@@ -117,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     let erroMsg = data.message || `Cartão recusado. Motivo: ${motivoReal}`;
                                     console.log("RESPOSTA COMPLETA DO MERCADO PAGO:", data);
                                     Swal.fire({ icon: 'error', title: 'Recusado', text: erroMsg, background: '#161618', color: '#fff' });
-                                    feedback.innerHTML = `❌ Erro: ${erroMsg}`;
+                                    if (feedback) feedback.innerHTML = `❌ Erro: ${erroMsg}`;
                                     reject();
                                 }
                             } catch (err) {
@@ -132,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (window.cardPaymentBrickController) window.cardPaymentBrickController.unmount();
             window.cardPaymentBrickController = await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', settings);
-            
+
             setTimeout(() => {
                 const formCartao = document.getElementById('cardPaymentBrick_container');
                 if (formCartao) formCartao.scrollIntoView({ behavior: 'smooth' });
@@ -143,91 +142,82 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // LIGANDO OS BOTÕES NA MÁQUINA DE CARTÃO
     const btnShowCard = document.getElementById('btn-show-card');
-    if (btnShowCard) btnShowCard.addEventListener('click', () => window.abrirMaquinaCartao('avulso'));
-    
-    const btnAssinarVip = document.getElementById('btn-assinar-vip');
-    if (btnAssinarVip) {
-        btnAssinarVip.addEventListener('click', () => {
-            window.trocarAbaAluno('aba-mensalidade', document.querySelector('.menu-item:first-child'));
-            window.abrirMaquinaCartao('assinatura');
-        });
-    }
+    if (btnShowCard) btnShowCard.addEventListener('click', () => window.abrirMaquinaCartao());
 
-    // ==========================================
-    // 3. PAGAMENTO COM PIX (COPIA E COLA)
-    // ==========================================
     const btnPagar = document.getElementById('btn-pagar');
     if (btnPagar) {
         btnPagar.addEventListener('click', async () => {
             const feedback = document.getElementById('feedback-pix');
-            document.getElementById('opcoes-pagamento').style.display = "none";
-            feedback.innerHTML = "⏳ Conectando ao Cofre da Academia para gerar o PIX...";
-            
-            const valorCobrado = parseFloat(document.getElementById('valor-pagamento').innerText.replace('R$ ', '').replace(',', '.'));
-            const mesCobrado = document.getElementById('mes-atual').innerText;
-            
+            const opcoes = document.getElementById('opcoes-pagamento');
+            if (opcoes) opcoes.style.display = "none";
+            if (feedback) feedback.innerHTML = "⏳ Conectando ao Cofre da Academia para gerar o PIX...";
+
+            const valorEl = document.getElementById('valor-pagamento');
+            const valorCobrado = parseFloat(valorEl ? valorEl.innerText.replace('R$ ', '').replace(',', '.') : '0');
+            const mesEl = document.getElementById('mes-atual');
+            const mesCobrado = mesEl ? mesEl.innerText : '';
+
             try {
                 const { data: dados, error } = await window.supabase.functions.invoke('gerar-pix', {
-                 body: { 
-                 valor: valorCobrado, 
-                 mes: mesCobrado, 
-                 mensalidade_id: window.mensalidadeAtualId // <-- Adicionamos isso aqui!
-    }
-});
+                    body: { 
+                        valor: valorCobrado, 
+                        mes: mesCobrado, 
+                        mensalidade_id: window.mensalidadeAtualId
+                    }
+                });
 
-                
                 if (error) throw error;
-                
+
                 if (dados.status === "pending") {
-                    
                     const transacaoInfo = dados?.point_of_interaction?.transaction_data;
                     if (!transacaoInfo || !transacaoInfo.qr_code_base64) {
                         throw new Error("O Mercado Pago demorou para gerar o QR Code. Por favor, tente novamente.");
                     }
-                    
+
                     const qrCodeBase64 = transacaoInfo.qr_code_base64;
                     const copiaCola = transacaoInfo.qr_code;
-                    
-                    feedback.innerHTML = `
-                        ✅ <b>Pix Oficial Gerado!</b><br><br>
-                        <img src="data:image/jpeg;base64,${qrCodeBase64}" style="border-radius: 10px; border: 5px solid white; margin-bottom: 10px; max-width: 100%;"><br>
-                        <p style="font-size: 13px; color: #aaaaaa; margin-bottom: 8px;">Pix Copia e Cola:</p>
-                        <code style='background:#000; padding:12px; display:block; color:#fff; font-size: 10px; word-break: break-all; border-radius: 8px; border: 1px solid #333; max-height: 60px; overflow-y: auto;'>${copiaCola}</code>
-                        <button id="btn-copiar-pix" style="background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">📋 Copiar Código Pix</button>
-                        <button id="btn-cancelar-pix" style="background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">⬅️ Cancelar Pix</button>
-                        <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: rgba(33, 150, 243, 0.1); border: 1px solid #2196F3;">
-                            <p style="color: #2196F3; font-size: 13px; margin: 0; font-weight: bold;">📡 Aguardando pagamento...</p>
-                        </div>
-                    `;
 
-                    document.getElementById('btn-cancelar-pix').addEventListener('click', window.voltarParaOpcoes);
-                    document.getElementById('btn-copiar-pix').addEventListener('click', () => {
-                        navigator.clipboard.writeText(copiaCola).then(() => {
-                            Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Código Copiado!', showConfirmButton: false, timer: 2000, background: '#161618', color: '#fff' });
-                            const btnCopiar = document.getElementById('btn-copiar-pix');
-                            btnCopiar.innerText = "✅ CÓDIGO COPIADO!";
-                            btnCopiar.style.backgroundColor = "#4CAF50";
-                            setTimeout(() => { btnCopiar.innerText = "📋 Copiar Código Pix"; btnCopiar.style.backgroundColor = "#333333"; }, 3000);
+                    if (feedback) {
+                        feedback.innerHTML = `
+                            ✅ <b>Pix Oficial Gerado!</b><br><br>
+                            <img src="data:image/jpeg;base64,${qrCodeBase64}" style="border-radius: 10px; border: 5px solid white; margin-bottom: 10px; max-width: 100%;"><br>
+                            <p style="font-size: 13px; color: #aaaaaa; margin-bottom: 8px;">Pix Copia e Cola:</p>
+                            <code style='background:#000; padding:12px; display:block; color:#fff; font-size: 10px; word-break: break-all; border-radius: 8px; border: 1px solid #333; max-height: 60px; overflow-y: auto;'>${copiaCola}</code>
+                            <button id="btn-copiar-pix" style="background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">📋 Copiar Código Pix</button>
+                            <button id="btn-cancelar-pix" style="background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">⬅️ Cancelar Pix</button>
+                            <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: rgba(33, 150, 243, 0.1); border: 1px solid #2196F3;">
+                                <p style="color: #2196F3; font-size: 13px; margin: 0; font-weight: bold;">📡 Aguardando pagamento...</p>
+                            </div>
+                        `;
+                    }
+
+                    const btnCancelar = document.getElementById('btn-cancelar-pix');
+                    const btnCopiar = document.getElementById('btn-copiar-pix');
+                    if (btnCancelar) btnCancelar.addEventListener('click', window.voltarParaOpcoes);
+                    if (btnCopiar) {
+                        btnCopiar.addEventListener('click', () => {
+                            navigator.clipboard.writeText(copiaCola).then(() => {
+                                Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Código Copiado!', showConfirmButton: false, timer: 2000, background: '#161618', color: '#fff' });
+                                btnCopiar.innerText = "✅ CÓDIGO COPIADO!";
+                                btnCopiar.style.backgroundColor = "#4CAF50";
+                                setTimeout(() => { btnCopiar.innerText = "📋 Copiar Código Pix"; btnCopiar.style.backgroundColor = "#333333"; }, 3000);
+                            });
                         });
-                    });
+                    }
                 } else {
                     Swal.fire({ icon: 'error', title: 'Erro no PIX', text: dados.message || 'Falha na comunicação.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
-                    document.getElementById('opcoes-pagamento').style.display = "flex";
+                    if (opcoes) opcoes.style.display = "flex";
                 }
             } catch (erro) {
                 Swal.fire({ icon: 'error', title: 'Erro de Conexão', text: erro.message || 'Não foi possível gerar o PIX. Tente novamente.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
-                document.getElementById('opcoes-pagamento').style.display = "flex";
-                feedback.innerHTML = ""; 
+                if (opcoes) opcoes.style.display = "flex";
+                if (feedback) feedback.innerHTML = ""; 
                 console.error(erro);
             }
         });
     }
 
-    // ==========================================
-    // 4. ADIANTAR PRÓXIMA FATURA (SELF-SERVICE)
-    // ==========================================
     const btnAdiantarFatura = document.getElementById('btn-adiantar-fatura');
     if (btnAdiantarFatura) {
         btnAdiantarFatura.addEventListener('click', async () => {
@@ -239,10 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let proximoMesIndex = dataAtual.getMonth() + 1;
             let ano = dataAtual.getFullYear();
             if (proximoMesIndex > 11) { proximoMesIndex = 0; ano++; }
-            
+
             const nomeProxMes = `${meses[proximoMesIndex]}/${ano}`;
             const { data: perfil } = await window.supabase.from('perfis').select('valor_mensalidade').eq('id', session.user.id).single();
-            const valorFatura = perfil.valor_mensalidade ? perfil.valor_mensalidade : 25; 
+            const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 25; 
 
             const result = await Swal.fire({
                 title: 'Adiantar Mensalidade?',
@@ -263,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         aluno_id: session.user.id, mes: nomeProxMes, valor: valorFatura, status: 'pendente'
                     }]);
                     if (error) throw error;
-                    
+
                     Swal.fire({ icon: 'success', title: 'Fatura Gerada!', text: 'Opções de pagamento liberadas.', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
                     if(typeof window.verificarAcesso === 'function') window.verificarAcesso();
                 } catch (err) {
@@ -272,11 +262,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-}); // Fim do DOMContentLoaded
+});
 
-// ==========================================
-// 5. HISTÓRICO E RECIBOS EM PDF (Acessível de qualquer tela)
-// ==========================================
 window.carregarHistorico = async function() {
     const lista = document.getElementById('lista-historico');
     if(!lista) return;
@@ -289,7 +276,7 @@ window.carregarHistorico = async function() {
         .from('mensalidades')
         .select('*')
         .eq('aluno_id', session.user.id)
-        .order('id', { ascending: false });
+        .order('created_at', { ascending: false });
 
     if (error || !historico || historico.length === 0) {
         lista.innerHTML = `
@@ -324,10 +311,11 @@ window.carregarHistorico = async function() {
 window.abrirRecibo = async function(mesReferencia, valorPago) {
     Swal.fire({ title: 'Gerando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
     const { data: { session } } = await window.supabase.auth.getSession();
+    if (!session) { Swal.close(); return; }
     const { data: perfil } = await window.supabase.from('perfis').select('nome').eq('id', session.user.id).single();
     const nomeAluno = perfil ? perfil.nome : "Aluno";
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
-    
+
     const htmlRecibo = `
         <div id="recibo-print" class="recibo-print">
             <div class="recibo-header">
@@ -345,6 +333,7 @@ window.abrirRecibo = async function(mesReferencia, valorPago) {
         </div>
     `;
 
+    Swal.close();
     Swal.fire({
         html: htmlRecibo,
         background: '#161618',

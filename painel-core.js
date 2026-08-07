@@ -1,5 +1,5 @@
 // ==========================================
-// 🎬 TELA DE CARREGAMENTO ANIMADA (LOTTIE)
+// TELA DE CARREGAMENTO ANIMADA (LOTTIE)
 // ==========================================
 window.mostrarCarregamento = function(mensagem) {
     Swal.fire({
@@ -49,11 +49,11 @@ window.mostrarCarregamentocartao = function(mensagem) {
 async function verificarManutencaoPainel() {
     try {
         const { data: config } = await supabase.from('sistema_config').select('manutencao_ativa, mensagem_manutencao').eq('id', 1).single();
-        
+
         if (config && config.manutencao_ativa) {
             const { data: { session } } = await supabase.auth.getSession();
             let isProfessor = false;
-            
+
             if (session) {
                 const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
                 if (perfil && perfil.cargo === 'professor') isProfessor = true;
@@ -77,32 +77,39 @@ async function verificarManutencaoPainel() {
 }
 verificarManutencaoPainel();
 
-// Variável Global para a Máquina de Cartão (Financeiro)
 window.mensalidadeAtualId = null;
 
 // ==========================================
 // 2. CONTROLE DO MENU LATERAL E NAVEGAÇÃO
 // ==========================================
 window.abrirMenu = () => { 
-    document.getElementById('menu-lateral').classList.add('aberto'); 
-    document.getElementById('menu-backdrop').style.display = 'block'; 
-    setTimeout(() => document.getElementById('menu-backdrop').style.opacity = '1', 10); 
+    const menu = document.getElementById('menu-lateral');
+    const backdrop = document.getElementById('menu-backdrop');
+    if (menu) menu.classList.add('aberto'); 
+    if (backdrop) {
+        backdrop.style.display = 'block'; 
+        setTimeout(() => backdrop.style.opacity = '1', 10); 
+    }
 };
 
 window.fecharMenu = () => { 
-    document.getElementById('menu-lateral').classList.remove('aberto'); 
-    document.getElementById('menu-backdrop').style.opacity = '0'; 
-    setTimeout(() => document.getElementById('menu-backdrop').style.display = 'none', 300); 
+    const menu = document.getElementById('menu-lateral');
+    const backdrop = document.getElementById('menu-backdrop');
+    if (menu) menu.classList.remove('aberto'); 
+    if (backdrop) {
+        backdrop.style.opacity = '0'; 
+        setTimeout(() => backdrop.style.display = 'none', 300); 
+    }
 };
 
 window.trocarAbaAluno = (idAba, elemento) => { 
     document.querySelectorAll('.secao-admin').forEach(s => s.style.display = 'none');
-    document.getElementById(idAba).style.display = 'block'; 
+    const aba = document.getElementById(idAba);
+    if (aba) aba.style.display = 'block'; 
     document.querySelectorAll('.menu-item').forEach(t => t.classList.remove('active')); 
     if (elemento) elemento.classList.add('active'); 
     window.fecharMenu(); 
-    
-    // Chama as funções especialistas apenas se existirem
+
     if(idAba === 'aba-avisos' && typeof window.carregarAvisos === 'function') window.carregarAvisos(); 
     if(idAba === 'aba-historico' && typeof window.carregarHistorico === 'function') window.carregarHistorico(); 
 };
@@ -113,20 +120,18 @@ window.trocarAbaAluno = (idAba, elemento) => {
 window.verificarAcesso = async function() {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error || !session) { window.location.href = "index.html"; return; }
-    
+
     const usuarioId = session.user.id;
 
-    // Conexão com app Android Onesignal
-    if (window.AndroidApp) {
-        window.AndroidApp.registrarUsuarioApp(usuarioId);
+    if (window.AndroidApp && typeof window.AndroidApp.registrarUsuarioApp === 'function') {
+        try { window.AndroidApp.registrarUsuarioApp(usuarioId); } catch(e) { console.warn(e); }
     }
-    
+
     const { data: perfil } = await supabase.from('perfis').select('nome, faixa, foto_url, assinante').eq('id', usuarioId).single();
 
-    // 🎨 TEMA CAMALEÃO: PINTA O APP COM A COR DA FAIXA
     if (perfil && perfil.faixa) {
         let textoFaixaDB = perfil.faixa.toLowerCase();
-        let corTema = '#E53935'; // Vermelho padrão
+        let corTema = '#E53935';
 
         if (textoFaixaDB.includes('branca')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('cinza')) corTema = '#9E9E9E';
@@ -138,31 +143,26 @@ window.verificarAcesso = async function() {
         else if (textoFaixaDB.includes('marrom')) corTema = '#8d6e63';
         else if (textoFaixaDB.includes('preta')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('coral') || textoFaixaDB.includes('vermelha')) corTema = '#D32F2F';
-        
+
         document.documentElement.style.setProperty('--cor-destaque', corTema);
     }
 
     const saudacao = document.getElementById('saudacao-aluno');
-    if (perfil) {
+    if (perfil && saudacao) {
         saudacao.innerHTML = `Olá, ${perfil.nome}! 👋 <br><span style="font-size: 14px; color: var(--cor-destaque); font-weight: bold;">🥋 ${perfil.faixa || 'Branca'}</span>`;
         if (perfil.foto_url) {
-            document.getElementById('foto-perfil-aluno').src = perfil.foto_url;
+            const img = document.getElementById('foto-perfil-aluno');
+            if (img) img.src = perfil.foto_url;
         }
     }
-    
-    // Controle do Banner VIP
-    const bannerVip = document.getElementById('banner-vip');
-    if (bannerVip) {
-        if (perfil.assinante === true) bannerVip.style.display = 'none';
-        else bannerVip.style.display = 'block';
-    }
 
-    // Controle do botão de último recibo na Home
-    const { data: ultimoPago } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pago').order('id', { ascending: false }).limit(1);
+    // CORREÇÃO: ordena por created_at ao invés de id
+    const { data: ultimoPago } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pago').order('created_at', { ascending: false }).limit(1);
     const cardReciboHome = document.getElementById('card-recibo-home');
     if (ultimoPago && ultimoPago.length > 0 && cardReciboHome) {
         cardReciboHome.style.display = "flex";
-        document.getElementById('btn-baixar-ultimo-recibo').onclick = () => {
+        const btn = document.getElementById('btn-baixar-ultimo-recibo');
+        if (btn) btn.onclick = () => {
             if (typeof window.abrirRecibo === 'function') window.abrirRecibo(ultimoPago[0].mes, ultimoPago[0].valor);
         };
     } else if (cardReciboHome) {
@@ -170,61 +170,59 @@ window.verificarAcesso = async function() {
     }
 
     // Prepara a Fatura atual na tela principal
-    const { data: mensalidades } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pendente');
+    const { data: mensalidades } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pendente').order('created_at', { ascending: true });
+    const mesEl = document.getElementById('mes-atual');
+    const valEl = document.getElementById('valor-pagamento');
+    const statusEl = document.getElementById('status-pagamento');
+    const opcoesEl = document.getElementById('opcoes-pagamento');
+    const feedbackEl = document.getElementById('feedback-pix');
+    const btnAdiantar = document.getElementById('btn-adiantar-fatura');
+
     if (mensalidades && mensalidades.length > 0) {
         const mens = mensalidades[0];
-        window.mensalidadeAtualId = mens.id; // Guarda o ID para a máquina de cartão
+        window.mensalidadeAtualId = mens.id;
 
-                       if (mens.mp_payment_id) {
+        if (mens.mp_payment_id) {
             try {
-                // Tenta verificar no servidor
                 const { data: foiPago, error: erroFuncao } = await supabase.functions.invoke('verificar-pagamento', { 
                     body: { payment_id: mens.mp_payment_id, mensalidade_id: mens.id } 
                 });
-                
-                if (erroFuncao) throw erroFuncao; // Se o Supabase reclamar, joga para o catch
-                
-                // Se foi aprovado, recarrega a tela
+
+                if (erroFuncao) throw erroFuncao;
+
                 if (foiPago && foiPago.status === "approved") {
                     window.verificarAcesso();
                     return; 
                 }
             } catch (erroDeRede) {
-                // PLANO B: Se a internet cair ou o Mercado Pago falhar, não trava o app!
                 console.warn("Falha ao checar pagamento, continuando a montagem da tela...", erroDeRede);
             }
         }
 
-
-
-        document.getElementById('mes-atual').innerText = mens.mes;
-        document.getElementById('valor-pagamento').innerText = `R$ ${mens.valor},00`;
-        const statusEl = document.getElementById('status-pagamento');
-        statusEl.innerText = "🔴 EM ABERTO";
-        statusEl.style.color = "#ff5252";
-        
-        document.getElementById('opcoes-pagamento').style.display = "flex";
-        document.getElementById('feedback-pix').innerHTML = ""; 
-
-        const btnAdiantar = document.getElementById('btn-adiantar-fatura');
-        if(btnAdiantar) btnAdiantar.style.display = "none";
+        if (mesEl) mesEl.innerText = mens.mes;
+        if (valEl) valEl.innerText = `R$ ${mens.valor},00`;
+        if (statusEl) {
+            statusEl.innerText = "🔴 EM ABERTO";
+            statusEl.style.color = "#ff5252";
+        }
+        if (opcoesEl) opcoesEl.style.display = "flex";
+        if (feedbackEl) feedbackEl.innerHTML = ""; 
+        if (btnAdiantar) btnAdiantar.style.display = "none";
     } else {
-        document.getElementById('mes-atual').innerText = "Tudo Certo!";
-        document.getElementById('valor-pagamento').innerText = "R$ 0,00";
-        const statusEl = document.getElementById('status-pagamento');
-        statusEl.innerText = "✅ EM DIA";
-        statusEl.style.color = "#4CAF50";
-        
-        document.getElementById('opcoes-pagamento').style.display = "none";
-        document.getElementById('feedback-pix').innerHTML = "";
-
-        const btnAdiantar = document.getElementById('btn-adiantar-fatura');
-        if(btnAdiantar) btnAdiantar.style.display = "block";
+        if (mesEl) mesEl.innerText = "Tudo Certo!";
+        if (valEl) valEl.innerText = "R$ 0,00";
+        if (statusEl) {
+            statusEl.innerText = "✅ EM DIA";
+            statusEl.style.color = "#4CAF50";
+        }
+        if (opcoesEl) opcoesEl.style.display = "none";
+        if (feedbackEl) feedbackEl.innerHTML = "";
+        if (btnAdiantar) btnAdiantar.style.display = "block";
     }
 };
 
 // ==========================================
-// 4. RADAR DE PAGAMENTO EM TEMPO REAL 📡
+// 4. RADAR DE PAGAMENTO EM TEMPO REAL
 // ==========================================
 window.ligarRadarEmTempoReal = async function() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -297,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Arranque
     window.verificarAcesso();
     window.ligarRadarEmTempoReal();
 });

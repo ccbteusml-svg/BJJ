@@ -1,4 +1,4 @@
-const NOME_DO_CACHE = '4l-academy-v10'; 
+const NOME_DO_CACHE = '4l-academy-v11'; 
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
@@ -12,9 +12,7 @@ const ARQUIVOS_PARA_SALVAR = [
   './painel-core.js',
   './painel-financeiro.js',
   './painel-perfil.js',
-  './admin-core.js',
-  './admin-alunos.js',
-  './admin-financeiro.js',
+  './admin-lite.js',
   './manifest.json',
   './4L.png',
   './fundo-aluno.png',
@@ -22,15 +20,14 @@ const ARQUIVOS_PARA_SALVAR = [
   './closer.json'
 ];
 
-// 1. INSTALAÇÃO: Salva os arquivos um por um (não falha se um estiver faltando)
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(NOME_DO_CACHE)
       .then(cache => {
-        console.log('[Service Worker] Salvando arquivos no cache local...');
+        console.log('[SW] Salvando arquivos no cache local...');
         return Promise.all(
           ARQUIVOS_PARA_SALVAR.map(url => 
-            fetch(url).then(response => {
+            fetch(url, { cache: 'no-cache' }).then(response => {
               if (response.ok) return cache.put(url, response);
               console.warn('[SW] Arquivo não encontrado (ignorado):', url);
             }).catch(err => {
@@ -43,14 +40,13 @@ self.addEventListener('install', event => {
   );
 });
 
-// 2. ATIVAÇÃO: Limpa caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(nomesDosCaches => {
       return Promise.all(
         nomesDosCaches.map(cacheAntigo => {
           if (cacheAntigo !== NOME_DO_CACHE) {
-            console.log('[Service Worker] Apagando cache antigo:', cacheAntigo);
+            console.log('[SW] Apagando cache antigo:', cacheAntigo);
             return caches.delete(cacheAntigo);
           }
         })
@@ -59,36 +55,49 @@ self.addEventListener('activate', event => {
   );
 });
 
-// 3. FETCH: Cache primeiro, rede em segundo plano. Nunca retorna undefined.
 self.addEventListener('fetch', event => {
-  // Ignora requisições externas
-  if (event.request.url.includes('supabase.co') || 
-      event.request.url.includes('mercadopago.com') ||
-      event.request.url.includes('ui-avatars.com') ||
-      event.request.url.includes('cdn.jsdelivr.net') ||
-      event.request.url.includes('unpkg.com') ||
-      event.request.url.includes('sdk.mercadopago.com') ||
-      event.request.url.includes('lottiefiles.com') ||
-      event.request.url.includes('qrserver.com')) {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  if (req.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
+
+  if (url.hostname.includes('supabase.co') || 
+      url.hostname.includes('mercadopago.com') ||
+      url.hostname.includes('ui-avatars.com') ||
+      url.hostname.includes('cdn.jsdelivr.net') ||
+      url.hostname.includes('unpkg.com') ||
+      url.hostname.includes('sdk.mercadopago.com') ||
+      url.hostname.includes('lottiefiles.com') ||
+      url.hostname.includes('qrserver.com')) {
       return; 
   }
 
-  event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
-      const fetchPromise = fetch(event.request).then(networkResponse => {
+  const isHTML = req.destination === 'document';
+  const isAsset = ['style', 'script', 'image', 'font'].includes(req.destination);
+
+  if (isHTML) {
+    event.respondWith(
+      fetch(req).then(networkResponse => {
         if (networkResponse && networkResponse.ok) {
-          caches.open(NOME_DO_CACHE).then(cache => {
-            cache.put(event.request, networkResponse.clone());
-          });
+          caches.open(NOME_DO_CACHE).then(cache => cache.put(req, networkResponse.clone()));
         }
         return networkResponse;
       }).catch(() => {
-        // Se a rede falhar, retorna o cache (se existir)
-        return cachedResponse;
-      });
-
-      // Retorna cache imediatamente se existir, senão aguarda a rede
-      return cachedResponse || fetchPromise;
-    })
-  );
+        return caches.match(req, { ignoreSearch: true });
+      })
+    );
+  } else if (isAsset) {
+    event.respondWith(
+      caches.match(req, { ignoreSearch: true }).then(cachedResponse => {
+        const fetchPromise = fetch(req).then(networkResponse => {
+          if (networkResponse && networkResponse.ok) {
+            caches.open(NOME_DO_CACHE).then(cache => cache.put(req, networkResponse.clone()));
+          }
+          return networkResponse;
+        }).catch(() => cachedResponse);
+        return cachedResponse || fetchPromise;
+      })
+    );
+  }
 });

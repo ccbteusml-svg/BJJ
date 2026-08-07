@@ -3,209 +3,891 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>4L Academy - Admin</title>
+    <title>4L Academy — Centro de Comando</title>
     <meta name="theme-color" content="#E53935">
     <link rel="icon" type="image/png" href="4L.png">
     <link rel="apple-touch-icon" href="4L.png">
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css?v=admin-lite">
+    <style>
+        :root {
+            --adm-bg: #0a0a0c;
+            --adm-surface: #141416;
+            --adm-surface-2: #1c1c1f;
+            --adm-border: rgba(255,255,255,0.06);
+            --adm-text: #ffffff;
+            --adm-text-2: #a0a0a8;
+            --adm-text-3: #66666e;
+            --adm-red: #E53935;
+            --adm-red-dark: #B71C1C;
+            --adm-green: #22c55e;
+            --adm-green-dim: rgba(34,197,94,0.12);
+            --adm-yellow: #f59e0b;
+            --adm-blue: #3b82f6;
+            --adm-purple: #a855f7;
+            --adm-radius: 14px;
+            --adm-radius-sm: 10px;
+        }
+
+        .adm-body {
+            background: var(--adm-bg);
+            color: var(--adm-text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            padding-bottom: 40px;
+        }
+
+        /* ===== HEADER FIXO ===== */
+        .adm-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,12,0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--adm-border);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .adm-header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .adm-header-brand img {
+            width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--adm-red);
+        }
+
+        .adm-header-brand h1 {
+            font-size: 16px; font-weight: 800; font-style: italic; margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .adm-header-brand span {
+            color: var(--adm-red);
+        }
+
+        .adm-header-actions {
+            display: flex; gap: 8px; align-items: center;
+        }
+
+        .adm-btn-icon {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: var(--adm-surface);
+            border: 1px solid var(--adm-border);
+            color: var(--adm-text);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; cursor: pointer; transition: all 0.2s;
+        }
+
+        .adm-btn-icon:active { transform: scale(0.92); background: var(--adm-surface-2); }
+
+        .adm-badge {
+            position: absolute; top: -2px; right: -2px;
+            width: 16px; height: 16px; border-radius: 50%;
+            background: var(--adm-red); font-size: 9px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--adm-bg);
+        }
+
+        /* ===== CONTAINER ===== */
+        .adm-container {
+            width: 100%; max-width: 480px; margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ===== SEÇÕES ===== */
+        .adm-secao { display: none; animation: admFadeIn 0.25s ease; }
+        .adm-secao.ativa { display: block; }
+
+        @keyframes admFadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== KPI CARDS ===== */
+        .adm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .adm-kpi {
+            background: var(--adm-surface);
+            border: 1px solid var(--adm-border);
+            border-radius: var(--adm-radius-sm);
+            padding: 14px 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .adm-kpi::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+
+        .adm-kpi.red::before { background: var(--adm-red); }
+        .adm-kpi.green::before { background: var(--adm-green); }
+        .adm-kpi.blue::before { background: var(--adm-blue); }
+        .adm-kpi.purple::before { background: var(--adm-purple); }
+
+        .adm-kpi-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            color: var(--adm-text-3); letter-spacing: 0.5px;
+            margin-bottom: 6px; display: flex; align-items: center; gap: 5px;
+        }
+
+        .adm-kpi-value {
+            font-size: 22px; font-weight: 900; color: var(--adm-text);
+            letter-spacing: -0.5px; line-height: 1;
+        }
+
+        .adm-kpi-delta {
+            font-size: 10px; margin-top: 4px; font-weight: 600;
+        }
+
+        .adm-kpi-delta.up { color: var(--adm-green); }
+        .adm-kpi-delta.down { color: var(--adm-red); }
+
+        /* ===== CARDS ===== */
+        .adm-card {
+            background: var(--adm-surface);
+            border: 1px solid var(--adm-border);
+            border-radius: var(--adm-radius);
+            margin-bottom: 14px;
+            overflow: hidden;
+        }
+
+        .adm-card-header {
+            padding: 14px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--adm-border);
+        }
+
+        .adm-card-title {
+            font-size: 13px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--adm-text);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .adm-card-body { padding: 14px 16px; }
+
+        .adm-card-footer {
+            padding: 10px 16px; border-top: 1px solid var(--adm-border);
+            display: flex; justify-content: flex-end;
+        }
+
+        /* ===== GRÁFICO BARRAS CSS ===== */
+        .adm-chart {
+            display: flex; align-items: flex-end; gap: 6px;
+            height: 80px; padding: 10px 0;
+        }
+
+        .adm-chart-bar {
+            flex: 1; border-radius: 4px 4px 0 0;
+            background: linear-gradient(to top, var(--adm-red-dark), var(--adm-red));
+            min-height: 8px; position: relative;
+            transition: height 0.6s ease;
+        }
+
+        .adm-chart-bar:hover { filter: brightness(1.2); }
+
+        .adm-chart-label {
+            position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%);
+            font-size: 9px; color: var(--adm-text-3); white-space: nowrap;
+        }
+
+        /* ===== LISTAS ===== */
+        .adm-list-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 0; border-bottom: 1px solid var(--adm-border);
+        }
+
+        .adm-list-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .adm-list-item:first-child { padding-top: 0; }
+
+        .adm-avatar {
+            width: 42px; height: 42px; border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--adm-border); flex-shrink: 0;
+        }
+
+        .adm-avatar-sm { width: 32px; height: 32px; }
+
+        .adm-list-info { flex: 1; min-width: 0; }
+
+        .adm-list-info h4 {
+            font-size: 14px; font-weight: 700; margin: 0 0 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .adm-list-info p {
+            font-size: 11px; color: var(--adm-text-2); margin: 0;
+        }
+
+        .adm-list-actions {
+            display: flex; gap: 6px; flex-shrink: 0;
+        }
+
+        .adm-btn-sm {
+            padding: 6px 10px; border-radius: 6px; font-size: 11px;
+            font-weight: 700; border: none; cursor: pointer;
+            transition: all 0.15s; white-space: nowrap;
+        }
+
+        .adm-btn-sm:active { transform: scale(0.94); }
+
+        .adm-btn-sm.ghost {
+            background: transparent; border: 1px solid var(--adm-border);
+            color: var(--adm-text-2);
+        }
+
+        .adm-btn-sm.primary {
+            background: var(--adm-red); color: white;
+        }
+
+        .adm-btn-sm.success {
+            background: var(--adm-green-dim); color: var(--adm-green);
+            border: 1px solid rgba(34,197,94,0.25);
+        }
+
+        .adm-btn-sm.whatsapp {
+            background: rgba(37,211,102,0.12); color: #25D366;
+            border: 1px solid rgba(37,211,102,0.25);
+        }
+
+        /* ===== TAGS ===== */
+        .adm-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 8px; border-radius: 20px; font-size: 10px;
+            font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+
+        .adm-tag.vip { background: rgba(59,130,246,0.15); color: var(--adm-blue); }
+        .adm-tag.inativo { background: rgba(255,255,255,0.06); color: var(--adm-text-3); }
+        .adm-tag.pendente { background: rgba(229,57,53,0.15); color: var(--adm-red); }
+        .adm-tag.pago { background: var(--adm-green-dim); color: var(--adm-green); }
+        .adm-tag.faixa {
+            width: 10px; height: 10px; border-radius: 50%; padding: 0;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        /* ===== BUSCA ===== */
+        .adm-search {
+            position: relative; margin-bottom: 14px;
+        }
+
+        .adm-search input {
+            width: 100%; padding: 12px 12px 12px 38px;
+            background: var(--adm-surface); border: 1px solid var(--adm-border);
+            border-radius: var(--adm-radius-sm); color: var(--adm-text);
+            font-size: 14px; outline: none; transition: all 0.2s;
+        }
+
+        .adm-search input:focus {
+            border-color: var(--adm-red);
+            box-shadow: 0 0 0 3px rgba(229,57,53,0.1);
+        }
+
+        .adm-search i {
+            position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+            color: var(--adm-text-3); font-size: 13px;
+        }
+
+        /* ===== FILTROS CHIP ===== */
+        .adm-filters {
+            display: flex; gap: 8px; overflow-x: auto;
+            padding-bottom: 4px; margin-bottom: 14px;
+            -ms-overflow-style: none; scrollbar-width: none;
+        }
+
+        .adm-filters::-webkit-scrollbar { display: none; }
+
+        .adm-chip {
+            padding: 7px 14px; border-radius: 20px; font-size: 12px;
+            font-weight: 600; white-space: nowrap; cursor: pointer;
+            border: 1px solid var(--adm-border); background: var(--adm-surface);
+            color: var(--adm-text-2); transition: all 0.15s; user-select: none;
+        }
+
+        .adm-chip.ativo {
+            background: var(--adm-red); color: white; border-color: var(--adm-red);
+        }
+
+        .adm-chip:active { transform: scale(0.95); }
+
+        /* ===== BOTÕES FLUTUANTES ===== */
+        .adm-fab {
+            position: fixed; bottom: 20px; right: 16px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--adm-red), var(--adm-red-dark));
+            color: white; border: none; font-size: 22px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 20px rgba(229,57,53,0.4);
+            cursor: pointer; z-index: 90; transition: all 0.2s;
+        }
+
+        .adm-fab:active { transform: scale(0.92); }
+
+        /* ===== MODAL DOSSIE ===== */
+        .adm-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px); z-index: 1000;
+            display: none; align-items: flex-end; justify-content: center;
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+
+        .adm-modal-overlay.aberto { display: flex; opacity: 1; }
+
+        .adm-modal {
+            background: var(--adm-surface);
+            border-radius: var(--adm-radius) var(--adm-radius) 0 0;
+            width: 100%; max-width: 480px; max-height: 90vh;
+            overflow-y: auto; transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-top: 1px solid var(--adm-border);
+        }
+
+        .adm-modal-overlay.aberto .adm-modal {
+            transform: translateY(0);
+        }
+
+        .adm-modal-header {
+            padding: 20px 16px 0; position: relative;
+            text-align: center;
+        }
+
+        .adm-modal-close {
+            position: absolute; top: 16px; right: 16px;
+            width: 32px; height: 32px; border-radius: 50%;
+            background: var(--adm-surface-2); border: none;
+            color: var(--adm-text); font-size: 16px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .adm-modal-avatar {
+            width: 90px; height: 90px; border-radius: 50%;
+            object-fit: cover; border: 3px solid var(--adm-red);
+            margin-bottom: 10px;
+        }
+
+        .adm-modal-name {
+            font-size: 20px; font-weight: 800; margin: 0 0 4px;
+        }
+
+        .adm-modal-belt {
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .adm-modal-tabs {
+            display: flex; gap: 0; border-bottom: 1px solid var(--adm-border);
+            margin-top: 16px;
+        }
+
+        .adm-modal-tab {
+            flex: 1; padding: 12px; text-align: center;
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            color: var(--adm-text-3); cursor: pointer; border-bottom: 2px solid transparent;
+            transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none;
+        }
+
+        .adm-modal-tab.ativo {
+            color: var(--adm-red); border-bottom-color: var(--adm-red);
+        }
+
+        .adm-modal-body { padding: 16px; }
+
+        .adm-info-grid {
+            display: grid; gap: 12px;
+        }
+
+        .adm-info-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0; border-bottom: 1px solid var(--adm-border);
+        }
+
+        .adm-info-row:last-child { border-bottom: none; }
+
+        .adm-info-label {
+            font-size: 12px; color: var(--adm-text-3); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        .adm-info-value {
+            font-size: 13px; color: var(--adm-text); font-weight: 700;
+        }
+
+        /* ===== MENU INFERIOR ===== */
+        .adm-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(20,20,22,0.95); backdrop-filter: blur(20px);
+            border-top: 1px solid var(--adm-border);
+            display: flex; justify-content: space-around;
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+            z-index: 99;
+        }
+
+        .adm-nav-item {
+            flex: 1; display: flex; flex-direction: column; align-items: center;
+            gap: 3px; padding: 6px 0; cursor: pointer;
+            color: var(--adm-text-3); transition: all 0.15s;
+            background: none; border: none; font-family: inherit;
+        }
+
+        .adm-nav-item i { font-size: 18px; }
+        .adm-nav-item span { font-size: 10px; font-weight: 700; }
+
+        .adm-nav-item.ativo { color: var(--adm-red); }
+        .adm-nav-item:active { transform: scale(0.92); }
+
+        /* ===== FORM ===== */
+        .adm-form-group { margin-bottom: 14px; }
+
+        .adm-form-label {
+            display: block; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; color: var(--adm-text-3);
+            margin-bottom: 6px; letter-spacing: 0.5px;
+        }
+
+        .adm-form-input {
+            width: 100%; padding: 12px 14px;
+            background: var(--adm-surface-2); border: 1px solid var(--adm-border);
+            border-radius: var(--adm-radius-sm); color: var(--adm-text);
+            font-size: 14px; outline: none; transition: all 0.2s;
+        }
+
+        .adm-form-input:focus {
+            border-color: var(--adm-red);
+            box-shadow: 0 0 0 3px rgba(229,57,53,0.08);
+        }
+
+        .adm-btn-full {
+            width: 100%; padding: 14px;
+            background: linear-gradient(135deg, var(--adm-red), var(--adm-red-dark));
+            color: white; border: none; border-radius: var(--adm-radius-sm);
+            font-size: 14px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;
+        }
+
+        .adm-btn-full:active { transform: scale(0.98); opacity: 0.9; }
+
+        .adm-btn-full.secondary {
+            background: var(--adm-surface-2); border: 1px solid var(--adm-border);
+            color: var(--adm-text);
+        }
+
+        /* ===== CALENDÁRIO ANIVERSÁRIO ===== */
+        .adm-bday-calendar {
+            display: flex; gap: 10px; overflow-x: auto;
+            padding: 4px 2px 14px; -ms-overflow-style: none; scrollbar-width: none;
+        }
+
+        .adm-bday-calendar::-webkit-scrollbar { display: none; }
+
+        .adm-bday-card {
+            flex-shrink: 0; width: 80px; text-align: center;
+            background: var(--adm-surface-2); border: 1px solid var(--adm-border);
+            border-radius: var(--adm-radius-sm); padding: 12px 8px;
+        }
+
+        .adm-bday-card img {
+            width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+            margin-bottom: 6px; border: 2px solid var(--adm-border);
+        }
+
+        .adm-bday-card h5 {
+            font-size: 11px; font-weight: 700; margin: 0 0 2px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .adm-bday-card p {
+            font-size: 10px; color: var(--adm-red); font-weight: 700; margin: 0;
+        }
+
+        /* ===== PROGRESSO FAIXAS ===== */
+        .adm-belt-bar {
+            display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+            background: var(--adm-surface-2); margin-top: 4px;
+        }
+
+        .adm-belt-segment {
+            flex: 1; transition: all 0.3s;
+        }
+
+        /* ===== UTILS ===== */
+        .adm-empty {
+            text-align: center; padding: 30px 20px; color: var(--adm-text-3);
+        }
+
+        .adm-empty i { font-size: 32px; margin-bottom: 8px; display: block; opacity: 0.5; }
+
+        .adm-flex { display: flex; }
+        .adm-flex-col { flex-direction: column; }
+        .adm-gap-2 { gap: 8px; }
+        .adm-gap-3 { gap: 12px; }
+        .adm-mt-2 { margin-top: 8px; }
+        .adm-mt-3 { margin-top: 12px; }
+        .adm-mb-2 { margin-bottom: 8px; }
+        .adm-w-full { width: 100%; }
+
+        .adm-scroll-x {
+            overflow-x: auto; -ms-overflow-style: none; scrollbar-width: none;
+        }
+        .adm-scroll-x::-webkit-scrollbar { display: none; }
+
+        /* ===== TOAST ===== */
+        .adm-toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-60px);
+            background: var(--adm-surface-2); border: 1px solid var(--adm-border);
+            color: var(--adm-text); padding: 12px 20px; border-radius: var(--adm-radius-sm);
+            font-size: 13px; font-weight: 600; z-index: 2000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .adm-toast.show { transform: translateX(-50%) translateY(0); }
+        .adm-toast.success { border-color: var(--adm-green); }
+        .adm-toast.error { border-color: var(--adm-red); }
+
+        /* ===== RESPONSIVE ===== */
+        @media (min-width: 640px) {
+            .adm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+    </style>
 </head>
-<body class="admin-body" style="padding-bottom: 30px;"> 
-    <div id="menu-backdrop" class="menu-backdrop" onclick="fecharMenu()"></div>
-
-    <div id="menu-lateral" class="menu-lateral">
-        <div class="menu-header">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: var(--cor-destaque); font-size: 20px;">🔺</span>
-                <h2 style="font-style: italic; font-size: 22px; margin: 0;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
-            </div>
-            <button onclick="fecharMenu()" style="background:none; border:none; color:white; font-size:24px; width:auto; padding:0; cursor:pointer;">✕</button>
+<body class="adm-body">
+    <!-- HEADER -->
+    <header class="adm-header">
+        <div class="adm-header-brand">
+            <img src="4L.png" alt="4L">
+            <h1>4L <span>ACADEMY</span></h1>
         </div>
-        <p style="color: #aaaaaa; font-size: 11px; margin-bottom: 25px; padding: 0 20px;">Gestão total da sua academia</p>
-        
-        <div class="menu-items">
-            <div class="menu-item active" onclick="trocarAba('aba-pendentes', this)">🏠 Início</div>
-            <div class="menu-item" onclick="trocarAba('aba-alunos', this)">🥋 Alunos</div>
-            <div class="menu-item" onclick="trocarAba('aba-mural', this)">📢 Mural</div>
-            <div class="menu-item" onclick="trocarAba('aba-config', this)">⚙️ Configurações</div>
-            
-            <p style="color: #444; font-size: 10px; margin: 25px 20px 10px; text-transform: uppercase; font-weight: bold;">Funcionalidades Futuras</p>
-            <div class="menu-item disabled">💲 Mensalidades (Avançado)</div>
-            <div class="menu-item disabled">📊 Relatórios de Caixa</div>
-            <div class="menu-item disabled">🎂 Aniversariantes</div>
-            
-            <div style="margin-top: auto; border-top: 1px solid var(--cor-borda); padding-top: 15px;">
-                <div class="menu-item" onclick="document.getElementById('btn-sair').click()" style="color: #E53935;">🚪 Sair do Sistema</div>
-            </div>
+        <div class="adm-header-actions">
+            <button class="adm-btn-icon" onclick="abrirSecao('config')" title="Config">
+                <i class="fa-solid fa-gear"></i>
+            </button>
         </div>
-    </div>
+    </header>
 
-    <div class="painel-container" style="width: 90%; max-width: 400px; margin: 0 auto;">
-        
-        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-top: 20px;">
-            <button onclick="abrirMenu()" style="background:none; border:none; color:white; font-size:24px; width:auto; padding:0; cursor:pointer;">☰</button>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="color: var(--cor-destaque); font-size: 18px;">🔺</span>
-                <h2 style="font-style: italic; font-size: 18px; margin: 0;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
-            </div>
-            <button style="background:none; border:none; color:white; font-size:20px; width:auto; padding:0;">🔔</button>
-        </header>
-
-        <h3 style="color: white; margin-bottom: 5px; font-weight: normal; text-align: left; font-size: 20px;">Olá, Sensei! 👋</h3>
-        <p style="color: #aaaaaa; font-size: 13px; margin-bottom: 25px; text-align: left;">Acompanhe tudo da sua academia</p>
-
-        <section id="aba-pendentes" class="secao-admin">
-         <div id="widget-aniversarios"></div>
-   
-           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;">
-    <div style="background: linear-gradient(135deg, #1b5e20 0%, #161618 100%); border: 1px solid #4CAF50; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(76, 175, 80, 0.1);">
-        <p style="color: #4CAF50; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">🟢 Recebido</p>
-        <h3 id="total-recebido" style="color: white; font-size: 18px; font-weight: 900; margin: 0;">R$ 0,00</h3>
-    </div>
-    
-    <div style="background: linear-gradient(135deg, #b71c1c 0%, #161618 100%); border: 1px solid #E53935; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.1);">
-        <p style="color: #E53935; font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px;">🔴 Pendente</p>
-        <h3 id="total-pendente" style="color: white; font-size: 18px; font-weight: 900; margin: 0;">R$ 0,00</h3>
-    </div>
-</div>
-
-<div style="background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;">
-    <div>
-        <p style="color: #888; font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 0;">Previsão Total (Mensal)</p>
-        <h3 id="total-previsao" style="color: white; font-size: 16px; margin: 2px 0 0 0; font-weight: 800;">R$ 0,00</h3>
-    </div>
-    <div style="text-align: right;">
-        <p style="color: #888; font-size: 10px; font-weight: 800; text-transform: uppercase; margin: 0;">Alunos Ativos</p>
-        <h3 id="total-alunos-count" style="color: white; font-size: 16px; margin: 2px 0 0 0; font-weight: 800;">0</h3>
-    </div>
-</div>
-
-
-            <h3 style="margin-bottom: 10px; font-size: 12px; color: #aaaaaa; text-transform: uppercase; text-align: left;">Ações Rápidas</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px;">
-                <div onclick="trocarAba('aba-config'); document.getElementById('novo-nome').focus();" style="background: var(--cor-cartao); padding: 15px 5px; border-radius: 12px; border: 1px solid var(--cor-borda); text-align: center; cursor: pointer;">
-                    <span style="font-size: 20px; color: #4CAF50; display: block; margin-bottom: 5px;">👤+</span>
-                    <p style="font-size: 11px; color: white;">Novo Aluno</p>
+    <div class="adm-container" style="padding-bottom: 80px;">
+        <!-- ===== DASHBOARD ===== -->
+        <section id="sec-dashboard" class="adm-secao ativa">
+            <div class="adm-kpi-grid">
+                <div class="adm-kpi red">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-users"></i> Alunos Ativos</div>
+                    <div class="adm-kpi-value" id="kpi-ativos">0</div>
+                    <div class="adm-kpi-delta up" id="kpi-ativos-delta">+0 este mês</div>
                 </div>
-                <div onclick="trocarAba('aba-mural'); document.getElementById('aviso-titulo').focus();" style="background: var(--cor-cartao); padding: 15px 5px; border-radius: 12px; border: 1px solid var(--cor-borda); text-align: center; cursor: pointer;">
-                    <span style="font-size: 20px; color: #ff9800; display: block; margin-bottom: 5px;">📢</span>
-                    <p style="font-size: 11px; color: white;">Mural</p>
+                <div class="adm-kpi green">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-sack-dollar"></i> Recebido</div>
+                    <div class="adm-kpi-value" id="kpi-recebido">R$ 0</div>
+                    <div class="adm-kpi-delta up" id="kpi-recebido-delta">+0% vs mês passado</div>
                 </div>
-                <div onclick="trocarAba('aba-config'); document.getElementById('mes-geral').focus();" style="background: var(--cor-cartao); padding: 15px 5px; border-radius: 12px; border: 1px solid var(--cor-borda); text-align: center; cursor: pointer;">
-                    <span style="font-size: 20px; color: #2196F3; display: block; margin-bottom: 5px;">⚡</span>
-                    <p style="font-size: 11px; color: white;">Cobranças</p>
+                <div class="adm-kpi blue">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-clock"></i> Pendente</div>
+                    <div class="adm-kpi-value" id="kpi-pendente">R$ 0</div>
+                    <div class="adm-kpi-delta down" id="kpi-pendente-delta">0 em aberto</div>
+                </div>
+                <div class="adm-kpi purple">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-crown"></i> VIPs</div>
+                    <div class="adm-kpi-value" id="kpi-vips">0</div>
+                    <div class="adm-kpi-delta up" id="kpi-vips-delta">0 recorrentes</div>
                 </div>
             </div>
 
-            <h3 style="margin-bottom: 15px; font-size: 14px; color: #aaaaaa; text-transform: uppercase; text-align: left;">Cobranças em Aberto</h3>
-            <div id="lista-pendentes"></div>
+            <!-- Gráfico -->
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-chart-simple"></i> Receita — Últimos 6 Meses</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-chart" id="grafico-receita">
+                        <!-- JS popula -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aniversariantes -->
+            <div class="adm-card" id="card-aniversarios" style="display:none;">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-cake-candles"></i> Aniversariantes do Mês</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-bday-calendar" id="lista-aniversarios"></div>
+                </div>
+            </div>
+
+            <!-- Ações Rápidas -->
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-bolt"></i> Ações Rápidas</div>
+                </div>
+                <div class="adm-card-body">
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirModalNovoAluno()" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-user-plus" style="font-size:18px;"></i>
+                            <span style="font-size:10px;">Novo Aluno</span>
+                        </button>
+                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('financeiro'); setTimeout(()=>document.getElementById('busca-financeiro')?.focus(),300);" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-file-invoice-dollar" style="font-size:18px;"></i>
+                            <span style="font-size:10px;">Cobrar</span>
+                        </button>
+                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('mural')" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
+                            <i class="fa-solid fa-bullhorn" style="font-size:18px;"></i>
+                            <span style="font-size:10px;">Aviso</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </section>
 
-                <section id="aba-alunos" class="secao-admin" style="display: none;">
-            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white; text-align: left;">🥋 MEUS ALUNOS</h3>
-            
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="text" id="busca-aluno" onkeyup="filtrarAlunos()" placeholder="🔍 Buscar..." style="flex: 1; padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px; background-color: #0a0a0a; color: white; font-size: 15px; margin-bottom: 0;">
-                
-                <select id="filtro-status" onchange="filtrarAlunos()" style="padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px; background-color: #0a0a0a; color: white; font-size: 14px; outline: none;">
-                    <option value="ativos">✅ Só Ativos</option>
-                    <option value="todos">🥋 Todos</option>
-                    <option value="inativos">🔴 Só Inativos</option>
-                    <option value="vip">💳 Só VIPs</option>
-                </select>
+        <!-- ===== ALUNOS ===== -->
+        <section id="sec-alunos" class="adm-secao">
+            <div class="adm-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="busca-aluno" placeholder="Buscar por nome, faixa ou telefone..." oninput="filtrarAlunos()">
             </div>
 
-            <div id="resumo-faixas"></div>
-
-            <div id="lista-todos-alunos"></div>
-        </section>
-
-
-        <section id="aba-mural" class="secao-admin" style="display: none;">
-            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white; text-align: left;">📢 MURAL</h3>
-            <div class="card-status" style="text-align: left; padding: 25px; margin-bottom: 20px;">
-                <input type="text" id="aviso-titulo" placeholder="Título">
-                <textarea id="aviso-mensagem" placeholder="Mensagem..." style="width: 100%; height: 80px; background: #0a0a0a; border: 1px solid var(--cor-borda); border-radius: 12px; color: white; padding: 12px; margin-bottom: 15px; font-family: inherit;"></textarea>
-                <button id="btn-publicar-aviso" style="background: transparent; border: 2px solid var(--cor-destaque);">PUBLICAR</button>
+            <div class="adm-filters" id="filtros-alunos">
+                <button class="adm-chip ativo" data-filtro="todos" onclick="setFiltroAluno('todos')">Todos</button>
+                <button class="adm-chip" data-filtro="ativos" onclick="setFiltroAluno('ativos')">Ativos</button>
+                <button class="adm-chip" data-filtro="inativos" onclick="setFiltroAluno('inativos')">Inativos</button>
+                <button class="adm-chip" data-filtro="vip" onclick="setFiltroAluno('vip')">VIP</button>
+                <button class="adm-chip" data-filtro="pendentes" onclick="setFiltroAluno('pendentes')">Débito</button>
             </div>
-            <div id="lista-avisos-admin"></div>
-        </section>
 
-        <section id="aba-config" class="secao-admin" style="display: none;">
-            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white; text-align: left;">⚙️ CONFIGURAÇÕES</h3>
-            
-            <div class="card-status" style="padding: 0; margin-bottom: 15px; text-align: left; overflow: hidden;">
-                <button onclick="toggleSanfona('config-seguranca')" style="background: transparent; border: none; padding: 20px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; margin-bottom: 0;">
-                    <span>🔒 SEGURANÇA DA CONTA</span>
-                    <span id="seta-config-seguranca" style="color: var(--cor-destaque);">▼</span>
-                </button>
-                <div id="config-seguranca" style="display: none; padding: 0 20px 20px 20px; border-top: 1px solid #333;">
-                    <p style="font-size: 11px; color: #aaaaaa; margin-bottom: 15px; margin-top: 15px;">Atualize o seu e-mail de acesso ou a sua senha de Professor.</p>
-                    <button onclick="atualizarMeusDados()" style="background: transparent; border: 1px solid white; color: white;">ALTERAR DADOS</button>
+            <!-- Resumo Faixas -->
+            <div class="adm-card" id="card-faixas" style="display:none;">
+                <div class="adm-card-body">
+                    <div id="resumo-faixas-content" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
                 </div>
             </div>
 
-            <div class="card-status" style="padding: 0; margin-bottom: 15px; text-align: left; overflow: hidden;">
-                <button onclick="toggleSanfona('config-novo-aluno')" style="background: transparent; border: none; padding: 20px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; margin-bottom: 0;">
-                    <span>➕ NOVO ALUNO</span>
-                    <span id="seta-config-novo-aluno" style="color: var(--cor-destaque);">▼</span>
-                </button>
-                <div id="config-novo-aluno" style="display: none; padding: 0 20px 20px 20px; border-top: 1px solid #333;">
-                    <form id="form-novo-aluno" style="margin-top: 15px;">
-                        <input type="text" id="novo-nome" placeholder="Nome" required>
-                        <input type="email" id="novo-email" placeholder="E-mail" required>
-                        <input type="text" id="novo-senha" placeholder="Senha" required>
-                        <input type="tel" id="novo-telefone" placeholder="WhatsApp">
-                        <label style="color: #aaa; font-size: 11px; text-transform: uppercase; display: block; margin-top: 15px;">Data de Nascimento:</label>
-                        <input type="date" id="novo-nascimento" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0a0a0a; color: white; margin-top: 5px; margin-bottom: 15px;">
+            <div id="lista-alunos"></div>
+        </section>
 
-                        <input type="text" id="novo-faixa" placeholder="Faixa/Grau">
-                        <button type="submit" id="btn-salvar-aluno" style="background: transparent; border: 2px solid var(--cor-destaque);">SALVAR</button>
+        <!-- ===== FINANCEIRO ===== -->
+        <section id="sec-financeiro" class="adm-secao">
+            <div class="adm-kpi-grid" style="grid-template-columns: 1fr 1fr;">
+                <div class="adm-kpi green">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-check"></i> Recebido</div>
+                    <div class="adm-kpi-value" id="fin-recebido">R$ 0</div>
+                </div>
+                <div class="adm-kpi red">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-triangle-exclamation"></i> Pendente</div>
+                    <div class="adm-kpi-value" id="fin-pendente">R$ 0</div>
+                </div>
+            </div>
+
+            <div class="adm-search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="busca-financeiro" placeholder="Buscar aluno com débito..." oninput="filtrarFinanceiro()">
+            </div>
+
+            <div id="lista-financeiro"></div>
+        </section>
+
+        <!-- ===== MURAL ===== -->
+        <section id="sec-mural" class="adm-secao">
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-pen-to-square"></i> Novo Aviso</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-form-group">
+                        <input type="text" id="aviso-titulo" class="adm-form-input" placeholder="Título do aviso">
+                    </div>
+                    <div class="adm-form-group">
+                        <textarea id="aviso-mensagem" class="adm-form-input" rows="3" placeholder="Mensagem..."></textarea>
+                    </div>
+                    <button class="adm-btn-full" onclick="publicarAviso()">
+                        <i class="fa-solid fa-paper-plane"></i> Publicar no Mural
+                    </button>
+                </div>
+            </div>
+
+            <h3 style="font-size:13px; font-weight:800; text-transform:uppercase; color:var(--adm-text-3); margin: 20px 0 12px; letter-spacing:0.5px;">
+                <i class="fa-solid fa-clock-rotate-left"></i> Histórico de Avisos
+            </h3>
+            <div id="lista-avisos"></div>
+        </section>
+
+        <!-- ===== CONFIG / FERRAMENTAS ===== -->
+        <section id="sec-config" class="adm-secao">
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-user-plus"></i> Cadastrar Aluno</div>
+                </div>
+                <div class="adm-card-body">
+                    <form id="form-novo-aluno" onsubmit="return false;">
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">Nome Completo</label>
+                            <input type="text" id="novo-nome" class="adm-form-input" placeholder="Ex: João Silva" required>
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">E-mail</label>
+                            <input type="email" id="novo-email" class="adm-form-input" placeholder="aluno@email.com" required>
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">Senha</label>
+                            <input type="text" id="novo-senha" class="adm-form-input" placeholder="Mínimo 6 caracteres" required>
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">WhatsApp</label>
+                            <input type="tel" id="novo-telefone" class="adm-form-input" placeholder="(92) 99999-9999">
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">Data de Nascimento</label>
+                            <input type="date" id="novo-nascimento" class="adm-form-input" required>
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">Faixa / Grau</label>
+                            <input type="text" id="novo-faixa" class="adm-form-input" placeholder="Ex: Branca, Azul 2º Grau">
+                        </div>
+                        <div class="adm-form-group">
+                            <label class="adm-form-label">Valor Mensalidade (R$)</label>
+                            <input type="number" id="novo-valor" class="adm-form-input" placeholder="25" value="25">
+                        </div>
+                        <button type="button" class="adm-btn-full" onclick="cadastrarAluno()">
+                            <i class="fa-solid fa-check"></i> Criar Cadastro
+                        </button>
                     </form>
                 </div>
             </div>
 
-            <div class="card-status" style="padding: 0; margin-bottom: 15px; text-align: left; overflow: hidden;">
-                <button onclick="toggleSanfona('config-mensalidades')" style="background: transparent; border: none; padding: 20px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; margin-bottom: 0;">
-                    <span>⚡ GERAR MENSALIDADES</span>
-                    <span id="seta-config-mensalidades" style="color: var(--cor-destaque);">▼</span>
-                </button>
-                <div id="config-mensalidades" style="display: none; padding: 0 20px 20px 20px; border-top: 1px solid #333;">
-                    <div style="margin-top: 15px;">
-                        <input type="text" id="mes-geral" placeholder="Ex: Agosto / 2026">
-                        <input type="number" id="valor-geral" placeholder="Valor" value="25">
-                        <button id="btn-gerar-mes" style="background: transparent; border: 2px solid var(--cor-destaque);">COBRAR TODOS</button>
-                        <button id="btn-disparar-robos" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); margin-top: 15px; border: none; font-size: 13px;">🤖 FORÇAR DISPARO DE AVISOS</button>
+            <div class="adm-card adm-mt-3">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-bolt"></i> Gerar Mensalidades</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Mês de Referência</label>
+                        <input type="text" id="mes-geral" class="adm-form-input" placeholder="Ex: Agosto / 2026">
                     </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Valor Padrão (R$)</label>
+                        <input type="number" id="valor-geral" class="adm-form-input" placeholder="25" value="25">
+                    </div>
+                    <button class="adm-btn-full" onclick="gerarMensalidades()">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cobranças
+                    </button>
                 </div>
             </div>
-            <div class="card-status" style="padding: 0; margin-bottom: 15px; text-align: left; overflow: hidden;">
-    <button onclick="toggleSanfona('config-manutencao')" style="background: transparent; border: none; padding: 20px; width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; margin-bottom: 0;">
-        <span>🚧 MODO MANUTENÇÃO</span>
-        <span id="seta-config-manutencao" style="color: var(--cor-destaque);">▼</span>
-    </button>
-    <div id="config-manutencao" style="display: none; padding: 0 20px 20px 20px; border-top: 1px solid #333;">
-        <p style="font-size: 11px; color: #aaaaaa; margin-bottom: 15px; margin-top: 15px;">Ao ativar, os alunos não conseguirão acessar o painel até você desligar.</p>
-        <button id="btn-toggle-manutencao" onclick="alterarModoManutencao()" style="background: #e53935; border: none; color: white; font-weight: bold;">ATIVAR BLOQUEIO</button>
-    </div>
-</div>
 
+            <div class="adm-card adm-mt-3">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-shield-halved"></i> Segurança</div>
+                </div>
+                <div class="adm-card-body">
+                    <button class="adm-btn-full secondary adm-mb-2" onclick="atualizarMeusDados()">
+                        <i class="fa-solid fa-key"></i> Alterar E-mail / Senha
+                    </button>
+                    <button class="adm-btn-full secondary" onclick="toggleManutencao()" id="btn-manutencao">
+                        <i class="fa-solid fa-lock"></i> Ativar Modo Manutenção
+                    </button>
+                </div>
+            </div>
+
+            <button class="adm-btn-full secondary adm-mt-3" onclick="sair()" style="color:var(--adm-red);">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
+            </button>
         </section>
-
-        
-        <button id="btn-sair" style="display: none;"></button>
-
     </div>
 
-     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- MODAL DOSSIÊ -->
+    <div class="adm-modal-overlay" id="modal-dossie" onclick="fecharModalDossie(event)">
+        <div class="adm-modal" onclick="event.stopPropagation()">
+            <div class="adm-modal-header">
+                <button class="adm-modal-close" onclick="fecharModalDossie()"><i class="fa-solid fa-xmark"></i></button>
+                <img id="dossie-foto" src="" class="adm-modal-avatar">
+                <h2 class="adm-modal-name" id="dossie-nome">—</h2>
+                <p class="adm-modal-belt" id="dossie-faixa">—</p>
+            </div>
+            <div class="adm-modal-tabs">
+                <button class="adm-modal-tab ativo" onclick="setAbaDossie('perfil')">Perfil</button>
+                <button class="adm-modal-tab" onclick="setAbaDossie('financeiro')">Financeiro</button>
+                <button class="adm-modal-tab" onclick="setAbaDossie('acoes')">Ações</button>
+            </div>
+            <div class="adm-modal-body" id="dossie-conteudo">
+                <!-- JS popula -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL NOVO ALUNO RÁPIDO -->
+    <div class="adm-modal-overlay" id="modal-novo-aluno" onclick="fecharModalNovoAluno(event)">
+        <div class="adm-modal" onclick="event.stopPropagation()">
+            <div class="adm-modal-header">
+                <button class="adm-modal-close" onclick="fecharModalNovoAluno()"><i class="fa-solid fa-xmark"></i></button>
+                <h2 class="adm-modal-name" style="margin-top:10px;">Novo Aluno</h2>
+            </div>
+            <div class="adm-modal-body">
+                <form id="form-modal-aluno" onsubmit="return false;">
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Nome</label>
+                        <input type="text" id="modal-nome" class="adm-form-input" placeholder="Nome completo" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">E-mail</label>
+                        <input type="email" id="modal-email" class="adm-form-input" placeholder="E-mail" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Senha</label>
+                        <input type="text" id="modal-senha" class="adm-form-input" placeholder="Senha" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">WhatsApp</label>
+                        <input type="tel" id="modal-telefone" class="adm-form-input" placeholder="(92) 99999-9999">
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Nascimento</label>
+                        <input type="date" id="modal-nascimento" class="adm-form-input" required>
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Faixa</label>
+                        <input type="text" id="modal-faixa" class="adm-form-input" placeholder="Branca">
+                    </div>
+                    <button type="button" class="adm-btn-full" onclick="cadastrarAlunoModal()">
+                        <i class="fa-solid fa-check"></i> Salvar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="adm-toast" id="adm-toast"><span id="adm-toast-msg"></span></div>
+
+    <!-- NAV INFERIOR -->
+    <nav class="adm-nav">
+        <button class="adm-nav-item ativo" onclick="abrirSecao('dashboard')">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </button>
+        <button class="adm-nav-item" onclick="abrirSecao('alunos')">
+            <i class="fa-solid fa-users"></i>
+            <span>Alunos</span>
+        </button>
+        <button class="adm-nav-item" onclick="abrirSecao('financeiro')">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Financeiro</span>
+        </button>
+        <button class="adm-nav-item" onclick="abrirSecao('mural')">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Mural</span>
+        </button>
+    </nav>
+
+    <!-- SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
-    
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-    <script src="admin-core.js?v=31"></script>
-    <script src="admin-alunos.js?v=31"></script>
-    <script src="admin-financeiro.js?v=31"></script>
+    <script src="admin-lite.js?v=1"></script>
 </body>
 </html>

@@ -1,14 +1,12 @@
 // ==========================================
-// 🚀1. REDIRECIONAMENTO AUTOMÁTICO (ANTI-LOGIN REPETIDO)
+// 1. REDIRECIONAMENTO AUTOMÁTICO (ANTI-LOGIN REPETIDO)
 // ==========================================
 window.addEventListener('DOMContentLoaded', async () => {
 
-    // 🛑 A TRAVA CONTRA O BUG DA RECUPERAÇÃO:
-    // Se a pessoa estiver voltando do e-mail para trocar a senha, 
-    // a URL terá "type=recovery". Se tiver, nós ABORTAMOS o redirecionamento aqui!
+    // Se a pessoa estiver voltando do e-mail para trocar a senha, aborta o redirecionamento
     if (window.location.search.includes('type=recovery') || window.location.hash.includes('type=recovery')) {
         console.log("Recuperação de senha detectada. Aguardando o usuário digitar a nova senha...");
-        return; // O return faz o código parar aqui e não descer para o redirecionamento.
+        return;
     }
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -32,7 +30,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 console.log("Supabase conectado!", supabase);
 
-// 👁️ Toggle de visibilidade da senha
+// Toggle de visibilidade da senha
 window.toggleSenha = function() {
     const input = document.getElementById('senha');
     if (!input) return;
@@ -47,7 +45,7 @@ window.toggleSenha = function() {
 };
 
 // ==========================================
-// 🕵️‍♂️ 2.SENSOR: DETECTAR VOLTA DO E-MAIL DE SENHA (VISUAL PREMIUM)
+// 2. SENSOR: DETECTAR VOLTA DO E-MAIL DE SENHA
 // ==========================================
 supabase.auth.onAuthStateChange(async (event, session) => {
   if (event === "PASSWORD_RECOVERY") {
@@ -82,80 +80,88 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 // ==========================================
 // 3. CAPTURAR O ENVIO DO FORMULÁRIO DE LOGIN
 // ==========================================
-document.getElementById('form-login').addEventListener('submit', async function(event) {
-    event.preventDefault(); 
+const formLogin = document.getElementById('form-login');
+if (formLogin) {
+    formLogin.addEventListener('submit', async function(event) {
+        event.preventDefault(); 
 
-    const email = document.getElementById('email').value;
-    const senha = document.getElementById('senha').value;
-    const botao = event.target.querySelector('button[type="submit"]');
+        const email = document.getElementById('email').value;
+        const senha = document.getElementById('senha').value;
+        const botao = event.target.querySelector('button[type="submit"]');
 
-    botao.innerText = "Carregando...";
+        if (botao) botao.innerText = "Carregando...";
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: senha
-    });
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: senha
+        });
 
-    if (error) {
-        console.error("Erro no login:", error);
-        document.getElementById('msg-erro').innerText = "E-mail ou senha incorretos!";
-        botao.innerText = "Entrar";
-    } else {
-        botao.innerText = "Verificando acesso... 🥋";
-
-        const { data: perfil } = await supabase
-            .from('perfis')
-            .select('cargo')
-            .eq('id', data.user.id)
-            .single();
-
-        if (perfil && perfil.cargo === 'professor') {
-            window.location.href = "admin.html"; 
+        if (error) {
+            console.error("Erro no login:", error);
+            const msgErro = document.getElementById('msg-erro');
+            if (msgErro) msgErro.innerText = "E-mail ou senha incorretos!";
+            if (botao) botao.innerText = "Entrar";
         } else {
-            window.location.href = "painel.html"; 
+            if (botao) botao.innerText = "Verificando acesso... 🥋";
+
+            const { data: perfil } = await supabase
+                .from('perfis')
+                .select('cargo')
+                .eq('id', data.user.id)
+                .single();
+
+            if (perfil && perfil.cargo === 'professor') {
+                window.location.href = "admin.html"; 
+            } else {
+                window.location.href = "painel.html"; 
+            }
         }
-    }
-});
+    });
+}
 
 // ==========================================
-// 🔑4. FUNÇÃO: SOLICITAR RECUPERAÇÃO DE SENHA (VISUAL PREMIUM)
+// 4. FUNÇÃO: SOLICITAR RECUPERAÇÃO DE SENHA
 // ==========================================
-document.getElementById('btn-esqueci-senha').addEventListener('click', async () => {
-    const { value: emailAluno } = await Swal.fire({
-        title: 'Esqueceu a senha?',
-        text: 'Digite seu e-mail para receber o link.',
-        input: 'email',
-        inputPlaceholder: 'Seu melhor e-mail',
-        background: '#161618',
-        color: '#ffffff',
-        confirmButtonColor: '#E53935',
-        confirmButtonText: 'ENVIAR LINK',
-        showCancelButton: true,
-        cancelButtonText: 'Cancelar',
-        cancelButtonColor: '#333'
+const btnEsqueci = document.getElementById('btn-esqueci-senha');
+if (btnEsqueci) {
+    btnEsqueci.addEventListener('click', async () => {
+        const { value: emailAluno } = await Swal.fire({
+            title: 'Esqueceu a senha?',
+            text: 'Digite seu e-mail para receber o link.',
+            input: 'email',
+            inputPlaceholder: 'Seu melhor e-mail',
+            background: '#161618',
+            color: '#ffffff',
+            confirmButtonColor: '#E53935',
+            confirmButtonText: 'ENVIAR LINK',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar',
+            cancelButtonColor: '#333'
+        });
+
+        if (!emailAluno) return; 
+
+        Swal.fire({ title: 'Enviando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
+
+        const { data, error } = await supabase.auth.resetPasswordForEmail(emailAluno, {
+            redirectTo: window.location.href, 
+        });
+
+        if (error) {
+            Swal.fire({ icon: 'error', title: 'Erro', text: error.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+        } else {
+            Swal.fire({ icon: 'success', title: 'Link Enviado! 🥋', text: 'Verifique a sua caixa de entrada (e a pasta de SPAM).', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+        }
     });
-
-    if (!emailAluno) return; 
-
-    Swal.fire({ title: 'Enviando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
-
-    const { data, error } = await supabase.auth.resetPasswordForEmail(emailAluno, {
-        redirectTo: window.location.href, 
-    });
-
-    if (error) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: error.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
-    } else {
-        Swal.fire({ icon: 'success', title: 'Link Enviado! 🥋', text: 'Verifique a sua caixa de entrada (e a pasta de SPAM).', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
-    }
-});
+}
 
 // ==========================================
 // 5. REGISTRAR O SERVICE WORKER (MODO OFFLINE)
 // ==========================================
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        // CORREÇÃO: usa caminho relativo para funcionar em subdiretórios
+        navigator.serviceWorker.register('./sw.js')
             .then(registration => {
                 console.log('Service Worker registrado com sucesso!', registration.scope);
             })

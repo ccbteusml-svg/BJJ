@@ -604,3 +604,76 @@ button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
     padding-bottom: 15px; 
     margin-bottom: 15px;
 }
+
+
+/* ==========================================
+   CORREÇÕES v2.1 — ADIÇÕES E FIXES
+   ========================================== */
+
+/* 1. Media Print para Recibo */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    .swal2-popup, .swal2-popup * {
+        visibility: visible;
+    }
+    .swal2-popup {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        background: white !important;
+    }
+    .swal2-close, .swal2-actions {
+        display: none !important;
+    }
+    #recibo-print {
+        visibility: visible;
+        background: white !important;
+        color: black !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 20px !important;
+    }
+    #recibo-print * {
+        visibility: visible;
+        color: black !important;
+    }
+}
+
+/* 2. Limita efeito tátil apenas em botões principais para não quebrar inputs */
+button[type="submit"]:active,
+.adm-btn-full:active,
+.adm-btn-sm:active,
+.btn-vip:active {
+    transform: scale(0.95);
+    opacity: 0.85;
+}
+
+/* Remove o active genérico de todos os buttons para evitar efeitos indesejados em elementos de UI */
+button:active {
+    transform: none;
+    opacity: 1;
+}
+
+/* 3. Garante que o menu lateral não fique escondido em telas grandes */
+@media (min-width: 451px) {
+    body {
+        margin: 0 auto;
+    }
+}
+
+/* 4. Previne que imagens quebrem layout */
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* 5. Melhora contraste da faixa preta na foto */
+.adm-modal-avatar[style*="border: 3px solid #424242"],
+img[style*="border: 3px solid #424242"] {
+    border-color: #888 !important;
+}
