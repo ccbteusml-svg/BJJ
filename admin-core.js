@@ -55,13 +55,13 @@ window.fecharMenu = function() {
 window.trocarAba = function(idAba, elemento) {
     document.querySelectorAll('.secao-admin').forEach(s => s.style.display = 'none');
     document.getElementById(idAba).style.display = 'block';
-    
+
     document.querySelectorAll('.menu-item').forEach(t => t.classList.remove('active'));
     if (elemento) elemento.classList.add('active');
-    
+
     fecharMenu(); 
     window.scrollTo(0, 0); 
-    
+
     if(idAba === 'aba-pendentes' && typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
     if(idAba === 'aba-alunos' && typeof carregarTodosAlunos === 'function') carregarTodosAlunos(); 
     if(idAba === 'aba-mural' && typeof carregarAvisosAdmin === 'function') carregarAvisosAdmin(); 
@@ -73,10 +73,10 @@ window.trocarAba = function(idAba, elemento) {
 async function verificarAcessoAdmin() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.href = "index.html"; return; }
-    
+
     const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
     if (!perfil || perfil.cargo !== 'professor') { window.location.href = "painel.html"; return; }
-    
+
     if(typeof iniciarPainelAdmin === 'function') iniciarPainelAdmin();
 }
 
@@ -106,21 +106,44 @@ async function checarStatusInicial() {
 async function carregarAvisosAdmin() {
     const lista = document.getElementById('lista-avisos-admin');
     if(!lista) return;
-    lista.innerHTML = `<p style="color: #aaaaaa; text-align: center;">Carregando...</p>`;
+    lista.innerHTML = '';
+    const msgCarregando = document.createElement('p');
+    msgCarregando.style.cssText = 'color: #aaaaaa; text-align: center;';
+    msgCarregando.textContent = 'Carregando...';
+    lista.appendChild(msgCarregando);
+
     const { data: avisos } = await supabase.from('avisos').select('*');
-    
+
     lista.innerHTML = "";
     if (!avisos || avisos.length === 0) {
-        lista.innerHTML = `<p style="color: #aaaaaa; text-align: center;">Nenhum aviso.</p>`;
+        const msgVazio = document.createElement('p');
+        msgVazio.style.cssText = 'color: #aaaaaa; text-align: center;';
+        msgVazio.textContent = 'Nenhum aviso.';
+        lista.appendChild(msgVazio);
         return;
     }
     (avisos || []).reverse().forEach(aviso => {
-        lista.innerHTML += `
-            <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--cor-destaque); position: relative;">
-                <button onclick="deletarAviso('${aviso.id}')" style="position: absolute; top: 10px; right: 10px; width: auto; background: none; border: none; color: #ff5252; font-size: 16px;">🗑️</button>
-                <h4 style="color: white; margin-bottom: 5px; font-size: 15px;">${aviso.titulo}</h4>
-                <p style="color: #888; font-size: 12px; margin: 0;">${aviso.mensagem}</p>
-            </div>`;
+        const card = document.createElement('div');
+        card.className = 'card-status';
+        card.style.cssText = 'padding: 15px; margin-bottom: 12px; border-left: 4px solid var(--cor-destaque); position: relative;';
+
+        const btnDel = document.createElement('button');
+        btnDel.style.cssText = 'position: absolute; top: 10px; right: 10px; width: auto; background: none; border: none; color: #ff5252; font-size: 16px;';
+        btnDel.textContent = '🗑️';
+        btnDel.onclick = () => deletarAviso(aviso.id);
+        card.appendChild(btnDel);
+
+        const h4 = document.createElement('h4');
+        h4.style.cssText = 'color: white; margin-bottom: 5px; font-size: 15px;';
+        h4.textContent = aviso.titulo || '';
+        card.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.cssText = 'color: #888; font-size: 12px; margin: 0;';
+        p.textContent = aviso.mensagem || '';
+        card.appendChild(p);
+
+        lista.appendChild(card);
     });
 }
 
@@ -161,6 +184,10 @@ window.atualizarMeusDados = async function() {
     }
     const { value: novaSenha } = await Swal.fire({ title: 'Atualizar Senha', input: 'password', inputPlaceholder: 'Nova senha (mín. 6 caracteres)', background: '#161618', color: '#fff', confirmButtonColor: '#E53935', showCancelButton: true, cancelButtonColor: '#333', cancelButtonText: 'Pular' });
     if (novaSenha) {
+        if (novaSenha.length < 6) {
+            Swal.fire({ icon: 'warning', title: 'Senha fraca', text: 'A senha deve ter no mínimo 6 caracteres.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+            return;
+        }
         const { error: errSenha } = await supabase.auth.updateUser({ password: novaSenha });
         if (errSenha) Swal.fire({ icon: 'error', title: 'Erro', text: errSenha.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
         else Swal.fire({ icon: 'success', title: 'Senha Atualizada!', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
@@ -196,9 +223,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAviso = document.getElementById('btn-publicar-aviso');
     if(btnAviso) {
         btnAviso.addEventListener('click', async () => {
-            const titulo = document.getElementById('aviso-titulo').value;
-            const mensagem = document.getElementById('aviso-mensagem').value;
-            if(!titulo || !mensagem) return;
+            const titulo = document.getElementById('aviso-titulo').value.trim();
+            const mensagem = document.getElementById('aviso-mensagem').value.trim();
+            if(!titulo || titulo.length < 2) { Swal.fire({ icon: 'warning', title: 'Título inválido', text: 'Informe um título com pelo menos 2 caracteres.', background: '#161618', color: '#fff' }); return; }
+            if(!mensagem || mensagem.length < 2) { Swal.fire({ icon: 'warning', title: 'Mensagem inválida', text: 'Informe uma mensagem com pelo menos 2 caracteres.', background: '#161618', color: '#fff' }); return; }
             await supabase.from('avisos').insert([{ titulo, mensagem }]);
             Swal.fire({ icon: 'success', title: 'Aviso Publicado!', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
             document.getElementById('aviso-titulo').value = "";

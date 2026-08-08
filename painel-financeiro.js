@@ -1,6 +1,15 @@
 // ==========================================
 // 1. INICIALIZAÇÃO DO MERCADO PAGO E EVENTOS DA TELA
 // ==========================================
+if (typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = (str) => {
+        if (typeof str !== 'string') return str;
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const MP_PUBLIC_KEY = "APP_USR-2dcd1a56-a86a-4967-b8ae-466813eabb1e"; 
@@ -27,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Restaura o texto original do mês se existir
         const mesEl = document.getElementById('mes-atual');
-        if (_mesOriginal && mesEl) mesEl.innerText = _mesOriginal;
+        if (_mesOriginal && mesEl) mesEl.textContent = _mesOriginal;
 
         if (typeof window.verificarAcesso === 'function') window.verificarAcesso(); 
     };
@@ -51,25 +60,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const feedback = document.getElementById('feedback-pix');
             if (feedback) {
-                feedback.innerHTML = `
-                    <button id="btn-voltar-cartao" style="background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;">
-                        ⬅️ Escolher outra forma de pagamento
-                    </button>
-                `;
-                const btnVoltar = document.getElementById('btn-voltar-cartao');
-                if (btnVoltar) btnVoltar.addEventListener('click', window.voltarParaOpcoes);
+                feedback.innerHTML = '';
+                const btnVoltar = document.createElement('button');
+                btnVoltar.id = 'btn-voltar-cartao';
+                btnVoltar.style.cssText = 'background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;';
+                btnVoltar.textContent = '⬅️ Escolher outra forma de pagamento';
+                btnVoltar.addEventListener('click', window.voltarParaOpcoes);
+                feedback.appendChild(btnVoltar);
             }
 
             const mesEl = document.getElementById('mes-atual');
-            if (mesEl && !_mesOriginal) _mesOriginal = mesEl.innerText;
-            if (mesEl) mesEl.innerText = (_mesOriginal || mesEl.innerText) + " (Pagamento Único)";
+            if (mesEl && !_mesOriginal) _mesOriginal = mesEl.textContent;
+            if (mesEl) mesEl.textContent = (_mesOriginal || mesEl.textContent) + " (Pagamento Único)";
 
             const valorEl = document.getElementById('valor-pagamento');
-            const valorNaTela = valorEl ? valorEl.innerText.replace('R$ ', '').replace(',00', '').replace(',', '.') : '25';
+            const valorNaTela = valorEl ? valorEl.textContent.replace('R$ ', '').replace(',00', '').replace(',', '.') : '25';
 
             const statusEl = document.getElementById('status-pagamento');
             if (statusEl) {
-                statusEl.innerText = "💳 DÉBITO/CRÉDITO";
+                statusEl.textContent = "💳 DÉBITO/CRÉDITO";
                 statusEl.style.color = "#4CAF50";
             }
 
@@ -84,7 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     onSubmit: (dadosRecebidos) => {
                         return new Promise(async (resolve, reject) => {
                             const feedback = document.getElementById('feedback-pix');
-                            if (feedback) feedback.innerHTML = `⏳ Processando Pagamento...`;
+                            if (feedback) {
+                                feedback.innerHTML = '';
+                                const msg = document.createElement('span');
+                                msg.textContent = '⏳ Processando Pagamento...';
+                                feedback.appendChild(msg);
+                            }
 
                             try {
                                 let form = dadosRecebidos.formData || dadosRecebidos;
@@ -102,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     aluno_id: session.user.id,             
                                     mensalidade_id: window.mensalidadeAtualId,
                                     valor: parseFloat(valorNaTela),
-                                    mes: _mesOriginal || document.getElementById('mes-atual').innerText.replace(" (Pagamento Único)", "")
+                                    mes: _mesOriginal || document.getElementById('mes-atual').textContent.replace(" (Pagamento Único)", "")
                                 };
 
                                 const { data, error } = await window.supabase.functions.invoke('gerar-pagamento-cartao', { body: payload });
@@ -116,7 +130,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     let erroMsg = data.message || `Cartão recusado. Motivo: ${motivoReal}`;
                                     console.log("RESPOSTA COMPLETA DO MERCADO PAGO:", data);
                                     Swal.fire({ icon: 'error', title: 'Recusado', text: erroMsg, background: '#161618', color: '#fff' });
-                                    if (feedback) feedback.innerHTML = `❌ Erro: ${erroMsg}`;
+                                    if (feedback) {
+                                        feedback.innerHTML = '';
+                                        const errSpan = document.createElement('span');
+                                        errSpan.textContent = `❌ Erro: ${erroMsg}`;
+                                        feedback.appendChild(errSpan);
+                                    }
                                     reject();
                                 }
                             } catch (err) {
@@ -151,12 +170,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const feedback = document.getElementById('feedback-pix');
             const opcoes = document.getElementById('opcoes-pagamento');
             if (opcoes) opcoes.style.display = "none";
-            if (feedback) feedback.innerHTML = "⏳ Conectando ao Cofre da Academia para gerar o PIX...";
+            if (feedback) {
+                feedback.innerHTML = '';
+                const msg = document.createElement('span');
+                msg.textContent = "⏳ Conectando ao Cofre da Academia para gerar o PIX...";
+                feedback.appendChild(msg);
+            }
 
             const valorEl = document.getElementById('valor-pagamento');
-            const valorCobrado = parseFloat(valorEl ? valorEl.innerText.replace('R$ ', '').replace(',', '.') : '0');
+            const valorCobrado = parseFloat(valorEl ? valorEl.textContent.replace('R$ ', '').replace(',', '.') : '0');
             const mesEl = document.getElementById('mes-atual');
-            const mesCobrado = mesEl ? mesEl.innerText : '';
+            const mesCobrado = mesEl ? mesEl.textContent : '';
 
             try {
                 const { data: dados, error } = await window.supabase.functions.invoke('gerar-pix', {
@@ -179,31 +203,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     const copiaCola = transacaoInfo.qr_code;
 
                     if (feedback) {
-                        feedback.innerHTML = `
-                            ✅ <b>Pix Oficial Gerado!</b><br><br>
-                            <img src="data:image/jpeg;base64,${qrCodeBase64}" style="border-radius: 10px; border: 5px solid white; margin-bottom: 10px; max-width: 100%;"><br>
-                            <p style="font-size: 13px; color: #aaaaaa; margin-bottom: 8px;">Pix Copia e Cola:</p>
-                            <code style='background:#000; padding:12px; display:block; color:#fff; font-size: 10px; word-break: break-all; border-radius: 8px; border: 1px solid #333; max-height: 60px; overflow-y: auto;'>${copiaCola}</code>
-                            <button id="btn-copiar-pix" style="background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">📋 Copiar Código Pix</button>
-                            <button id="btn-cancelar-pix" style="background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;">⬅️ Cancelar Pix</button>
-                            <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: rgba(33, 150, 243, 0.1); border: 1px solid #2196F3;">
-                                <p style="color: #2196F3; font-size: 13px; margin: 0; font-weight: bold;">📡 Aguardando pagamento...</p>
-                            </div>
-                        `;
-                    }
+                        feedback.innerHTML = '';
 
-                    const btnCancelar = document.getElementById('btn-cancelar-pix');
-                    const btnCopiar = document.getElementById('btn-copiar-pix');
-                    if (btnCancelar) btnCancelar.addEventListener('click', window.voltarParaOpcoes);
-                    if (btnCopiar) {
+                        const div = document.createElement('div');
+
+                        const title = document.createElement('div');
+                        title.innerHTML = '<b>Pix Oficial Gerado!</b>';
+                        title.style.marginBottom = '10px';
+                        div.appendChild(title);
+
+                        const img = document.createElement('img');
+                        img.src = `data:image/jpeg;base64,${qrCodeBase64}`;
+                        img.style.cssText = 'border-radius: 10px; border: 5px solid white; margin-bottom: 10px; max-width: 100%;';
+                        div.appendChild(img);
+
+                        const lbl = document.createElement('p');
+                        lbl.style.cssText = 'font-size: 13px; color: #aaaaaa; margin-bottom: 8px;';
+                        lbl.textContent = 'Pix Copia e Cola:';
+                        div.appendChild(lbl);
+
+                        const code = document.createElement('code');
+                        code.style.cssText = 'background:#000; padding:12px; display:block; color:#fff; font-size: 10px; word-break: break-all; border-radius: 8px; border: 1px solid #333; max-height: 60px; overflow-y: auto;';
+                        code.textContent = copiaCola;
+                        div.appendChild(code);
+
+                        const btnCopiar = document.createElement('button');
+                        btnCopiar.id = 'btn-copiar-pix';
+                        btnCopiar.style.cssText = 'background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
+                        btnCopiar.textContent = '📋 Copiar Código Pix';
                         btnCopiar.addEventListener('click', () => {
                             navigator.clipboard.writeText(copiaCola).then(() => {
                                 Swal.fire({ toast: true, position: 'top', icon: 'success', title: 'Código Copiado!', showConfirmButton: false, timer: 2000, background: '#161618', color: '#fff' });
-                                btnCopiar.innerText = "✅ CÓDIGO COPIADO!";
+                                btnCopiar.textContent = "✅ CÓDIGO COPIADO!";
                                 btnCopiar.style.backgroundColor = "#4CAF50";
-                                setTimeout(() => { btnCopiar.innerText = "📋 Copiar Código Pix"; btnCopiar.style.backgroundColor = "#333333"; }, 3000);
+                                setTimeout(() => { btnCopiar.textContent = "📋 Copiar Código Pix"; btnCopiar.style.backgroundColor = "#333333"; }, 3000);
                             });
                         });
+                        div.appendChild(btnCopiar);
+
+                        const btnCancelar = document.createElement('button');
+                        btnCancelar.id = 'btn-cancelar-pix';
+                        btnCancelar.style.cssText = 'background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
+                        btnCancelar.textContent = '⬅️ Cancelar Pix';
+                        btnCancelar.addEventListener('click', window.voltarParaOpcoes);
+                        div.appendChild(btnCancelar);
+
+                        const aguardando = document.createElement('div');
+                        aguardando.style.cssText = 'margin-top: 20px; padding: 15px; border-radius: 8px; background-color: rgba(33, 150, 243, 0.1); border: 1px solid #2196F3;';
+                        const pAg = document.createElement('p');
+                        pAg.style.cssText = 'color: #2196F3; font-size: 13px; margin: 0; font-weight: bold;';
+                        pAg.textContent = '📡 Aguardando pagamento...';
+                        aguardando.appendChild(pAg);
+                        div.appendChild(aguardando);
+
+                        feedback.appendChild(div);
                     }
                 } else {
                     Swal.fire({ icon: 'error', title: 'Erro no PIX', text: dados.message || 'Falha na comunicação.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
@@ -218,6 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================
+    // ✅ CORREÇÃO: Adiantar próprio boleto via Edge Function
+    // ==========================================
     const btnAdiantarFatura = document.getElementById('btn-adiantar-fatura');
     if (btnAdiantarFatura) {
         btnAdiantarFatura.addEventListener('click', async () => {
@@ -243,16 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.isConfirmed) {
                 Swal.fire({ title: 'Gerando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
                 try {
-                    const { data: existente } = await window.supabase.from('mensalidades').select('id').eq('aluno_id', session.user.id).eq('mes', nomeProxMes);
-                    if (existente && existente.length > 0) {
-                        Swal.fire({ icon: 'info', title: 'Aviso', text: 'Você já possui uma fatura gerada para o próximo mês.', background: '#161618', color: '#fff' });
-                        return;
-                    }
+                    // 🔥 CHAMA EDGE FUNCTION EM VEZ DE INSERT DIRETO
+                    const { data, error } = await window.supabase.functions.invoke('criar-mensalidade-aluno', {
+                        body: {
+                            aluno_id: session.user.id,
+                            mes: nomeProxMes,
+                            valor: valorFatura
+                        }
+                    });
 
-                    const { error } = await window.supabase.from('mensalidades').insert([{
-                        aluno_id: session.user.id, mes: nomeProxMes, valor: valorFatura, status: 'pendente'
-                    }]);
                     if (error) throw error;
+                    if (data && data.error) throw new Error(data.error);
 
                     Swal.fire({ icon: 'success', title: 'Fatura Gerada!', text: 'Opções de pagamento liberadas.', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
                     if(typeof window.verificarAcesso === 'function') window.verificarAcesso();
@@ -267,7 +324,11 @@ document.addEventListener('DOMContentLoaded', () => {
 window.carregarHistorico = async function() {
     const lista = document.getElementById('lista-historico');
     if(!lista) return;
-    lista.innerHTML = `<p style="color: #aaaaaa; text-align: center; margin-top: 20px;">Buscando histórico...</p>`;
+    lista.innerHTML = '';
+    const msgBusca = document.createElement('p');
+    msgBusca.style.cssText = 'color: #aaaaaa; text-align: center; margin-top: 20px;';
+    msgBusca.textContent = 'Buscando histórico...';
+    lista.appendChild(msgBusca);
 
     const { data: { session } } = await window.supabase.auth.getSession();
     if (!session) return;
@@ -276,35 +337,62 @@ window.carregarHistorico = async function() {
         .from('mensalidades')
         .select('*')
         .eq('aluno_id', session.user.id)
-        .order('created_at', { ascending: false });
+        .order('criado_em', { ascending: false });
 
     if (error || !historico || historico.length === 0) {
-        lista.innerHTML = `
-            <div class="card-status" style="padding: 20px; text-align: center;">
-                <p style="color: #aaaaaa; margin: 0;">Você ainda não possui histórico de pagamentos.</p>
-            </div>`;
+        lista.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'card-status';
+        card.style.cssText = 'padding: 20px; text-align: center;';
+        const p = document.createElement('p');
+        p.style.cssText = 'color: #aaaaaa; margin: 0;';
+        p.textContent = 'Você ainda não possui histórico de pagamentos.';
+        card.appendChild(p);
+        lista.appendChild(card);
         return;
     }
 
-    lista.innerHTML = "";
+    lista.innerHTML = '';
     for (const mens of historico) {
         const isPago = mens.status.toLowerCase() === 'pago';
         const corBorda = isPago ? '#4CAF50' : '#ff5252';
         const textoStatus = isPago ? '✅ PAGO' : '🔴 EM ABERTO';
-        const btnRecibo = isPago 
-            ? `<button onclick="window.abrirRecibo('${mens.mes}', '${mens.valor}')" style="background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto; margin-top: 6px;">🧾 RECIBO</button>` 
-            : '';
-        lista.innerHTML += `
-            <div class="card-status" style="padding: 15px; margin-bottom: 12px; border-left: 4px solid ${corBorda}; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4 style="color: white; font-size: 15px; margin: 0 0 5px 0;">${mens.mes}</h4>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <p style="color: ${corBorda}; font-size: 11px; font-weight: bold; margin: 0;">${textoStatus}</p>
-                        ${btnRecibo}
-                    </div>
-                </div>
-                <span style="color: white; font-size: 16px; font-weight: bold;">R$ ${mens.valor}</span>
-            </div>`;
+
+        const card = document.createElement('div');
+        card.className = 'card-status';
+        card.style.cssText = `padding: 15px; margin-bottom: 12px; border-left: 4px solid ${corBorda}; display: flex; justify-content: space-between; align-items: center;`;
+
+        const info = document.createElement('div');
+
+        const h4 = document.createElement('h4');
+        h4.style.cssText = 'color: white; font-size: 15px; margin: 0 0 5px 0;';
+        h4.textContent = mens.mes || '';
+        info.appendChild(h4);
+
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display: flex; align-items: center; gap: 10px;';
+
+        const pStatus = document.createElement('p');
+        pStatus.style.cssText = `color: ${corBorda}; font-size: 11px; font-weight: bold; margin: 0;`;
+        pStatus.textContent = textoStatus;
+        wrap.appendChild(pStatus);
+
+        if (isPago) {
+            const btnRecibo = document.createElement('button');
+            btnRecibo.style.cssText = 'background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto; margin-top: 6px;';
+            btnRecibo.textContent = '🧾 RECIBO';
+            btnRecibo.onclick = () => window.abrirRecibo(mens.mes, mens.valor);
+            wrap.appendChild(btnRecibo);
+        }
+        info.appendChild(wrap);
+        card.appendChild(info);
+
+        const spanValor = document.createElement('span');
+        spanValor.style.cssText = 'color: white; font-size: 16px; font-weight: bold;';
+        spanValor.textContent = `R$ ${mens.valor}`;
+        card.appendChild(spanValor);
+
+        lista.appendChild(card);
     }
 };
 
@@ -316,14 +404,17 @@ window.abrirRecibo = async function(mesReferencia, valorPago) {
     const nomeAluno = perfil ? perfil.nome : "Aluno";
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
 
+    const safeNome = escapeHtml(nomeAluno);
+    const safeMes = escapeHtml(mesReferencia);
+
     const htmlRecibo = `
         <div id="recibo-print" class="recibo-print">
             <div class="recibo-header">
                 <h2 style="margin: 0; font-size: 22px; font-style: italic; font-weight: 900;">4L ACADEMY</h2>
                 <p style="margin: 5px 0 0; font-size: 12px; text-transform: uppercase;">Comprovante de Pagamento</p>
             </div>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Aluno(a):</strong> ${nomeAluno}</p>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Referência:</strong> ${mesReferencia}</p>
+            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Aluno(a):</strong> ${safeNome}</p>
+            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Referência:</strong> ${safeMes}</p>
             <p style="margin-bottom: 8px; font-size: 14px;"><strong>Valor Pago:</strong> R$ ${valorPago}</p>
             <p style="margin-bottom: 8px; font-size: 14px;"><strong>Emissão:</strong> ${dataEmissao}</p>
             <div style="text-align: center; margin-top: 25px; border-top: 1px dashed black; padding-top: 15px;">

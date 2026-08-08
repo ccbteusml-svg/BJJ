@@ -1,4 +1,4 @@
-const NOME_DO_CACHE = '4l-academy-v11'; 
+const NOME_DO_CACHE = '4l-academy-v10'; // 🔥 Versão nova = cache novo
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
@@ -13,18 +13,15 @@ const ARQUIVOS_PARA_SALVAR = [
   './painel-financeiro.js',
   './painel-perfil.js',
   './admin-lite.js',
-  './manifest.json',
   './4L.png',
-  './fundo-aluno.png',
-  './loading.json',
-  './closer.json'
+  './fundo-aluno.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(NOME_DO_CACHE)
       .then(cache => {
-        console.log('[SW] Salvando arquivos no cache local...');
+        console.log('[SW v99] Instalando cache novo...');
         return Promise.all(
           ARQUIVOS_PARA_SALVAR.map(url => 
             fetch(url, { cache: 'no-cache' }).then(response => {
@@ -46,12 +43,15 @@ self.addEventListener('activate', event => {
       return Promise.all(
         nomesDosCaches.map(cacheAntigo => {
           if (cacheAntigo !== NOME_DO_CACHE) {
-            console.log('[SW] Apagando cache antigo:', cacheAntigo);
+            console.log('[SW v99] 🗑️ Apagando cache antigo:', cacheAntigo);
             return caches.delete(cacheAntigo);
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      console.log('[SW v99] ✅ Ativado e limpo!');
+      return self.clients.claim();
+    })
   );
 });
 
@@ -62,20 +62,20 @@ self.addEventListener('fetch', event => {
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
+  // Nunca cacheia chamadas de API
   if (url.hostname.includes('supabase.co') || 
       url.hostname.includes('mercadopago.com') ||
       url.hostname.includes('ui-avatars.com') ||
       url.hostname.includes('cdn.jsdelivr.net') ||
       url.hostname.includes('unpkg.com') ||
-      url.hostname.includes('sdk.mercadopago.com') ||
-      url.hostname.includes('lottiefiles.com') ||
-      url.hostname.includes('qrserver.com')) {
+      url.hostname.includes('sdk.mercadopago.com')) {
       return; 
   }
 
   const isHTML = req.destination === 'document';
   const isAsset = ['style', 'script', 'image', 'font'].includes(req.destination);
 
+  // Estratégia: Network First para HTML, Cache First para assets
   if (isHTML) {
     event.respondWith(
       fetch(req).then(networkResponse => {

@@ -1,29 +1,57 @@
 // ==========================================
 // 1. CARREGAR AVISOS (MURAL)
 // ==========================================
+if (typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = (str) => {
+        if (typeof str !== 'string') return str;
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+}
+
 window.carregarAvisos = async function() {
     const lista = document.getElementById('lista-avisos');
     if(!lista) return;
-    lista.innerHTML = `<p style="color: #aaaaaa; text-align: center; margin-top: 20px;">Buscando...</p>`;
+    lista.innerHTML = '';
+    const msgBusca = document.createElement('p');
+    msgBusca.style.cssText = 'color: #aaaaaa; text-align: center; margin-top: 20px;';
+    msgBusca.textContent = 'Buscando...';
+    lista.appendChild(msgBusca);
 
     const { data: avisos, error } = await window.supabase.from('avisos').select('*');
 
     if (error || !avisos || avisos.length === 0) {
-        lista.innerHTML = `
-            <div class="card-status" style="padding: 20px; text-align: center;">
-                <p style="color: #aaaaaa; margin: 0;">Nenhum aviso no momento. Bom treino!</p>
-            </div>`;
+        lista.innerHTML = '';
+        const card = document.createElement('div');
+        card.className = 'card-status';
+        card.style.cssText = 'padding: 20px; text-align: center;';
+        const p = document.createElement('p');
+        p.style.cssText = 'color: #aaaaaa; margin: 0;';
+        p.textContent = 'Nenhum aviso no momento. Bom treino!';
+        card.appendChild(p);
+        lista.appendChild(card);
         return;
     }
 
-    lista.innerHTML = "";
+    lista.innerHTML = '';
     // CORREÇÃO: usa slice() para não modificar o array original
     for (const aviso of avisos.slice().reverse()) {
-        lista.innerHTML += `
-            <div class="card-status" style="padding: 20px; margin-bottom: 15px; border-left: 4px solid var(--cor-destaque); text-align: left;">
-                <h4 style="color: white; font-size: 16px; margin-bottom: 8px;">${aviso.titulo}</h4>
-                <p style="color: #aaaaaa; font-size: 14px; line-height: 1.5; margin: 0;">${aviso.mensagem}</p>
-            </div>`;
+        const card = document.createElement('div');
+        card.className = 'card-status';
+        card.style.cssText = 'padding: 20px; margin-bottom: 15px; border-left: 4px solid var(--cor-destaque); text-align: left;';
+
+        const h4 = document.createElement('h4');
+        h4.style.cssText = 'color: white; font-size: 16px; margin-bottom: 8px;';
+        h4.textContent = aviso.titulo || '';
+        card.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.cssText = 'color: #aaaaaa; font-size: 14px; line-height: 1.5; margin: 0;';
+        p.textContent = aviso.mensagem || '';
+        card.appendChild(p);
+
+        lista.appendChild(card);
     }
 };
 
@@ -36,6 +64,18 @@ document.addEventListener('DOMContentLoaded', () => {
         inputFoto.addEventListener('change', async (e) => {
             const arquivo = e.target.files[0];
             if (!arquivo) return;
+
+            // Validação: tipo de arquivo
+            const tiposPermitidos = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+            if (!tiposPermitidos.includes(arquivo.type)) {
+                Swal.fire({ icon: 'warning', title: 'Formato inválido', text: 'Envie uma imagem JPG, PNG ou WEBP.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+                return;
+            }
+            // Validação: tamanho máximo 5MB
+            if (arquivo.size > 5 * 1024 * 1024) {
+                Swal.fire({ icon: 'warning', title: 'Arquivo muito grande', text: 'O limite é 5MB.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+                return;
+            }
 
             Swal.fire({ title: 'Enviando foto...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
 
@@ -125,6 +165,10 @@ window.abrirCarteirinha = async function() {
             grausHtml = `<div style="display:flex;gap:4px;justify-content:center;margin-top:6px;">${Array(qtdGraus).fill('<span style="width:8px;height:8px;background:#fff;border-radius:50%;display:inline-block;"></span>').join('')}</div>`;
         }
 
+        // Dados escapados para uso seguro no template
+        const safeNome = escapeHtml(nome);
+        const safeTextoFaixa = escapeHtml(textoFaixa);
+
         const htmlCarteirinha = `
             <div style="background: linear-gradient(135deg, #111 0%, #000 100%); border-radius: 16px; padding: 30px 20px; text-align: center; position: relative; overflow: hidden; border: 1px solid ${corBorda}; box-shadow: 0 0 30px ${corBorda}33;">
 
@@ -139,12 +183,12 @@ window.abrirCarteirinha = async function() {
 
                 <div style="margin-bottom: 20px;">
                     <p style="font-size: 10px; color: #888; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">NOME</p>
-                    <h3 style="color: white; font-weight: 800; text-transform: uppercase; margin: 0; font-size: 16px;">${nome}</h3>
+                    <h3 style="color: white; font-weight: 800; text-transform: uppercase; margin: 0; font-size: 16px;">${safeNome}</h3>
                 </div>
 
                 <div style="margin-bottom: 10px;">
                     <p style="font-size: 10px; color: #888; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">FAIXA / GRAU</p>
-                    <h3 style="color: ${corBorda}; font-weight: 800; text-transform: uppercase; margin: 0; font-size: 14px; letter-spacing: 1px;">🥋 ${textoFaixa}</h3>
+                    <h3 style="color: ${corBorda}; font-weight: 800; text-transform: uppercase; margin: 0; font-size: 14px; letter-spacing: 1px;">🥋 ${safeTextoFaixa}</h3>
                     ${grausHtml}
                 </div>
 

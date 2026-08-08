@@ -43,6 +43,15 @@ window.mostrarCarregamentocartao = function(mensagem) {
     });
 };
 
+if (typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = (str) => {
+        if (typeof str !== 'string') return str;
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+}
+
 // ==========================================
 // 1. SISTEMA DE DEFESA: MODO MANUTENÇÃO
 // ==========================================
@@ -62,11 +71,22 @@ async function verificarManutencaoPainel() {
             if (!isProfessor) {
                 const cortinaManutencao = document.createElement('div');
                 cortinaManutencao.style.cssText = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; font-family: sans-serif; z-index: 999999;";
-                cortinaManutencao.innerHTML = `
-                    <span style="font-size: 60px; margin-bottom: 20px;">🚧</span>
-                    <h2 style="color: #e53935; font-weight: 800; font-style: italic; margin-bottom: 10px;">4L ACADEMY</h2>
-                    <p style="font-size: 18px; line-height: 1.5; color: #ccc;">${config.mensagem_manutencao || '🥋 O App está em atualização. Voltamos em alguns minutos!'}</p>
-                `;
+
+                const emoji = document.createElement('span');
+                emoji.style.cssText = 'font-size: 60px; margin-bottom: 20px;';
+                emoji.textContent = '🚧';
+                cortinaManutencao.appendChild(emoji);
+
+                const h2 = document.createElement('h2');
+                h2.style.cssText = 'color: #e53935; font-weight: 800; font-style: italic; margin-bottom: 10px;';
+                h2.textContent = '4L ACADEMY';
+                cortinaManutencao.appendChild(h2);
+
+                const p = document.createElement('p');
+                p.style.cssText = 'font-size: 18px; line-height: 1.5; color: #ccc;';
+                p.textContent = config.mensagem_manutencao || '🥋 O App está em atualização. Voltamos em alguns minutos!';
+                cortinaManutencao.appendChild(p);
+
                 document.body.appendChild(cortinaManutencao);
                 document.body.style.overflow = 'hidden'; 
             }
@@ -149,15 +169,25 @@ window.verificarAcesso = async function() {
 
     const saudacao = document.getElementById('saudacao-aluno');
     if (perfil && saudacao) {
-        saudacao.innerHTML = `Olá, ${perfil.nome}! 👋 <br><span style="font-size: 14px; color: var(--cor-destaque); font-weight: bold;">🥋 ${perfil.faixa || 'Branca'}</span>`;
+        saudacao.innerHTML = '';
+        const span1 = document.createElement('span');
+        span1.textContent = `Olá, ${escapeHtml(perfil.nome)}! 👋 `;
+        saudacao.appendChild(span1);
+        const br = document.createElement('br');
+        saudacao.appendChild(br);
+        const span2 = document.createElement('span');
+        span2.style.cssText = 'font-size: 14px; color: var(--cor-destaque); font-weight: bold;';
+        span2.textContent = `🥋 ${escapeHtml(perfil.faixa || 'Branca')}`;
+        saudacao.appendChild(span2);
+
         if (perfil.foto_url) {
             const img = document.getElementById('foto-perfil-aluno');
             if (img) img.src = perfil.foto_url;
         }
     }
 
-    // CORREÇÃO: ordena por created_at ao invés de id
-    const { data: ultimoPago } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pago').order('created_at', { ascending: false }).limit(1);
+    // CORREÇÃO: ordena por criado_em ao invés de id
+    const { data: ultimoPago } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pago').order('criado_em', { ascending: false }).limit(1);
     const cardReciboHome = document.getElementById('card-recibo-home');
     if (ultimoPago && ultimoPago.length > 0 && cardReciboHome) {
         cardReciboHome.style.display = "flex";
@@ -170,7 +200,7 @@ window.verificarAcesso = async function() {
     }
 
     // Prepara a Fatura atual na tela principal
-    const { data: mensalidades } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pendente').order('created_at', { ascending: true });
+    const { data: mensalidades } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pendente').order('criado_em', { ascending: true });
     const mesEl = document.getElementById('mes-atual');
     const valEl = document.getElementById('valor-pagamento');
     const statusEl = document.getElementById('status-pagamento');
@@ -199,20 +229,20 @@ window.verificarAcesso = async function() {
             }
         }
 
-        if (mesEl) mesEl.innerText = mens.mes;
-        if (valEl) valEl.innerText = `R$ ${mens.valor},00`;
+        if (mesEl) mesEl.textContent = mens.mes;
+        if (valEl) valEl.textContent = `R$ ${mens.valor},00`;
         if (statusEl) {
-            statusEl.innerText = "🔴 EM ABERTO";
+            statusEl.textContent = "🔴 EM ABERTO";
             statusEl.style.color = "#ff5252";
         }
         if (opcoesEl) opcoesEl.style.display = "flex";
         if (feedbackEl) feedbackEl.innerHTML = ""; 
         if (btnAdiantar) btnAdiantar.style.display = "none";
     } else {
-        if (mesEl) mesEl.innerText = "Tudo Certo!";
-        if (valEl) valEl.innerText = "R$ 0,00";
+        if (mesEl) mesEl.textContent = "Tudo Certo!";
+        if (valEl) valEl.textContent = "R$ 0,00";
         if (statusEl) {
-            statusEl.innerText = "✅ EM DIA";
+            statusEl.textContent = "✅ EM DIA";
             statusEl.style.color = "#4CAF50";
         }
         if (opcoesEl) opcoesEl.style.display = "none";

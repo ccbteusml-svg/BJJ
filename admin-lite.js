@@ -1,5 +1,5 @@
 // ==========================================
-// 4L ACADEMY — ADMIN LITE v2.1 (CORRIGIDO)
+// 4L ACADEMY — ADMIN LITE v2.2 (SEGURANÇA + VALIDAÇÃO)
 // ==========================================
 
 let _alunos = [];
@@ -10,13 +10,16 @@ let _alunoSelecionado = null;
 let _abaDossie = 'perfil';
 let _dadosCarregados = false;
 let _manutencaoAtiva = false;
+let _secaoAtual = 'dashboard';
+
 
 const $ = (id) => document.getElementById(id);
+
 const toast = (msg, tipo = 'success') => {
     const el = $('adm-toast');
     const msgEl = $('adm-toast-msg');
     if (!el || !msgEl) return;
-    msgEl.innerText = msg;
+    msgEl.textContent = msg;
     el.className = `adm-toast ${tipo} show`;
     setTimeout(() => el.classList.remove('show'), 2800);
 };
@@ -49,6 +52,23 @@ const nomeFaixaLimpo = (nome) => {
 
 const formatCurrency = (v) => 'R$ ' + (parseFloat(v) || 0).toLocaleString('pt-BR');
 
+if (typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = (str) => {
+        if (typeof str !== 'string') return str;
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    };
+}
+
+// ========== VALIDAÇÃO ==========
+const validarEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const validarTelefone = (tel) => tel.replace(/\D/g, '').length >= 10;
+const validarSenha = (senha) => typeof senha === 'string' && senha.length >= 6;
+const validarNome = (nome) => typeof nome === 'string' && nome.trim().length >= 2;
+const validarData = (data) => !!data && !isNaN(new Date(data).getTime());
+const validarValor = (v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0;
+
 async function verificarAdmin() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { window.location.href = 'index.html'; return; }
@@ -58,6 +78,8 @@ async function verificarAdmin() {
 }
 
 window.abrirSecao = function(sec) {
+    window._secaoAtual = sec;  // ← NOVO: guarda a aba atual
+
     document.querySelectorAll('.adm-secao').forEach(s => s.classList.remove('ativa'));
     document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.remove('ativo'));
 
@@ -79,20 +101,39 @@ window.abrirSecao = function(sec) {
     if (sec === 'mural') renderMural();
 };
 
+
+// Detecta qual aba está visível no momento — nunca erra
+function getSecaoAtiva() {
+    const secoes = ['dashboard', 'alunos', 'financeiro', 'mural', 'config'];
+    for (const sec of secoes) {
+        const el = $('sec-' + sec);
+        if (el && el.classList.contains('ativa')) return sec;
+    }
+    return 'dashboard';
+}
+
 async function carregarTudo() {
     loading('Sincronizando dados...');
     try {
         const [{ data: alunos }, { data: mens }, { data: avisos }] = await Promise.all([
             supabase.from('perfis').select('*').neq('cargo', 'professor').order('nome'),
-            supabase.from('mensalidades').select('*').order('created_at', { ascending: false }),
-            supabase.from('avisos').select('*').order('created_at', { ascending: false })
+            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }),
+            supabase.from('avisos').select('*').order('criado_em', { ascending: false })
         ]);
         _alunos = alunos || [];
         _mensalidades = mens || [];
         _avisos = avisos || [];
         _dadosCarregados = true;
         Swal.close();
-        renderDashboard();
+
+        // ✅ CORREÇÃO DEFINITIVA: lê a aba ativa do DOM, não de variável
+        const sec = getSecaoAtiva();
+        if (sec === 'dashboard') renderDashboard();
+        else if (sec === 'alunos') renderAlunos();
+        else if (sec === 'financeiro') renderFinanceiro();
+        else if (sec === 'mural') renderMural();
+        else renderDashboard();
+
     } catch (e) {
         Swal.close();
         toast('Erro ao carregar dados', 'error');
@@ -100,6 +141,8 @@ async function carregarTudo() {
     }
 }
 
+
+// ========== DASHBOARD (SEM innerHTML em dados dinâmicos) ==========
 function renderDashboard() {
     const ativos = _alunos.filter(a => !a.plano_pausado);
     const inativos = _alunos.filter(a => a.plano_pausado);
@@ -113,22 +156,22 @@ function renderDashboard() {
     const elPen = $('kpi-pendente');
     const elVips = $('kpi-vips');
 
-    if (elAtivos) elAtivos.innerText = ativos.length;
-    if (elRec) elRec.innerText = formatCurrency(recebido);
-    if (elPen) elPen.innerText = formatCurrency(pendente);
-    if (elVips) elVips.innerText = vips.length;
+    if (elAtivos) elAtivos.textContent = ativos.length;
+    if (elRec) elRec.textContent = formatCurrency(recebido);
+    if (elPen) elPen.textContent = formatCurrency(pendente);
+    if (elVips) elVips.textContent = vips.length;
 
     const elAtivosD = $('kpi-ativos-delta');
     const elRecD = $('kpi-recebido-delta');
     const elPenD = $('kpi-pendente-delta');
     const elVipsD = $('kpi-vips-delta');
 
-    if (elAtivosD) elAtivosD.innerText = `${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`;
-    if (elRecD) elRecD.innerText = `${_mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
-    if (elPenD) elPenD.innerText = `${_mensalidades.filter(m => m.status === 'pendente').length} em aberto`;
-    if (elVipsD) elVipsD.innerText = `${vips.length} recorrente${vips.length !== 1 ? 's' : ''}`;
+    if (elAtivosD) elAtivosD.textContent = `${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`;
+    if (elRecD) elRecD.textContent = `${_mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
+    if (elPenD) elPenD.textContent = `${_mensalidades.filter(m => m.status === 'pendente').length} em aberto`;
+    if (elVipsD) elVipsD.textContent = `${vips.length} recorrente${vips.length !== 1 ? 's' : ''}`;
 
-    // Gráfico de barras CSS (últimos 6 meses) - CORRIGIDO
+    // Gráfico de barras CSS — construído via DOM
     const mesesMap = {
         'Jan': ['Jan','Janeiro'], 'Fev': ['Fev','Fevereiro'], 'Mar': ['Mar','Março'],
         'Abr': ['Abr','Abril'], 'Mai': ['Mai','Maio'], 'Jun': ['Jun','Junho'],
@@ -136,21 +179,30 @@ function renderDashboard() {
         'Out': ['Out','Outubro'], 'Nov': ['Nov','Novembro'], 'Dez': ['Dez','Dezembro']
     };
     const hoje = new Date();
-    let htmlChart = '';
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-        const mesNome = Object.keys(mesesMap)[d.getMonth()];
-        const possiveisNomes = mesesMap[mesNome];
-        const val = _mensalidades
-            .filter(m => m.status === 'pago' && possiveisNomes.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
-            .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
-        const pct = Math.max(8, Math.min(100, val > 0 ? (val / 500) * 100 : 8));
-        htmlChart += `<div class="adm-chart-bar" style="height:${pct}%"><span class="adm-chart-label">${mesNome}</span></div>`;
-    }
     const grafico = $('grafico-receita');
-    if (grafico) grafico.innerHTML = htmlChart;
+    if (grafico) {
+        grafico.innerHTML = '';
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const mesNome = Object.keys(mesesMap)[d.getMonth()];
+            const possiveisNomes = mesesMap[mesNome];
+            const val = _mensalidades
+                .filter(m => m.status === 'pago' && possiveisNomes.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
+                .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+            const pct = Math.max(8, Math.min(100, val > 0 ? (val / 500) * 100 : 8));
 
-    // Aniversariantes
+            const bar = document.createElement('div');
+            bar.className = 'adm-chart-bar';
+            bar.style.height = pct + '%';
+            const label = document.createElement('span');
+            label.className = 'adm-chart-label';
+            label.textContent = mesNome;
+            bar.appendChild(label);
+            grafico.appendChild(bar);
+        }
+    }
+
+    // Aniversariantes — construído via DOM
     const mesAtual = hoje.getMonth() + 1;
     const anivs = _alunos.filter(a => a.data_nascimento && parseInt(a.data_nascimento.split('-')[1]) === mesAtual);
     const cardAniv = $('card-aniversarios');
@@ -158,31 +210,53 @@ function renderDashboard() {
     if (cardAniv && listaAniv) {
         if (anivs.length > 0) {
             cardAniv.style.display = 'block';
-            listaAniv.innerHTML = anivs.map(a => {
+            listaAniv.innerHTML = '';
+            anivs.forEach(a => {
                 const dia = a.data_nascimento.split('-')[2];
                 const num = a.telefone ? a.telefone.replace(/\D/g, '') : '';
                 const link = num ? `https://wa.me/55${num}?text=${encodeURIComponent('Parabéns, ' + a.nome + '! 🎉 Oss! 🥋')}` : '#';
                 const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
-                return `<div class="adm-bday-card">
-                    <img src="${foto}" alt="" loading="lazy">
-                    <h5>${a.nome.split(' ')[0]}</h5>
-                    <p>Dia ${dia}</p>
-                    <a href="${link}" target="_blank" style="font-size:10px; color:#25D366; text-decoration:none; font-weight:700;">🎂 Zap</a>
-                </div>`;
-            }).join('');
+
+                const card = document.createElement('div');
+                card.className = 'adm-bday-card';
+
+                const img = document.createElement('img');
+                img.src = foto;
+                img.alt = '';
+                img.loading = 'lazy';
+                card.appendChild(img);
+
+                const h5 = document.createElement('h5');
+                h5.textContent = a.nome.split(' ')[0];
+                card.appendChild(h5);
+
+                const p = document.createElement('p');
+                p.textContent = 'Dia ' + dia;
+                card.appendChild(p);
+
+                const aLink = document.createElement('a');
+                aLink.href = link;
+                aLink.target = '_blank';
+                aLink.style.cssText = 'font-size:10px; color:#25D366; text-decoration:none; font-weight:700;';
+                aLink.textContent = '🎂 Zap';
+                card.appendChild(aLink);
+
+                listaAniv.appendChild(card);
+            });
         } else {
             cardAniv.style.display = 'none';
         }
     }
 }
 
+// ========== ALUNOS (SEM innerHTML em dados dinâmicos) ==========
 function renderAlunos() {
     const lista = $('lista-alunos');
     const inputBusca = $('busca-aluno');
     const termo = (inputBusca?.value || '').toLowerCase();
 
     let filtrados = [..._alunos];
-    if (termo) filtrados = filtrados.filter(a => 
+    if (termo) filtrados = filtrados.filter(a =>
         (a.nome || '').toLowerCase().includes(termo) ||
         (a.faixa || '').toLowerCase().includes(termo) ||
         (a.telefone || '').includes(termo)
@@ -208,42 +282,97 @@ function renderAlunos() {
     if (cardFaixas && resumoFaixas) {
         if (Object.keys(contagem).length > 0) {
             cardFaixas.style.display = 'block';
-            resumoFaixas.innerHTML = Object.entries(contagem).map(([f, q]) => 
-                `<span class="adm-tag" style="background:${corFaixa(f)}22; color:${corFaixa(f)}; border:1px solid ${corFaixa(f)}44;">
-                    <span class="adm-tag faixa" style="background:${corFaixa(f)};"></span> ${f}: ${q}
-                </span>`
-            ).join('');
+            resumoFaixas.innerHTML = '';
+            Object.entries(contagem).forEach(([f, q]) => {
+                const span = document.createElement('span');
+                span.className = 'adm-tag';
+                const cor = corFaixa(f);
+                span.style.cssText = `background:${cor}22; color:${cor}; border:1px solid ${cor}44;`;
+                const dot = document.createElement('span');
+                dot.className = 'adm-tag faixa';
+                dot.style.background = cor;
+                span.appendChild(dot);
+                span.appendChild(document.createTextNode(` ${f}: ${q}`));
+                resumoFaixas.appendChild(span);
+            });
         } else {
             cardFaixas.style.display = 'none';
         }
     }
 
     if (!lista) return;
+    lista.innerHTML = '';
+
     if (filtrados.length === 0) {
-        lista.innerHTML = `<div class="adm-empty"><i class="fa-solid fa-users-slash"></i><p>Nenhum aluno encontrado</p></div>`;
+        const empty = document.createElement('div');
+        empty.className = 'adm-empty';
+        empty.innerHTML = '<i class="fa-solid fa-users-slash"></i><p>Nenhum aluno encontrado</p>';
+        lista.appendChild(empty);
         return;
     }
 
-    lista.innerHTML = filtrados.map(a => {
+    filtrados.forEach(a => {
         const cor = corFaixa(a.faixa);
-        const tagVip = a.assinante ? '<span class="adm-tag vip">VIP</span>' : '';
-        const tagIna = a.plano_pausado ? '<span class="adm-tag inativo">INATIVO</span>' : '';
         const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
         const mensPendente = _mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
-        const tagDebito = mensPendente ? '<span class="adm-tag pendente">DÉBITO</span>' : '';
 
-        return `<div class="adm-list-item" onclick="abrirDossie('${a.id}')" style="cursor:pointer; padding:14px 0;">
-            <img src="${foto}" class="adm-avatar" loading="lazy" alt="${a.nome}">
-            <div class="adm-list-info">
-                <h4>${a.nome} ${tagVip} ${tagIna} ${tagDebito}</h4>
-                <p style="display:flex; align-items:center; gap:6px;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block;"></span>
-                    ${a.faixa || 'Branca'} · ${a.telefone || 'Sem telefone'}
-                </p>
-            </div>
-            <span style="color:var(--adm-text-3);font-size:18px;"><i class="fa-solid fa-chevron-right"></i></span>
-        </div>`;
-    }).join('');
+        const item = document.createElement('div');
+        item.className = 'adm-list-item';
+        item.style.cssText = 'cursor:pointer; padding:14px 0;';
+        item.onclick = () => abrirDossie(a.id);
+
+        const img = document.createElement('img');
+        img.src = foto;
+        img.className = 'adm-avatar';
+        img.loading = 'lazy';
+        img.alt = a.nome || '';
+        item.appendChild(img);
+
+        const info = document.createElement('div');
+        info.className = 'adm-list-info';
+
+        const h4 = document.createElement('h4');
+        h4.textContent = a.nome || '';
+        if (a.assinante) {
+            const tagVip = document.createElement('span');
+            tagVip.className = 'adm-tag vip';
+            tagVip.textContent = 'VIP';
+            h4.appendChild(document.createTextNode(' '));
+            h4.appendChild(tagVip);
+        }
+        if (a.plano_pausado) {
+            const tagIna = document.createElement('span');
+            tagIna.className = 'adm-tag inativo';
+            tagIna.textContent = 'INATIVO';
+            h4.appendChild(document.createTextNode(' '));
+            h4.appendChild(tagIna);
+        }
+        if (mensPendente) {
+            const tagDeb = document.createElement('span');
+            tagDeb.className = 'adm-tag pendente';
+            tagDeb.textContent = 'DÉBITO';
+            h4.appendChild(document.createTextNode(' '));
+            h4.appendChild(tagDeb);
+        }
+        info.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.cssText = 'display:flex; align-items:center; gap:6px;';
+        const dot = document.createElement('span');
+        dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block;`;
+        p.appendChild(dot);
+        p.appendChild(document.createTextNode(`${a.faixa || 'Branca'} · ${a.telefone || 'Sem telefone'}`));
+        info.appendChild(p);
+
+        item.appendChild(info);
+
+        const chevron = document.createElement('span');
+        chevron.style.cssText = 'color:var(--adm-text-3);font-size:18px;';
+        chevron.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        item.appendChild(chevron);
+
+        lista.appendChild(item);
+    });
 }
 
 window.filtrarAlunos = function() { renderAlunos(); };
@@ -268,9 +397,9 @@ window.abrirDossie = async function(id) {
     const faixaEl = $('dossie-faixa');
 
     if (imgFoto) imgFoto.src = foto;
-    if (nomeEl) nomeEl.innerText = aluno.nome;
+    if (nomeEl) nomeEl.textContent = aluno.nome || '—';
     if (faixaEl) {
-        faixaEl.innerText = '🥋 ' + (aluno.faixa || 'BRANCA');
+        faixaEl.textContent = '🥋 ' + (aluno.faixa || 'BRANCA');
         faixaEl.style.color = corFaixa(aluno.faixa);
     }
 
@@ -297,66 +426,121 @@ window.setAbaDossie = function(aba, el) {
     renderDossieConteudo();
 };
 
+// ========== DOSSIÊ (SEM innerHTML em dados dinâmicos) ==========
 function renderDossieConteudo() {
     const a = _alunoSelecionado;
     if (!a) return;
     const container = $('dossie-conteudo');
     if (!container) return;
+    container.innerHTML = '';
 
     if (_abaDossie === 'perfil') {
-        const status = a.plano_pausado ? '<span style="color:#ff5252;font-weight:800;">🔴 INATIVO</span>' : 
-                       (a.assinante ? '<span style="color:#3b82f6;font-weight:800;">💳 VIP RECORRENTE</span>' : 
-                        '<span style="color:#22c55e;font-weight:800;">✅ ATIVO</span>');
-        container.innerHTML = `
-            <div class="adm-info-grid">
-                <div class="adm-info-row"><span class="adm-info-label">WhatsApp</span><span class="adm-info-value">${a.telefone || '—'}</span></div>
-                <div class="adm-info-row"><span class="adm-info-label">E-mail</span><span class="adm-info-value" style="font-size:11px;">${a.email || '—'}</span></div>
-                <div class="adm-info-row"><span class="adm-info-label">Nascimento</span><span class="adm-info-value">${a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString('pt-BR') : '—'}</span></div>
-                <div class="adm-info-row"><span class="adm-info-label">Status</span><span class="adm-info-value">${status}</span></div>
-                <div class="adm-info-row"><span class="adm-info-label">Mensalidade</span><span class="adm-info-value">R$ ${a.valor_mensalidade || 25},00</span></div>
-            </div>
-            <a href="https://wa.me/55${(a.telefone || '').replace(/\D/g, '')}?text=${encodeURIComponent('Olá, *' + a.nome + '*! Oss! 🥋')}" target="_blank" 
-               style="display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;text-decoration:none;padding:14px;border-radius:10px;font-weight:800;margin-top:16px;">
-                <i class="fa-brands fa-whatsapp"></i> Chamar no WhatsApp
-            </a>
-        `;
+        const status = a.plano_pausado ? '🔴 INATIVO' : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO');
+        const corStatus = a.plano_pausado ? '#ff5252' : (a.assinante ? '#3b82f6' : '#22c55e');
+
+        const grid = document.createElement('div');
+        grid.className = 'adm-info-grid';
+
+        const rows = [
+            { label: 'WhatsApp', value: a.telefone || '—' },
+            { label: 'E-mail', value: a.email || '—', small: true },
+            { label: 'Nascimento', value: a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString('pt-BR') : '—' },
+            { label: 'Status', value: status, color: corStatus },
+            { label: 'Mensalidade', value: `R$ ${a.valor_mensalidade || 25},00` }
+        ];
+
+        rows.forEach(r => {
+            const row = document.createElement('div');
+            row.className = 'adm-info-row';
+            const lbl = document.createElement('span');
+            lbl.className = 'adm-info-label';
+            lbl.textContent = r.label;
+            const val = document.createElement('span');
+            val.className = 'adm-info-value';
+            val.textContent = r.value;
+            if (r.small) val.style.fontSize = '11px';
+            if (r.color) val.style.color = r.color;
+            row.appendChild(lbl);
+            row.appendChild(val);
+            grid.appendChild(row);
+        });
+        container.appendChild(grid);
+
+        const zapLink = document.createElement('a');
+        zapLink.href = `https://wa.me/55${(a.telefone || '').replace(/\D/g, '')}?text=${encodeURIComponent('Olá, *' + a.nome + '*! Oss! 🥋')}`;
+        zapLink.target = '_blank';
+        zapLink.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:white;text-decoration:none;padding:14px;border-radius:10px;font-weight:800;margin-top:16px;';
+        zapLink.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Chamar no WhatsApp';
+        container.appendChild(zapLink);
+
     } else if (_abaDossie === 'financeiro') {
         const mensAluno = _mensalidades.filter(m => m.aluno_id === a.id).slice(0, 12);
         if (mensAluno.length === 0) {
-            container.innerHTML = `<div class="adm-empty"><i class="fa-solid fa-receipt"></i><p>Sem histórico financeiro</p></div>`;
+            container.innerHTML = '<div class="adm-empty"><i class="fa-solid fa-receipt"></i><p>Sem histórico financeiro</p></div>';
             return;
         }
-        container.innerHTML = mensAluno.map(m => {
+        mensAluno.forEach(m => {
             const isPago = m.status === 'pago';
-            return `<div class="adm-list-item">
-                <div class="adm-list-info">
-                    <h4>${m.mes}</h4>
-                    <p class="adm-tag ${isPago ? 'pago' : 'pendente'}">${isPago ? '✅ Pago' : '🔴 Pendente'}</p>
-                </div>
-                <span style="font-weight:800;color:var(--adm-text);">R$ ${m.valor}</span>
-            </div>`;
-        }).join('');
+            const item = document.createElement('div');
+            item.className = 'adm-list-item';
+
+            const info = document.createElement('div');
+            info.className = 'adm-list-info';
+            const h4 = document.createElement('h4');
+            h4.textContent = m.mes || '';
+            info.appendChild(h4);
+            const p = document.createElement('p');
+            p.className = 'adm-tag ' + (isPago ? 'pago' : 'pendente');
+            p.textContent = isPago ? '✅ Pago' : '🔴 Pendente';
+            info.appendChild(p);
+            item.appendChild(info);
+
+            const val = document.createElement('span');
+            val.style.cssText = 'font-weight:800;color:var(--adm-text);';
+            val.textContent = `R$ ${m.valor}`;
+            item.appendChild(val);
+
+            container.appendChild(item);
+        });
     } else {
         const acao = a.plano_pausado ? 'reativar' : 'congelar';
         const corBtn = a.plano_pausado ? '#22c55e' : '#9e9e9e';
         const txtBtn = a.plano_pausado ? '▶️ Reativar Aluno' : '⏸️ Inativar Aluno';
 
-        container.innerHTML = `
-            <div style="display:flex;flex-direction:column;gap:10px;">
-                <button class="adm-btn-full" onclick="editarAlunoDossie()" style="background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);">
-                    <i class="fa-solid fa-pen"></i> Editar Perfil
-                </button>
-                <button class="adm-btn-full" onclick="alternarPlano('${a.id}', '${a.nome}', '${acao}')" style="background:transparent;border:1px solid ${corBtn};color:${corBtn};">
-                    ${txtBtn}
-                </button>
-                ${a.assinante ? `<button class="adm-btn-full" onclick="cancelarVIP('${a.id}', '${a.nome}')" style="background:transparent;border:1px solid #ff5252;color:#ff5252;">
-                    <i class="fa-solid fa-crown"></i> Cancelar VIP
-                </button>` : ''}
-                <button class="adm-btn-full" onclick="excluirAluno('${a.id}', '${a.nome}')" style="background:transparent;border:1px solid #ff5252;color:#ff5252;margin-top:10px;">
-                    <i class="fa-solid fa-trash"></i> Excluir Aluno
-                </button>
-            </div>
-        `;
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+
+        const btnEdit = document.createElement('button');
+        btnEdit.className = 'adm-btn-full';
+        btnEdit.style.cssText = 'background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);';
+        btnEdit.innerHTML = '<i class="fa-solid fa-pen"></i> Editar Perfil';
+        btnEdit.onclick = editarAlunoDossie;
+        wrap.appendChild(btnEdit);
+
+        const btnPause = document.createElement('button');
+        btnPause.className = 'adm-btn-full';
+        btnPause.style.cssText = `background:transparent;border:1px solid ${corBtn};color:${corBtn};`;
+        btnPause.textContent = txtBtn;
+        btnPause.onclick = () => alternarPlano(a.id, a.nome, acao);
+        wrap.appendChild(btnPause);
+
+        if (a.assinante) {
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'adm-btn-full';
+            btnCancel.style.cssText = 'background:transparent;border:1px solid #ff5252;color:#ff5252;';
+            btnCancel.innerHTML = '<i class="fa-solid fa-crown"></i> Cancelar VIP';
+            btnCancel.onclick = () => cancelarVIP(a.id, a.nome);
+            wrap.appendChild(btnCancel);
+        }
+
+        const btnDel = document.createElement('button');
+        btnDel.className = 'adm-btn-full';
+        btnDel.style.cssText = 'background:transparent;border:1px solid #ff5252;color:#ff5252;margin-top:10px;';
+        btnDel.innerHTML = '<i class="fa-solid fa-trash"></i> Excluir Aluno';
+        btnDel.onclick = () => excluirAluno(a.id, a.nome);
+        wrap.appendChild(btnDel);
+
+        container.appendChild(wrap);
     }
 }
 
@@ -367,11 +551,11 @@ window.editarAlunoDossie = async function() {
         title: 'Editar Atleta',
         html: `<div style="text-align:left;">
             <label style="color:#888;font-size:11px;text-transform:uppercase;">Nome</label>
-            <input id="ed-nome" class="swal2-input" value="${a.nome}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
+            <input id="ed-nome" class="swal2-input" value="${escapeHtml(a.nome)}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
             <label style="color:#888;font-size:11px;text-transform:uppercase;">WhatsApp</label>
-            <input id="ed-tel" class="swal2-input" value="${a.telefone || ''}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
+            <input id="ed-tel" class="swal2-input" value="${escapeHtml(a.telefone || '')}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
             <label style="color:#888;font-size:11px;text-transform:uppercase;">Faixa</label>
-            <input id="ed-faixa" class="swal2-input" value="${a.faixa || 'Branca'}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
+            <input id="ed-faixa" class="swal2-input" value="${escapeHtml(a.faixa || 'Branca')}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
             <label style="color:#888;font-size:11px;text-transform:uppercase;">Valor Mensalidade</label>
             <input id="ed-valor" type="number" class="swal2-input" value="${a.valor_mensalidade || ''}" style="background:#0a0a0c;color:white;border:1px solid #333;">
         </div>`,
@@ -387,9 +571,14 @@ window.editarAlunoDossie = async function() {
         })
     });
     if (v) {
+        // Validação
+        if (!validarNome(v.nome)) { toast('Nome inválido (mín. 2 caracteres)', 'error'); return; }
+        if (v.telefone && !validarTelefone(v.telefone)) { toast('Telefone inválido', 'error'); return; }
+        if (v.valor && !validarValor(v.valor)) { toast('Valor inválido', 'error'); return; }
+
         loading('Salvando...');
         await supabase.from('perfis').update({
-            nome: v.nome, telefone: v.telefone, faixa: v.faixa,
+            nome: v.nome.trim(), telefone: v.telefone, faixa: v.faixa,
             valor_mensalidade: v.valor ? parseInt(v.valor) : null
         }).eq('id', a.id);
         await carregarTudo();
@@ -402,7 +591,7 @@ window.alternarPlano = async function(id, nome, acao) {
     const cong = acao === 'congelar';
     const r = await Swal.fire({
         title: cong ? 'Inativar Aluno?' : 'Reativar Aluno?',
-        text: `${nome} será ${cong ? 'inativado' : 'reativado'}.`,
+        text: `${escapeHtml(nome)} será ${cong ? 'inativado' : 'reativado'}.`,
         icon: 'question', showCancelButton: true,
         confirmButtonColor: cong ? '#9e9e9e' : '#22c55e',
         cancelButtonColor: '#333', confirmButtonText: 'Sim', cancelButtonText: 'Cancelar',
@@ -436,31 +625,38 @@ window.cancelarVIP = async function(id, nome) {
 window.excluirAluno = async function(id, nome) {
     const r = await Swal.fire({
         title: 'Excluir permanentemente?',
-        text: `Todos os dados de ${nome} serão apagados.`,
+        text: `Todos os dados de ${escapeHtml(nome)} serão apagados (inclusive fotos).`,
         icon: 'warning', showCancelButton: true,
         confirmButtonColor: '#ff5252', cancelButtonColor: '#333',
         confirmButtonText: 'Excluir', cancelButtonText: 'Cancelar',
         background: '#0a0a0c', color: '#fff'
     });
+
     if (r.isConfirmed) {
-        loading('Excluindo...');
-        // CORREÇÃO: removemos a chamada supabase.auth.admin.deleteUser que não funciona no client-side
-        // A exclusão do usuário em auth deve ser feita via Edge Function no backend
-        await supabase.from('mensalidades').delete().eq('aluno_id', id);
-        await supabase.from('perfis').delete().eq('id', id);
-        await carregarTudo();
-        fecharModalDossie();
-        toast('Aluno removido');
+        loading('Excluindo tudo...');
+        try {
+            const { data, error } = await supabase.functions.invoke('deletar-aluno', {
+                body: { aluno_id: id }
+            });
+            if (error) throw error;
+            await carregarTudo();
+            fecharModalDossie();
+            toast('Aluno e fotos removidos!');
+        } catch (err) {
+            Swal.close();
+            toast(err.message || 'Erro ao excluir', 'error');
+        }
     }
 };
 
+// ========== FINANCEIRO (SEM innerHTML em dados dinâmicos) ==========
 function renderFinanceiro() {
     const recebido = _mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
     const pendente = _mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
     const elRec = $('fin-recebido');
     const elPen = $('fin-pendente');
-    if (elRec) elRec.innerText = formatCurrency(recebido);
-    if (elPen) elPen.innerText = formatCurrency(pendente);
+    if (elRec) elRec.textContent = formatCurrency(recebido);
+    if (elPen) elPen.textContent = formatCurrency(pendente);
 
     const inputBusca = $('busca-financeiro');
     const termo = (inputBusca?.value || '').toLowerCase();
@@ -475,38 +671,71 @@ function renderFinanceiro() {
 
     const lista = $('lista-financeiro');
     if (!lista) return;
+    lista.innerHTML = '';
+
     if (pendentes.length === 0) {
-        lista.innerHTML = `<div class="adm-empty"><i class="fa-solid fa-check-circle"></i><p>Tudo em dia! Nenhuma cobrança pendente.</p></div>`;
+        const empty = document.createElement('div');
+        empty.className = 'adm-empty';
+        empty.innerHTML = '<i class="fa-solid fa-check-circle"></i><p>Tudo em dia! Nenhuma cobrança pendente.</p>';
+        lista.appendChild(empty);
         return;
     }
 
-    lista.innerHTML = pendentes.map(m => {
+    pendentes.forEach(m => {
         const al = _alunos.find(a => a.id === m.aluno_id);
-        if (al && al.plano_pausado) return '';
+        if (al && al.plano_pausado) return;
         const nome = al ? al.nome : 'Desconhecido';
         const tel = al ? al.telefone : '';
-        return `<div class="adm-card" style="margin-bottom:10px;">
-            <div class="adm-card-body">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <div>
-                        <h4 style="margin:0;font-size:15px;color:var(--adm-text);">${nome}</h4>
-                        <p style="margin:4px 0 0;font-size:12px;color:var(--adm-text-2);text-transform:uppercase;">${m.mes} · <strong style="color:var(--adm-red);font-size:13px;">R$ ${m.valor}</strong></p>
-                    </div>
-                    <button onclick="apagarCobranca('${m.id}')" style="background:rgba(255,82,82,0.1);border:none;width:36px;height:36px;border-radius:50%;color:#ff5252;cursor:pointer;font-size:14px;">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="adm-btn-sm success adm-w-full" onclick="darBaixa('${m.id}')">
-                        <i class="fa-solid fa-check"></i> Dar Baixa
-                    </button>
-                    <button class="adm-btn-sm whatsapp" onclick="cobrarZap('${tel}', '${nome}', '${m.mes}', '${m.valor}')">
-                        <i class="fa-brands fa-whatsapp"></i> Zap
-                    </button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'adm-card';
+        card.style.marginBottom = '10px';
+
+        const body = document.createElement('div');
+        body.className = 'adm-card-body';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+
+        const info = document.createElement('div');
+        const h4 = document.createElement('h4');
+        h4.style.cssText = 'margin:0;font-size:15px;color:var(--adm-text);';
+        h4.textContent = nome;
+        info.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.cssText = 'margin:4px 0 0;font-size:12px;color:var(--adm-text-2);text-transform:uppercase;';
+        p.innerHTML = `${escapeHtml(m.mes)} · <strong style="color:var(--adm-red);font-size:13px;">R$ ${m.valor}</strong>`;
+        info.appendChild(p);
+        header.appendChild(info);
+
+        const btnDel = document.createElement('button');
+        btnDel.style.cssText = 'background:rgba(255,82,82,0.1);border:none;width:36px;height:36px;border-radius:50%;color:#ff5252;cursor:pointer;font-size:14px;';
+        btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        btnDel.onclick = () => apagarCobranca(m.id);
+        header.appendChild(btnDel);
+
+        body.appendChild(header);
+
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;';
+
+        const btnBaixa = document.createElement('button');
+        btnBaixa.className = 'adm-btn-sm success adm-w-full';
+        btnBaixa.innerHTML = '<i class="fa-solid fa-check"></i> Dar Baixa';
+        btnBaixa.onclick = () => darBaixa(m.id);
+        actions.appendChild(btnBaixa);
+
+        const btnZap = document.createElement('button');
+        btnZap.className = 'adm-btn-sm whatsapp';
+        btnZap.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Zap';
+        btnZap.onclick = () => cobrarZap(tel, nome, m.mes, m.valor);
+        actions.appendChild(btnZap);
+
+        body.appendChild(actions);
+        card.appendChild(body);
+        lista.appendChild(card);
+    });
 }
 
 window.filtrarFinanceiro = function() { renderFinanceiro(); };
@@ -514,7 +743,15 @@ window.filtrarFinanceiro = function() { renderFinanceiro(); };
 window.cobrarZap = function(tel, nome, mes, val) {
     if (!tel || tel.length < 10) { toast('Sem WhatsApp cadastrado', 'error'); return; }
     const num = tel.replace(/\D/g, '');
-    const msg = `Olá, *${nome}*! Oss! 🥋\n\nLembrete da mensalidade de *${mes}*.\n💰 *Valor:* R$ ${val},00\n\n📱 *Pague no App*\n_Ou Pix (Celular):_ *92985589868*\n\nNos vemos no tatame!`;
+    const msg = `Olá, *${nome}*! Oss! 🥋
+
+Lembrete da mensalidade de *${mes}*.
+💰 *Valor:* R$ ${val},00
+
+📱 *Pague no App*
+_Ou Pix (Celular):_ *92985589868*
+
+Nos vemos no tatame!`;
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
@@ -548,34 +785,65 @@ window.apagarCobranca = async function(id) {
     }
 };
 
+// ========== MURAL (SEM innerHTML em dados dinâmicos) ==========
 function renderMural() {
     const lista = $('lista-avisos');
     if (!lista) return;
+    lista.innerHTML = '';
+
     if (_avisos.length === 0) {
-        lista.innerHTML = `<div class="adm-empty"><i class="fa-solid fa-bullhorn"></i><p>Nenhum aviso publicado</p></div>`;
+        const empty = document.createElement('div');
+        empty.className = 'adm-empty';
+        empty.innerHTML = '<i class="fa-solid fa-bullhorn"></i><p>Nenhum aviso publicado</p>';
+        lista.appendChild(empty);
         return;
     }
-    lista.innerHTML = _avisos.map(av => `
-        <div class="adm-card" style="margin-bottom:10px;position:relative;">
-            <button onclick="apagarAviso('${av.id}')" style="position:absolute;top:10px;right:10px;background:none;border:none;color:#ff5252;font-size:14px;cursor:pointer;z-index:2;">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-            <div class="adm-card-body">
-                <h4 style="margin:0 0 6px;font-size:15px;color:var(--adm-text);padding-right:24px;">${av.titulo}</h4>
-                <p style="margin:0;font-size:13px;color:var(--adm-text-2);line-height:1.5;">${av.mensagem}</p>
-                <p style="margin:8px 0 0;font-size:10px;color:var(--adm-text-3);">${av.created_at ? new Date(av.created_at).toLocaleDateString('pt-BR') : ''}</p>
-            </div>
-        </div>
-    `).join('');
+
+    _avisos.forEach(av => {
+        const card = document.createElement('div');
+        card.className = 'adm-card';
+        card.style.cssText = 'margin-bottom:10px;position:relative;';
+
+        const btnDel = document.createElement('button');
+        btnDel.style.cssText = 'position:absolute;top:10px;right:10px;background:none;border:none;color:#ff5252;font-size:14px;cursor:pointer;z-index:2;';
+        btnDel.innerHTML = '<i class="fa-solid fa-trash"></i>';
+        btnDel.onclick = () => apagarAviso(av.id);
+        card.appendChild(btnDel);
+
+        const body = document.createElement('div');
+        body.className = 'adm-card-body';
+
+        const h4 = document.createElement('h4');
+        h4.style.cssText = 'margin:0 0 6px;font-size:15px;color:var(--adm-text);padding-right:24px;';
+        h4.textContent = av.titulo || '';
+        body.appendChild(h4);
+
+        const p = document.createElement('p');
+        p.style.cssText = 'margin:0;font-size:13px;color:var(--adm-text-2);line-height:1.5;';
+        p.textContent = av.mensagem || '';
+        body.appendChild(p);
+
+        const date = document.createElement('p');
+        date.style.cssText = 'margin:8px 0 0;font-size:10px;color:var(--adm-text-3);';
+        date.textContent = av.criado_em ? new Date(av.criado_em).toLocaleDateString('pt-BR') : '';
+        body.appendChild(date);
+
+        card.appendChild(body);
+        lista.appendChild(card);
+    });
 }
 
+// ========== FORMULÁRIOS COM VALIDAÇÃO ==========
 window.publicarAviso = async function() {
     const tit = $('aviso-titulo');
     const msg = $('aviso-mensagem');
     if (!tit || !msg) return;
     const titulo = tit.value.trim();
     const mensagem = msg.value.trim();
-    if (!titulo || !mensagem) { toast('Preencha título e mensagem', 'error'); return; }
+
+    if (!titulo || titulo.length < 2) { toast('Título muito curto', 'error'); return; }
+    if (!mensagem || mensagem.length < 2) { toast('Mensagem muito curta', 'error'); return; }
+
     loading('Publicando...');
     await supabase.from('avisos').insert([{ titulo: titulo, mensagem: mensagem }]);
     tit.value = '';
@@ -617,6 +885,14 @@ window.fecharModalNovoAluno = function(e) {
 };
 
 async function doCadastrar(dados) {
+    // Validação completa
+    if (!validarNome(dados.nome)) { toast('Nome inválido (mín. 2 caracteres)', 'error'); return false; }
+    if (!validarEmail(dados.email)) { toast('E-mail inválido', 'error'); return false; }
+    if (!validarSenha(dados.senha)) { toast('Senha deve ter no mínimo 6 caracteres', 'error'); return false; }
+    if (dados.telefone && !validarTelefone(dados.telefone)) { toast('Telefone inválido', 'error'); return false; }
+    if (dados.data_nascimento && !validarData(dados.data_nascimento)) { toast('Data de nascimento inválida', 'error'); return false; }
+    if (dados.valor_mensalidade && !validarValor(dados.valor_mensalidade)) { toast('Valor da mensalidade inválido', 'error'); return false; }
+
     loading('Cadastrando...');
     try {
         const { data, error } = await supabase.functions.invoke('criar-aluno-admin', { body: dados });
@@ -641,7 +917,6 @@ window.cadastrarAluno = async function() {
         data_nascimento: $('novo-nascimento').value,
         valor_mensalidade: parseInt($('novo-valor').value) || 25
     };
-    if (!dados.nome || !dados.email || !dados.senha) { toast('Preencha os campos obrigatórios', 'error'); return; }
     if (await doCadastrar(dados)) {
         $('form-novo-aluno').reset();
     }
@@ -656,24 +931,31 @@ window.cadastrarAlunoModal = async function() {
         faixa: $('modal-faixa').value,
         data_nascimento: $('modal-nascimento').value
     };
-    if (!dados.nome || !dados.email || !dados.senha) { toast('Preencha os campos obrigatórios', 'error'); return; }
     if (await doCadastrar(dados)) {
         $('form-modal-aluno').reset();
         fecharModalNovoAluno();
     }
 };
 
+// ==========================================
+// ✅ CORREÇÃO: Filtro de assinante null corrigido
+// ==========================================
 window.gerarMensalidades = async function() {
     let mes = $('mes-geral').value.trim();
     const val = $('valor-geral').value;
-    if (!mes || !val) { toast('Preencha mês e valor', 'error'); return; }
+
+    if (!mes || mes.length < 3) { toast('Informe um mês válido', 'error'); return; }
+    if (!val || !validarValor(val)) { toast('Informe um valor válido', 'error'); return; }
+
     mes = mes.replace(/\s+/g, ' ');
     mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
 
     loading('Verificando...');
     try {
-        const { data: alm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado').neq('cargo', 'professor').eq('assinante', false);
-        const atv = (alm || []).filter(a => !a.plano_pausado);
+        // ✅ CORRIGIDO: Busca TODOS os alunos (incluindo assinante=null) e filtra no JS
+        const { data: alm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado,assinante').neq('cargo', 'professor');
+        const atv = (alm || []).filter(a => !a.plano_pausado && !a.assinante);
+
         if (atv.length === 0) { Swal.close(); toast('Nenhum aluno ativo sem VIP', 'error'); return; }
 
         const { data: ex } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
@@ -702,6 +984,7 @@ window.atualizarMeusDados = async function() {
         showCancelButton: true, cancelButtonColor: '#333', cancelButtonText: 'Pular'
     });
     if (em) {
+        if (!validarEmail(em)) { toast('E-mail inválido', 'error'); return; }
         const { error: e1 } = await supabase.auth.updateUser({ email: em });
         if (e1) Swal.fire({ icon: 'error', title: 'Erro', text: e1.message, background: '#0a0a0c', color: '#fff' });
         else toast('E-mail atualizado! Verifique sua caixa.');
@@ -712,6 +995,7 @@ window.atualizarMeusDados = async function() {
         showCancelButton: true, cancelButtonColor: '#333', cancelButtonText: 'Pular'
     });
     if (se) {
+        if (!validarSenha(se)) { toast('Senha deve ter no mínimo 6 caracteres', 'error'); return; }
         const { error: e2 } = await supabase.auth.updateUser({ password: se });
         if (e2) Swal.fire({ icon: 'error', title: 'Erro', text: e2.message, background: '#0a0a0c', color: '#fff' });
         else toast('Senha atualizada!');
