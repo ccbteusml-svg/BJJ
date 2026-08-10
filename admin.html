@@ -623,28 +623,29 @@
                 </div>
             </div>
 
-            <!-- Ações Rápidas -->
-            <div class="adm-card">
-                <div class="adm-card-header">
-                    <div class="adm-card-title"><i class="fa-solid fa-bolt"></i> Ações Rápidas</div>
-                </div>
-                <div class="adm-card-body">
-                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirModalNovoAluno()" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
-                            <i class="fa-solid fa-user-plus" style="font-size:18px;"></i>
-                            <span style="font-size:10px;">Novo Aluno</span>
-                        </button>
-                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('financeiro'); setTimeout(()=>document.getElementById('busca-financeiro')?.focus(),300);" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
-                            <i class="fa-solid fa-file-invoice-dollar" style="font-size:18px;"></i>
-                            <span style="font-size:10px;">Cobrar</span>
-                        </button>
-                        <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('mural')" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px;">
-                            <i class="fa-solid fa-bullhorn" style="font-size:18px;"></i>
-                            <span style="font-size:10px;">Aviso</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
+<!-- Ações Rápidas -->
+<div class="adm-card">
+    <div class="adm-card-header">
+        <div class="adm-card-title"><i class="fa-solid fa-bolt"></i> Ações Rápidas</div>
+    </div>
+    <div class="adm-card-body">
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <button class="adm-btn-sm secondary adm-w-full" onclick="abrirModalNovoAluno()" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px; background:var(--adm-surface-2);">
+                <i class="fa-solid fa-user-plus" style="font-size:18px;"></i>
+                <span style="font-size:10px;">Novo Aluno</span>
+            </button>
+            <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('financeiro'); setTimeout(()=>document.getElementById('busca-financeiro')?.focus(),300);" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px; background:var(--adm-surface-2);">
+                <i class="fa-solid fa-file-invoice-dollar" style="font-size:18px;"></i>
+                <span style="font-size:10px;">Cobrar</span>
+            </button>
+            <button class="adm-btn-sm secondary adm-w-full" onclick="abrirSecao('mural')" style="padding:14px 4px; flex-direction:column; display:flex; align-items:center; gap:6px; background:var(--adm-surface-2);">
+                <i class="fa-solid fa-bullhorn" style="font-size:18px;"></i>
+                <span style="font-size:10px;">Aviso</span>
+            </button>
+        </div>
+    </div>
+</div>
+
         </section>
 
         <!-- ===== ALUNOS ===== -->
