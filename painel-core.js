@@ -133,7 +133,6 @@ window.trocarAbaAluno = (idAba, elemento) => {
     if(idAba === 'aba-avisos' && typeof window.carregarAvisos === 'function') window.carregarAvisos(); 
     if(idAba === 'aba-historico' && typeof window.carregarHistorico === 'function') window.carregarHistorico(); 
 };
-
 // ==========================================
 // 3. CARREGAMENTO PRINCIPAL (TEMA, PERFIL E HOME)
 // ==========================================
@@ -152,7 +151,6 @@ window.verificarAcesso = async function() {
     if (perfil && perfil.faixa) {
         let textoFaixaDB = perfil.faixa.toLowerCase();
         let corTema = '#E53935';
-
         if (textoFaixaDB.includes('branca')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('cinza')) corTema = '#9E9E9E';
         else if (textoFaixaDB.includes('amarela')) corTema = '#FBC02D';
@@ -163,7 +161,6 @@ window.verificarAcesso = async function() {
         else if (textoFaixaDB.includes('marrom')) corTema = '#8d6e63';
         else if (textoFaixaDB.includes('preta')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('coral') || textoFaixaDB.includes('vermelha')) corTema = '#D32F2F';
-
         document.documentElement.style.setProperty('--cor-destaque', corTema);
     }
 
@@ -186,8 +183,13 @@ window.verificarAcesso = async function() {
         }
     }
 
-    // CORREÇÃO: ordena por criado_em ao invés de id
-    const { data: ultimoPago } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pago').order('criado_em', { ascending: false }).limit(1);
+    // Último recibo pago
+    const { data: ultimoPago } = await supabase.from('mensalidades')
+        .select('*')
+        .eq('aluno_id', usuarioId)
+        .eq('status', 'pago')
+        .order('criado_em', { ascending: false })
+        .limit(1);
     const cardReciboHome = document.getElementById('card-recibo-home');
     if (ultimoPago && ultimoPago.length > 0 && cardReciboHome) {
         cardReciboHome.style.display = "flex";
@@ -199,8 +201,13 @@ window.verificarAcesso = async function() {
         cardReciboHome.style.display = "none";
     }
 
-    // Prepara a Fatura atual na tela principal
-    const { data: mensalidades } = await supabase.from('mensalidades').select('*').eq('aluno_id', usuarioId).eq('status', 'pendente').order('criado_em', { ascending: true });
+    // Prepara a Fatura atual
+    const { data: mensalidades } = await supabase.from('mensalidades')
+        .select('*')
+        .eq('aluno_id', usuarioId)
+        .eq('status', 'pendente')
+        .order('criado_em', { ascending: true });
+
     const mesEl = document.getElementById('mes-atual');
     const valEl = document.getElementById('valor-pagamento');
     const statusEl = document.getElementById('status-pagamento');
@@ -212,20 +219,21 @@ window.verificarAcesso = async function() {
         const mens = mensalidades[0];
         window.mensalidadeAtualId = mens.id;
 
+        // ✅ Só tenta verificar se tiver payment_id salvo
         if (mens.mp_payment_id) {
             try {
                 const { data: foiPago, error: erroFuncao } = await supabase.functions.invoke('verificar-pagamento', { 
                     body: { payment_id: mens.mp_payment_id, mensalidade_id: mens.id } 
                 });
 
-                if (erroFuncao) throw erroFuncao;
-
-                if (foiPago && foiPago.status === "approved") {
+                if (!erroFuncao && foiPago && foiPago.status === "approved") {
+                    // Pagamento já foi aprovado no MP — recarrega para pegar status atualizado
                     window.verificarAcesso();
                     return; 
                 }
             } catch (erroDeRede) {
-                console.warn("Falha ao checar pagamento, continuando a montagem da tela...", erroDeRede);
+                console.warn("[APP] Falha ao checar pagamento no carregamento:", erroDeRede);
+                // Não quebra o app — continua montando a tela
             }
         }
 
@@ -250,6 +258,7 @@ window.verificarAcesso = async function() {
         if (btnAdiantar) btnAdiantar.style.display = "block";
     }
 };
+
 
 // ==========================================
 // 4. RADAR DE PAGAMENTO EM TEMPO REAL
@@ -327,4 +336,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.verificarAcesso();
     window.ligarRadarEmTempoReal();
+
+    // ✅ CORREÇÃO: Quando o usuário volta do app do banco para o app da academia,
+    // dispara uma verificação imediata do status do pagamento.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log('[APP] Voltou ao foreground — verificando status...');
+            if (typeof window.verificarAcesso === 'function') {
+                window.verificarAcesso();
+            }
+        }
+    });
 });
