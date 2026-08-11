@@ -24,7 +24,8 @@ window.renderizarPendentes = function(mensalidades, todosAlunos) {
 
     (mensalidades || []).forEach(m => {
         let valor = parseFloat(m.valor) || 0;
-        if (m.status.toLowerCase().trim() === 'pago') totalPago += valor;
+        const status = (m.status || '').toLowerCase().trim();  // ✅ CORREÇÃO: protege contra null/undefined
+        if (status === 'pago') totalPago += valor;
         else totalEmAberto += valor;
     });
 
@@ -33,7 +34,7 @@ window.renderizarPendentes = function(mensalidades, todosAlunos) {
     if (txtPrevisao) txtPrevisao.innerText = `R$ ${totalPago + totalEmAberto},00`;
     if (txtAlunosCount) txtAlunosCount.innerText = (todosAlunos || []).filter(a => a.plano_pausado !== true).length;
 
-    const pendentes = (mensalidades || []).filter(m => m.status.toLowerCase().trim() === 'pendente');
+    const pendentes = (mensalidades || []).filter(m => (m.status || '').toLowerCase().trim() === 'pendente');  // ✅ CORREÇÃO: protege contra null
 
     if (pendentes.length === 0) {
         lista.innerHTML = '';
@@ -62,7 +63,8 @@ window.renderizarPendentes = function(mensalidades, todosAlunos) {
         const info = document.createElement('div');
 
         const pNome = document.createElement('p');
-        pNome.style.cssText = 'color: white; font-weight: 800; font-size: 16px; margin: 0 0 4px 0;';
+        pNome.style.cssText = 'color: white; font-weight: 800; font-size: 16px; margin: 0 0 4px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100% - 45px);';
+
         pNome.textContent = nome;
         info.appendChild(pNome);
 

@@ -22,7 +22,9 @@ if (typeof window.escapeHtml !== 'function') {
         if (typeof str !== 'string') return str;
         const div = document.createElement('div');
         div.textContent = str;
-        return div.innerHTML;
+        return div.innerHTML
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     };
 }
 
@@ -363,7 +365,8 @@ window.abrirDossie = async function(alunoId, event) {
                     <div style="position: relative; width: 110px; height: 110px; margin: 0 auto 15px;">
                         <img src="${foto}" style="width: 100%; height: 100%; border-radius: 50%; border: 4px solid ${corBorda}; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                     </div>
-                    <h3 style="color: white; margin-bottom: 5px; font-size: 22px; font-weight: 800; text-transform: uppercase;">${escapeHtml(aluno.nome)}</h3>
+                    <h3 style="... text-transform: uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 20px;">${escapeHtml(aluno.nome)}</h3>
+
                     <p style="color: ${corBorda}; font-weight: bold; margin-bottom: 20px; font-size: 14px; text-transform: uppercase;">🥋 ${escapeHtml(aluno.faixa || 'BRANCA')}</p>
 
                     <div style="text-align: left; background: #0a0a0a; padding: 15px; border-radius: 12px; font-size: 13px; border: 1px solid #333; margin-bottom: 20px;">

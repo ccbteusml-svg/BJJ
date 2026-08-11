@@ -1,4 +1,4 @@
-const NOME_DO_CACHE = '4l-academy-v10'; // 🔥 Versão nova = cache novo
+const NOME_DO_CACHE = '4l-academy-v16'; // 🔥 Versão nova = cache novo
 
 const ARQUIVOS_PARA_SALVAR = [
   './',

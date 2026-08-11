@@ -653,8 +653,12 @@ button[type="submit"]:active,
     opacity: 0.85;
 }
 
-/* Remove o active genérico de todos os buttons para evitar efeitos indesejados em elementos de UI */
-button:active {
+/* Remove o active genérico de elementos de UI (botões de navegação, close, etc) */
+.adm-btn-icon:active,
+.adm-modal-close:active,
+.adm-nav-item:active,
+.adm-chip:active,
+.adm-mass-btn:active {
     transform: none;
     opacity: 1;
 }
@@ -676,4 +680,172 @@ img {
 .adm-modal-avatar[style*="border: 3px solid #424242"],
 img[style*="border: 3px solid #424242"] {
     border-color: #888 !important;
+}
+
+
+/* ==========================================
+   CORREÇÃO v2.2 — ELEMENTOS FIXED EM TELAS GRANDES
+   ========================================== */
+@media (min-width: 451px) {
+    .adm-nav, .adm-header, .adm-toast, .adm-modal-overlay, .adm-fab {
+        max-width: 450px;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%);
+    }
+    .adm-modal-overlay {
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    .adm-modal {
+        border-radius: var(--adm-radius) !important;
+        max-height: 85vh !important;
+        transform: translateY(20px) !important;
+    }
+    .adm-modal-overlay.aberto .adm-modal {
+        transform: translateY(0) !important;
+    }
+}
+/* ==========================================
+   HOTFIX v2.3 — Overflow, Textos e Micro-ajustes
+   ========================================== */
+
+/* 1. Protege nomes longos no modal dossiê */
+#dossie-nome, .adm-modal-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 30px !important;
+}
+
+/* 2. Tags ao lado do nome quebram linha se necessário */
+.adm-list-info h4 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.3;
+}
+.adm-list-info h4 .adm-tag {
+    flex-shrink: 0;
+}
+
+/* 3. Títulos de avisos não passam por baixo do botão delete */
+#lista-avisos-admin h4,
+#lista-avisos .adm-card-body h4 {
+    padding-right: 32px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 4. Gráfico: sobe o padding-bottom para não cortar labels */
+.adm-chart {
+    padding: 10px 0 24px 0 !important;
+}
+
+/* 5. Touch target da navegação inferior (mínimo 48px) */
+.adm-nav-item {
+    min-height: 48px;
+    justify-content: center;
+}
+
+/* 6. Barra de ação em massa quebra linha em telas estreitas */
+.adm-mass-bar {
+    flex-wrap: wrap;
+    row-gap: 6px;
+}
+.adm-mass-count {
+    width: 100%;
+    margin-right: 0 !important;
+    margin-bottom: 4px;
+}
+
+/* 7. Nomes no financeiro/pendentes com corte suave */
+#lista-financeiro h4,
+#lista-pendentes h4,
+#lista-pendentes p[style*="font-weight: 800"] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+/* 8. Chevron e ícones de ação não encolhem */
+.adm-list-item > span:last-child,
+.adm-list-item .fa-chevron-right {
+    flex-shrink: 0;
+}
+
+/* 9. Preview de mensagem: quebra palavras enormes */
+#zap-preview {
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* 10. Remove scale estranho de botões de ícone/fechar */
+.adm-btn-icon:active,
+.adm-modal-close:active,
+.adm-nav-item:active,
+.adm-chip:active,
+.adm-mass-btn:active {
+    transform: none !important;
+    opacity: 0.7;
+}
+
+/* 11. Saudação do aluno não invade a foto */
+#saudacao-aluno {
+    max-width: calc(100% - 85px);
+    word-break: break-word;
+}
+
+/* 12. Cartões de aniversário com altura uniforme */
+.adm-bday-card {
+    min-height: 135px;
+    justify-content: center;
+}
+
+/* 13. Títulos de modais de ação protegidos */
+#titulo-gerar-mens {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 10px;
+}
+
+/* 14. Fallback visual para inputs de senha com type duplicado */
+input#novo-senha[type="text"],
+input#modal-senha[type="text"] {
+    -webkit-text-security: disc !important;
+}
+
+/* 15. Header com altura mínima consistente */
+.adm-header {
+    min-height: 56px;
+}
+
+/* 16. Valores no grid do dossiê alinhados à direita sem quebrar */
+.adm-info-value {
+    text-align: right;
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
+/* 17. Texto de ações rápidas não quebra estranho */
+.adm-card-body button span {
+    line-height: 1.2;
+}
+
+/* 18. Nome na carteirinha não estoura */
+.c4l-name {
+    max-width: 100%;
+}
+
+/* 19. Recibo e feedback PIX não extrapolam */
+.recibo-print,
+#feedback-pix {
+    max-width: 100%;
+    overflow-x: hidden;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }

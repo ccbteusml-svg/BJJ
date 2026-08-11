@@ -48,7 +48,9 @@ if (typeof window.escapeHtml !== 'function') {
         if (typeof str !== 'string') return str;
         const div = document.createElement('div');
         div.textContent = str;
-        return div.innerHTML;
+        return div.innerHTML
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     };
 }
 
@@ -337,12 +339,44 @@ document.addEventListener('DOMContentLoaded', () => {
     window.verificarAcesso();
     window.ligarRadarEmTempoReal();
 
-    // ✅ CORREÇÃO: Quando o usuário volta do app do banco para o app da academia,
-    // dispara uma verificação imediata do status do pagamento.
+    // ✅ CORREÇÃO: Upload de foto do perfil (handler que estava faltando no painel.html)
+    const inputFoto = document.getElementById('input-foto');
+    if (inputFoto) {
+        inputFoto.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({ icon: 'warning', title: 'Arquivo muito grande', text: 'Limite de 2MB.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+                return;
+            }
+            Swal.fire({ title: 'Enviando foto...', background: '#161618', color: '#fff', didOpen: () => Swal.showLoading() });
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) throw new Error('Sessão expirada');
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage.from('fotos-perfil').upload(fileName, file, { upsert: true, contentType: file.type });
+                if (uploadError) throw uploadError;
+                const { data: { publicUrl } } = supabase.storage.from('fotos-perfil').getPublicUrl(fileName);
+                await supabase.from('perfis').update({ foto_url: publicUrl }).eq('id', session.user.id);
+                const img = document.getElementById('foto-perfil-aluno');
+                if (img) img.src = publicUrl;
+                Swal.fire({ icon: 'success', title: 'Foto atualizada!', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Erro no upload', text: err.message, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+            }
+        });
+    }
+
+    // ✅ CORREÇÃO: Quando o usuário volta do app do banco, verifica status
+    // APENAS se não estiver no meio de um pagamento (Pix ou Cartão).
+    // Isso evita que o QR Code ou formulário de cartão sumam da tela.
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
-            console.log('[APP] Voltou ao foreground — verificando status...');
-            if (typeof window.verificarAcesso === 'function') {
+            const temPix = document.querySelector('#feedback-pix img');
+            const temCartao = document.getElementById('cardPaymentBrick_container')?.hasChildNodes();
+            if (!temPix && !temCartao && typeof window.verificarAcesso === 'function') {
+                console.log('[APP] Voltou ao foreground — verificando status...');
                 window.verificarAcesso();
             }
         }

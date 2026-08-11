@@ -11,6 +11,10 @@ let _abaDossie = 'perfil';
 let _dadosCarregados = false;
 let _manutencaoAtiva = false;
 let _secaoAtual = 'dashboard';
+let _alunosSelecionados = new Set();
+let _modoGerarIndividual = null; // null = massa, string id = individual
+let _modoSelecao = false;
+
 
 
 const $ = (id) => document.getElementById(id);
@@ -32,12 +36,12 @@ const corFaixa = (nome) => {
     const t = (nome || 'Branca').toLowerCase();
     if (t.includes('branca')) return '#f5f5f5';
     if (t.includes('cinza')) return '#9e9e9e';
-    if (t.includes('amarela')) return '#f59e0b';
+    if (t.includes('amarela')) return '#ffeb3b';
     if (t.includes('laranja')) return '#ff9800';
-    if (t.includes('verde')) return '#22c55e';
-    if (t.includes('azul')) return '#3b82f6';
-    if (t.includes('roxa')) return '#a855f7';
-    if (t.includes('marrom')) return '#8d6e63';
+    if (t.includes('verde')) return '#4caf50';
+    if (t.includes('azul')) return '#2196f3';
+    if (t.includes('roxa')) return '#9c27b0';
+    if (t.includes('marrom')) return '#795548';
     if (t.includes('preta')) return '#424242';
     if (t.includes('coral')) return '#ef5350';
     if (t.includes('vermelha')) return '#f44336';
@@ -57,7 +61,9 @@ if (typeof window.escapeHtml !== 'function') {
         if (typeof str !== 'string') return str;
         const div = document.createElement('div');
         div.textContent = str;
-        return div.innerHTML;
+        return div.innerHTML
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     };
 }
 
@@ -78,15 +84,16 @@ async function verificarAdmin() {
 }
 
 window.abrirSecao = function(sec) {
-    window._secaoAtual = sec;  // ← NOVO: guarda a aba atual
+    window._secaoAtual = sec;
 
     document.querySelectorAll('.adm-secao').forEach(s => s.classList.remove('ativa'));
     document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.remove('ativo'));
 
-    const map = { dashboard: 0, alunos: 1, financeiro: 2, mural: 3, config: 3 };
     const secEl = $('sec-' + sec);
     if (secEl) secEl.classList.add('ativa');
 
+    // ✅ CORREÇÃO: Config não tem ícone no nav inferior — não ativa nenhum
+    const map = { dashboard: 0, alunos: 1, financeiro: 2, mural: 3 };
     const navIdx = map[sec];
     if (navIdx !== undefined) {
         const navs = document.querySelectorAll('.adm-nav-item');
@@ -182,6 +189,18 @@ function renderDashboard() {
     const grafico = $('grafico-receita');
     if (grafico) {
         grafico.innerHTML = '';
+        // Calcula receita máxima real para escalar o gráfico corretamente
+        let maxReceita = 0;
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const mn = Object.keys(mesesMap)[d.getMonth()];
+            const possiveis = mesesMap[mn];
+            const val = _mensalidades
+                .filter(m => m.status === 'pago' && possiveis.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
+                .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+            if (val > maxReceita) maxReceita = val;
+        }
+        maxReceita = Math.max(maxReceita, 1);
         for (let i = 5; i >= 0; i--) {
             const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
             const mesNome = Object.keys(mesesMap)[d.getMonth()];
@@ -189,7 +208,7 @@ function renderDashboard() {
             const val = _mensalidades
                 .filter(m => m.status === 'pago' && possiveisNomes.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
                 .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
-            const pct = Math.max(8, Math.min(100, val > 0 ? (val / 500) * 100 : 8));
+            const pct = Math.max(8, Math.min(100, val > 0 ? (val / maxReceita) * 100 : 8));
 
             const bar = document.createElement('div');
             bar.className = 'adm-chart-bar';
@@ -249,131 +268,151 @@ function renderDashboard() {
     }
 }
 
-// ========== ALUNOS (SEM innerHTML em dados dinâmicos) ==========
-function renderAlunos() {
-    const lista = $('lista-alunos');
-    const inputBusca = $('busca-aluno');
-    const termo = (inputBusca?.value || '').toLowerCase();
-
-    let filtrados = [..._alunos];
-    if (termo) filtrados = filtrados.filter(a =>
-        (a.nome || '').toLowerCase().includes(termo) ||
-        (a.faixa || '').toLowerCase().includes(termo) ||
-        (a.telefone || '').includes(termo)
-    );
-
-    if (_filtroAluno === 'ativos') filtrados = filtrados.filter(a => !a.plano_pausado);
-    else if (_filtroAluno === 'inativos') filtrados = filtrados.filter(a => a.plano_pausado);
-    else if (_filtroAluno === 'vip') filtrados = filtrados.filter(a => a.assinante);
-    else if (_filtroAluno === 'pendentes') {
-        const idsPendentes = new Set(_mensalidades.filter(m => m.status === 'pendente').map(m => m.aluno_id));
-        filtrados = filtrados.filter(a => idsPendentes.has(a.id));
-    }
-
-    const ativos = _alunos.filter(a => !a.plano_pausado);
-    const contagem = {};
-    ativos.forEach(a => {
-        const f = nomeFaixaLimpo(a.faixa);
-        contagem[f] = (contagem[f] || 0) + 1;
-    });
-
-    const cardFaixas = $('card-faixas');
-    const resumoFaixas = $('resumo-faixas-content');
-    if (cardFaixas && resumoFaixas) {
-        if (Object.keys(contagem).length > 0) {
-            cardFaixas.style.display = 'block';
-            resumoFaixas.innerHTML = '';
-            Object.entries(contagem).forEach(([f, q]) => {
-                const span = document.createElement('span');
-                span.className = 'adm-tag';
-                const cor = corFaixa(f);
-                span.style.cssText = `background:${cor}22; color:${cor}; border:1px solid ${cor}44;`;
-                const dot = document.createElement('span');
-                dot.className = 'adm-tag faixa';
-                dot.style.background = cor;
-                span.appendChild(dot);
-                span.appendChild(document.createTextNode(` ${f}: ${q}`));
-                resumoFaixas.appendChild(span);
-            });
+    function renderAlunos() {
+        const lista = $('lista-alunos');
+        const inputBusca = $('busca-aluno');
+        const termo = (inputBusca?.value || '').toLowerCase();
+    
+        let filtrados = [..._alunos];
+        if (termo) filtrados = filtrados.filter(a =>
+            (a.nome || '').toLowerCase().includes(termo) ||
+            (a.faixa || '').toLowerCase().includes(termo) ||
+            (a.telefone || '').includes(termo)
+        );
+    
+        if (_filtroAluno === 'ativos') filtrados = filtrados.filter(a => !a.plano_pausado);
+        else if (_filtroAluno === 'inativos') filtrados = filtrados.filter(a => a.plano_pausado);
+        else if (_filtroAluno === 'vip') filtrados = filtrados.filter(a => a.assinante);
+        else if (_filtroAluno === 'pendentes') {
+            const idsPendentes = new Set(_mensalidades.filter(m => m.status === 'pendente').map(m => m.aluno_id));
+            filtrados = filtrados.filter(a => idsPendentes.has(a.id));
+        }
+    
+        // Barra de ações em massa
+        const barra = $('barra-massa');
+        const countEl = $('mass-count');
+        if (_modoSelecao && _alunosSelecionados.size > 0) {
+            if (barra) barra.classList.add('ativo');
+            if (countEl) countEl.textContent = `${_alunosSelecionados.size} selecionado${_alunosSelecionados.size > 1 ? 's' : ''}`;
         } else {
-            cardFaixas.style.display = 'none';
+            if (barra) barra.classList.remove('ativo');
         }
+    
+        const ativos = _alunos.filter(a => !a.plano_pausado);
+        const contagem = {};
+        ativos.forEach(a => {
+            const f = nomeFaixaLimpo(a.faixa);
+            contagem[f] = (contagem[f] || 0) + 1;
+        });
+    
+        const cardFaixas = $('card-faixas');
+        const resumoFaixas = $('resumo-faixas-content');
+        if (cardFaixas && resumoFaixas) {
+            if (Object.keys(contagem).length > 0) {
+                cardFaixas.style.display = 'block';
+                resumoFaixas.innerHTML = '';
+                Object.entries(contagem).forEach(([f, q]) => {
+                    const span = document.createElement('span');
+                    span.className = 'adm-tag';
+                    const cor = corFaixa(f);
+                    span.style.cssText = `background:${cor}22; color:${cor}; border:1px solid ${cor}44;`;
+                    const dot = document.createElement('span');
+                    dot.className = 'adm-tag faixa';
+                    dot.style.background = cor;
+                    span.appendChild(dot);
+                    span.appendChild(document.createTextNode(` ${f}: ${q}`));
+                    resumoFaixas.appendChild(span);
+                });
+            } else {
+                cardFaixas.style.display = 'none';
+            }
+        }
+    
+        if (!lista) return;
+        lista.innerHTML = '';
+    
+        if (filtrados.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'adm-empty';
+            empty.innerHTML = '<i class="fa-solid fa-users-slash"></i><p>Nenhum aluno encontrado</p>';
+            lista.appendChild(empty);
+            return;
+        }
+    
+        filtrados.forEach(a => {
+            const cor = corFaixa(a.faixa);
+            const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
+            const mensPendente = _mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
+            const isSel = _alunosSelecionados.has(a.id);
+    
+            const item = document.createElement('div');
+            item.className = 'adm-list-item' + (isSel ? ' selecionado' : '');
+            item.style.cssText = 'cursor:pointer; padding:14px 0;';
+    
+            // Checkbox
+            const chkWrap = document.createElement('div');
+            chkWrap.className = 'adm-select-wrap';
+            chkWrap.onclick = (e) => { e.stopPropagation(); toggleSelecao(a.id); };
+            const chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.checked = isSel;
+            chkWrap.appendChild(chk);
+            item.appendChild(chkWrap);
+    
+            // Foto
+            const img = document.createElement('img');
+            img.src = foto; img.className = 'adm-avatar'; img.loading = 'lazy'; img.alt = a.nome || '';
+            item.appendChild(img);
+    
+            // Info
+            const info = document.createElement('div');
+            info.className = 'adm-list-info';
+            info.style.flex = '1';
+            info.onclick = () => abrirDossie(a.id);
+    
+            const h4 = document.createElement('h4');
+            h4.textContent = a.nome || '';
+            if (a.assinante) {
+                const tagVip = document.createElement('span');
+                tagVip.className = 'adm-tag vip'; tagVip.textContent = 'VIP';
+                h4.appendChild(document.createTextNode(' '));
+                h4.appendChild(tagVip);
+            }
+            if (a.plano_pausado) {
+                const tagIna = document.createElement('span');
+                tagIna.className = 'adm-tag inativo'; tagIna.textContent = 'INATIVO';
+                h4.appendChild(document.createTextNode(' '));
+                h4.appendChild(tagIna);
+            }
+            if (mensPendente) {
+                const tagDeb = document.createElement('span');
+                tagDeb.className = 'adm-tag pendente'; tagDeb.textContent = 'DÉBITO';
+                h4.appendChild(document.createTextNode(' '));
+                h4.appendChild(tagDeb);
+            }
+            info.appendChild(h4);
+    
+            const p = document.createElement('p');
+            p.style.cssText = 'display:flex; align-items:center; gap:6px;';
+            const dot = document.createElement('span');
+            dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block;`;
+            p.appendChild(dot);
+            p.appendChild(document.createTextNode(`${a.faixa || 'Branca'} · ${a.telefone || 'Sem telefone'}`));
+            info.appendChild(p);
+    
+            item.appendChild(info);
+    
+            const chevron = document.createElement('span');
+            chevron.style.cssText = 'color:var(--adm-text-3);font-size:18px;';
+            chevron.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+            chevron.onclick = () => abrirDossie(a.id);
+            item.appendChild(chevron);
+    
+            lista.appendChild(item);
+        });
     }
 
-    if (!lista) return;
-    lista.innerHTML = '';
 
-    if (filtrados.length === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'adm-empty';
-        empty.innerHTML = '<i class="fa-solid fa-users-slash"></i><p>Nenhum aluno encontrado</p>';
-        lista.appendChild(empty);
-        return;
-    }
-
-    filtrados.forEach(a => {
-        const cor = corFaixa(a.faixa);
-        const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
-        const mensPendente = _mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
-
-        const item = document.createElement('div');
-        item.className = 'adm-list-item';
-        item.style.cssText = 'cursor:pointer; padding:14px 0;';
-        item.onclick = () => abrirDossie(a.id);
-
-        const img = document.createElement('img');
-        img.src = foto;
-        img.className = 'adm-avatar';
-        img.loading = 'lazy';
-        img.alt = a.nome || '';
-        item.appendChild(img);
-
-        const info = document.createElement('div');
-        info.className = 'adm-list-info';
-
-        const h4 = document.createElement('h4');
-        h4.textContent = a.nome || '';
-        if (a.assinante) {
-            const tagVip = document.createElement('span');
-            tagVip.className = 'adm-tag vip';
-            tagVip.textContent = 'VIP';
-            h4.appendChild(document.createTextNode(' '));
-            h4.appendChild(tagVip);
-        }
-        if (a.plano_pausado) {
-            const tagIna = document.createElement('span');
-            tagIna.className = 'adm-tag inativo';
-            tagIna.textContent = 'INATIVO';
-            h4.appendChild(document.createTextNode(' '));
-            h4.appendChild(tagIna);
-        }
-        if (mensPendente) {
-            const tagDeb = document.createElement('span');
-            tagDeb.className = 'adm-tag pendente';
-            tagDeb.textContent = 'DÉBITO';
-            h4.appendChild(document.createTextNode(' '));
-            h4.appendChild(tagDeb);
-        }
-        info.appendChild(h4);
-
-        const p = document.createElement('p');
-        p.style.cssText = 'display:flex; align-items:center; gap:6px;';
-        const dot = document.createElement('span');
-        dot.style.cssText = `width:8px;height:8px;border-radius:50%;background:${cor};display:inline-block;`;
-        p.appendChild(dot);
-        p.appendChild(document.createTextNode(`${a.faixa || 'Branca'} · ${a.telefone || 'Sem telefone'}`));
-        info.appendChild(p);
-
-        item.appendChild(info);
-
-        const chevron = document.createElement('span');
-        chevron.style.cssText = 'color:var(--adm-text-3);font-size:18px;';
-        chevron.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-        item.appendChild(chevron);
-
-        lista.appendChild(item);
-    });
-}
 
 window.filtrarAlunos = function() { renderAlunos(); };
 
@@ -388,6 +427,7 @@ window.setFiltroAluno = function(f) {
 window.abrirDossie = async function(id) {
     const aluno = _alunos.find(a => a.id === id);
     if (!aluno) return;
+    if (!aluno) { toast('Aluno não encontrado', 'error'); return; }
     _alunoSelecionado = aluno;
     _abaDossie = 'perfil';
 
@@ -509,6 +549,16 @@ function renderDossieConteudo() {
 
         const wrap = document.createElement('div');
         wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+        // Botão de gerar mensalidade individual
+        const btnGerar = document.createElement('button');
+        btnGerar.className = 'adm-btn-full';
+        btnGerar.style.cssText = 'background:var(--adm-red);border:none;color:white;';
+        btnGerar.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Gerar Mensalidade';
+        btnGerar.onclick = () => {
+            fecharModalDossie();
+            setTimeout(() => abrirModalGerarIndividual(a.id, a.nome), 300);
+        };
+        wrap.appendChild(btnGerar);
 
         const btnEdit = document.createElement('button');
         btnEdit.className = 'adm-btn-full';
@@ -579,7 +629,7 @@ window.editarAlunoDossie = async function() {
         loading('Salvando...');
         await supabase.from('perfis').update({
             nome: v.nome.trim(), telefone: v.telefone, faixa: v.faixa,
-            valor_mensalidade: v.valor ? parseInt(v.valor) : null
+            valor_mensalidade: v.valor ? parseFloat(v.valor) : null
         }).eq('id', a.id);
         await carregarTudo();
         fecharModalDossie();
@@ -699,7 +749,8 @@ function renderFinanceiro() {
 
         const info = document.createElement('div');
         const h4 = document.createElement('h4');
-        h4.style.cssText = 'margin:0;font-size:15px;color:var(--adm-text);';
+        h4.style.cssText = 'margin:0;font-size:15px;color:var(--adm-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(100% - 40px);';
+
         h4.textContent = nome;
         info.appendChild(h4);
 
@@ -915,7 +966,7 @@ window.cadastrarAluno = async function() {
         telefone: $('novo-telefone').value.replace(/\D/g, ''),
         faixa: $('novo-faixa').value,
         data_nascimento: $('novo-nascimento').value,
-        valor_mensalidade: parseInt($('novo-valor').value) || 25
+        valor_mensalidade: parseFloat($('novo-valor').value) || 25
     };
     if (await doCadastrar(dados)) {
         $('form-novo-aluno').reset();
@@ -1042,7 +1093,534 @@ window.sair = async function() {
     }
 };
 
+// ========== REALTIME: ATUALIZA AUTOMATICAMENTE ==========
+let _rtTimeout = null;
+function recarregarComDebounce() {
+    if (_rtTimeout) clearTimeout(_rtTimeout);
+    _rtTimeout = setTimeout(() => {
+        const modalAberto = document.querySelector('.adm-modal-overlay.aberto');
+        if (!modalAberto) carregarTudo();
+    }, 800);
+}
+
+function ligarRealtimeAdmin() {
+    supabase.channel('admin-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mensalidades' }, recarregarComDebounce)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'perfis' }, recarregarComDebounce)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'avisos' }, recarregarComDebounce)
+        .subscribe((status) => {
+            console.log('[ADMIN] Realtime status:', status);
+        });
+}
+
+// ========== SELEÇÃO MÚLTIPLA ==========
+window.toggleSelecao = function(id) {
+    if (_alunosSelecionados.has(id)) _alunosSelecionados.delete(id);
+    else _alunosSelecionados.add(id);
+    renderAlunos();
+};
+
+window.toggleModoSelecao = function() {
+    _modoSelecao = !_modoSelecao;
+    const sec = $('sec-alunos');
+    const btn = $('btn-modo-selecao');
+
+    if (_modoSelecao) {
+        if (sec) sec.classList.add('adm-modo-selecao');
+        if (btn) btn.classList.add('ativo');
+    } else {
+        if (sec) sec.classList.remove('adm-modo-selecao');
+        if (btn) btn.classList.remove('ativo');
+        _alunosSelecionados.clear();
+    }
+    renderAlunos();
+};
+
+window.limparSelecao = function() {
+    _alunosSelecionados.clear();
+    const barra = $('barra-massa');
+    if (barra) barra.classList.remove('ativo');
+    // ✅ CORREÇÃO: re-renderiza para remover o visual de selecionado dos itens
+    renderAlunos();
+};
+
+// ========== MODAL GERAR MENSALIDADE (MASSA OU INDIVIDUAL) ==========
+window.abrirModalGerarSelecionados = function() {
+    _modoGerarIndividual = null;
+    const titulo = $('titulo-gerar-mens');
+    const sub = $('sub-gerar-mens');
+    if (titulo) titulo.textContent = 'Gerar Cobrança em Massa';
+    if (sub) sub.textContent = `${_alunosSelecionados.size} aluno(s) selecionado(s)`;
+    
+    const modal = $('modal-gerar-mens');
+    if (modal) {
+        modal.classList.add('aberto');
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.abrirModalGerarIndividual = function(alunoId, nomeAluno) {
+    _modoGerarIndividual = alunoId;
+    const titulo = $('titulo-gerar-mens');
+    const sub = $('sub-gerar-mens');
+    if (titulo) titulo.textContent = 'Gerar Cobrança';
+    if (sub) sub.textContent = `Para: ${nomeAluno}`;
+    
+    const modal = $('modal-gerar-mens');
+    if (modal) {
+        modal.classList.add('aberto');
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.fecharModalGerar = function(e) {
+    if (e && e.target !== $('modal-gerar-mens')) return;
+    const modal = $('modal-gerar-mens');
+    if (modal) modal.classList.remove('aberto');
+    document.body.style.overflow = '';
+    _modoGerarIndividual = null;
+};
+
+window.confirmarGerarMensalidade = async function() {
+    let mes = $('mass-mes-geral').value.trim();
+    const val = $('mass-valor-geral').value;
+
+    if (!mes || mes.length < 3) { toast('Informe um mês válido', 'error'); return; }
+    if (!val || !validarValor(val)) { toast('Informe um valor válido', 'error'); return; }
+
+    mes = mes.replace(/\s+/g, ' ');
+    mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
+
+    // Define quem vai receber
+    let alvos = [];
+    if (_modoGerarIndividual) {
+        const al = _alunos.find(a => a.id === _modoGerarIndividual);
+        if (al) alvos = [al];
+    } else {
+        alvos = _alunos.filter(a => _alunosSelecionados.has(a.id) && !a.plano_pausado && !a.assinante);
+    }
+
+    if (alvos.length === 0) {
+        toast('Nenhum aluno válido selecionado (ativos sem VIP)', 'error');
+        return;
+    }
+
+    loading('Verificando...');
+    try {
+        const { data: ex } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
+        const ja = new Set((ex || []).map(m => m.aluno_id));
+
+        const cobrar = alvos.filter(a => !ja.has(a.id));
+        if (cobrar.length === 0) {
+            Swal.close();
+            toast(`Todos já cobrados em ${mes}`);
+            return;
+        }
+
+        const cob = cobrar.map(a => ({
+            aluno_id: a.id,
+            mes: mes,
+            valor: a.valor_mensalidade || parseFloat(val),
+            status: 'pendente'
+        }));
+
+        await supabase.from('mensalidades').insert(cob);
+        await carregarTudo();
+        fecharModalGerar();
+        toast(`${cobrar.length} cobrança(s) gerada(s)!`);
+        $('mass-mes-geral').value = '';
+        if (!_modoGerarIndividual) limparSelecao();
+
+    } catch (err) {
+        Swal.close();
+        toast(err.message, 'error');
+    }
+};
+
+// ========== INICIALIZAÇÃO ÚNICA ==========
 document.addEventListener('DOMContentLoaded', () => {
     verificarAdmin();
     checarManutencao();
+    ligarRealtimeAdmin();
 });
+
+
+// ==========================================
+// DISPARO WHATSAPP EM MASSA — MODO FILA COM PERSISTÊNCIA
+// Substitua a seção antiga no admin-lite.js por esta
+// ==========================================
+
+const TEMPLATES_ZAP = {
+  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor},00\n\n📱 *Pague no App:* https://ccbteusml-svg.github.io/?modo=app\n\n_Ou Pix (Celular):_ *92985589868*\n\nNos vemos no tatame!`,
+
+  aviso: `Olá, *{nome}*! Oss! 🥋\n\n📢 *Aviso da 4L Academy:*\n\n{custom}\n\nQualquer dúvida, chama no Zap!`,
+
+  parabens: `Olá, *{nome}*! 🥋🎉\n\n{custom}\n\nDesejamos muitas felicidades, saúde e muitos treinos! Oss!`,
+
+  lembrete: `E aí, *{nome}*! 👊🥋\n\nLembrando que hoje tem treino! Não falte!\n\n{custom}\n\nNos vemos no tatame!`,
+
+  convite: `Olá, *{nome}*! 🥋\n\n{custom}\n\nConfirme sua presença pelo app ou responda aqui. Oss!`
+};
+
+const STORAGE_KEY = '4l_fila_disparo';
+
+// ---------- SALVAR / CARREGAR FILA ----------
+function salvarFila(estado) {
+  estado.timestamp = Date.now();  // ✅ CORREÇÃO: salva timestamp para limpeza automática
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+}
+
+function carregarFila() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch { return null; }
+}
+
+function limparFila() {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+// ---------- ABRIR MODAL ----------
+window.abrirModalDisparoZap = function() {
+  if (_alunosSelecionados.size === 0) {
+    toast('Selecione pelo menos um aluno', 'error');
+    return;
+  }
+
+  const modal = $('modal-disparo-zap');
+  const lista = $('lista-disparo-zap');
+  if (!modal || !lista) return;
+
+  // Verifica se tem fila salva em andamento
+  const filaSalva = carregarFila();
+  if (filaSalva && filaSalva.ids.length > filaSalva.index) {
+    Swal.fire({
+      title: 'Fila em andamento!',
+      text: `Você parou em ${filaSalva.nomeAtual || 'um aluno'}. Deseja continuar?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Continuar Fila',
+      cancelButtonText: 'Começar Nova',
+      confirmButtonColor: '#22c55e',
+      cancelButtonColor: '#333',
+      background: '#0a0a0c',
+      color: '#fff'
+    }).then(r => {
+      if (r.isConfirmed) {
+        restaurarFilaUI(filaSalva);
+      } else {
+        limparFila();
+        montarNovaFila();
+      }
+    });
+  } else {
+    limparFila();
+    montarNovaFila();
+  }
+
+  modal.classList.add('aberto');
+  document.body.style.overflow = 'hidden';
+};
+
+function montarNovaFila() {
+  // Preenche mês atual
+  const hoje = new Date();
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const inputMes = $('zap-mes');
+  if (inputMes && !inputMes.value) {
+    inputMes.value = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
+  }
+
+  // Monta lista de preview
+  const lista = $('lista-disparo-zap');
+  lista.innerHTML = '';
+  const ids = Array.from(_alunosSelecionados);
+  
+  ids.forEach((id, idx) => {
+    const a = _alunos.find(x => x.id === id);
+    if (!a) return;
+    const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
+    const item = document.createElement('div');
+    item.className = 'adm-disparo-item';
+    item.id = `fila-item-${id}`;
+    item.innerHTML = `
+      <img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
+        <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>
+      </div>
+      <span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);" id="status-${id}">#${idx + 1}</span>
+    `;
+    lista.appendChild(item);
+  });
+
+  atualizarPreviewDisparo();
+  resetarBotoesFila(ids, 0);
+}
+
+function restaurarFilaUI(fila) {
+  // Re-monta a lista com o estado salvo
+  const lista = $('lista-disparo-zap');
+  lista.innerHTML = '';
+  
+  fila.ids.forEach((id, idx) => {
+    const a = _alunos.find(x => x.id === id);
+    if (!a) return;
+    const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
+    const item = document.createElement('div');
+    item.className = 'adm-disparo-item';
+    item.id = `fila-item-${id}`;
+    const isEnviado = idx < fila.index;
+    const isAtual = idx === fila.index;
+    
+    let statusHtml;
+    if (isEnviado) {
+      statusHtml = `<span class="adm-tag" style="font-size:9px;background:rgba(34,197,94,0.12);color:#22c55e;">✅ Enviado</span>`;
+    } else if (isAtual) {
+      statusHtml = `<span class="adm-tag" style="font-size:9px;background:rgba(245,158,11,0.12);color:#f59e0b;">⏳ Atual</span>`;
+    } else {
+      statusHtml = `<span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);">#${idx + 1}</span>`;
+    }
+    
+    item.innerHTML = `
+      <img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;${isEnviado ? 'opacity:0.4;' : ''}">
+      <div style="flex:1;min-width:0;${isEnviado ? 'opacity:0.4;' : ''}">
+        <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
+        <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>
+      </div>
+      ${statusHtml}
+    `;
+    lista.appendChild(item);
+  });
+
+  // Restaura inputs
+  if ($('zap-template')) $('zap-template').value = fila.template;
+  if ($('zap-mes')) $('zap-mes').value = fila.mes;
+  if ($('zap-msg-custom')) $('zap-msg-custom').value = fila.custom || '';
+  
+  atualizarPreviewDisparo();
+  resetarBotoesFila(fila.ids, fila.index, fila.nomeAtual);
+  
+  // Scroll até o atual
+  setTimeout(() => {
+    const atualEl = document.getElementById(`fila-item-${fila.ids[fila.index]}`);
+    if (atualEl) atualEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+// ---------- PREVIEW ----------
+window.atualizarPreviewDisparo = function() {
+  const template = $('zap-template')?.value || 'cobranca';
+  const custom = $('zap-msg-custom')?.value?.trim() || '';
+  const mes = $('zap-mes')?.value || '';
+  const previewEl = $('zap-preview');
+  
+  if (!previewEl) return;
+
+  const primeiroId = Array.from(_alunosSelecionados)[0];
+  const a = _alunos.find(x => x.id === primeiroId);
+  const nomeEx = a ? a.nome : 'João Silva';
+  const valorEx = a ? (a.valor_mensalidade || 25) : 25;
+
+  let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
+    .replace(/{nome}/g, nomeEx)
+    .replace(/{mes}/g, mes || 'Agosto/2026')
+    .replace(/{valor}/g, valorEx)
+    .replace(/{custom}/g, custom || '—');
+
+  previewEl.textContent = msg;
+};
+
+// ---------- BOTÕES DA FILA ----------
+function resetarBotoesFila(ids, index, nomeAtual) {
+  const btnIniciar = $('btn-iniciar-fila');
+  const btnParar = $('btn-parar-fila');
+  const contador = $('fila-contador');
+  
+  if (!btnIniciar || !btnParar) return;
+
+  if (index >= ids.length) {
+    // Fila concluída
+    btnIniciar.style.display = 'none';
+    btnParar.style.display = 'none';
+    if (contador) contador.textContent = '✅ Concluído!';
+    limparFila();
+    return;
+  }
+
+  const a = _alunos.find(x => x.id === ids[index]);
+  const nome = a ? a.nome.split(' ')[0] : 'próximo';
+  
+  if (index === 0 && !nomeAtual) {
+    // Estado inicial
+    btnIniciar.style.display = 'inline-flex';
+    btnIniciar.innerHTML = `<i class="fa-brands fa-whatsapp"></i> 🚀 Iniciar Disparo`;
+    btnIniciar.onclick = () => executarPassoFila(ids, 0);
+    btnParar.style.display = 'none';
+  } else {
+    // Em andamento
+    btnIniciar.style.display = 'inline-flex';
+    btnIniciar.innerHTML = `<i class="fa-brands fa-whatsapp"></i> ✅ Enviado, próximo: ${nome}`;
+    btnIniciar.onclick = () => executarPassoFila(ids, index);
+    btnParar.style.display = 'inline-flex';
+  }
+  
+  if (contador) contador.textContent = `${index}/${ids.length}`;
+}
+
+// ---------- EXECUTAR PASSO ----------
+window.executarPassoFila = function(ids, index) {
+  if (index >= ids.length) {
+    toast('Todos os alunos foram processados!');
+    limparFila();
+    resetarBotoesFila(ids, index);
+    return;
+  }
+
+  const a = _alunos.find(x => x.id === ids[index]);
+  if (!a) {
+    // Pula se não achou
+    executarPassoFila(ids, index + 1);
+    return;
+  }
+
+  const tel = a.telefone || '';
+  const numLimpo = tel.replace(/\D/g, '');
+
+  // Marca visual anterior como enviado
+  if (index > 0) {
+    const antId = ids[index - 1];
+    const antStatus = $(`status-${antId}`);
+    const antItem = document.getElementById(`fila-item-${antId}`);
+    if (antStatus) {
+      antStatus.textContent = '✅ Enviado';
+      antStatus.style.cssText = 'font-size:9px;background:rgba(34,197,94,0.12);color:#22c55e;';
+    }
+    if (antItem) {
+      antItem.querySelector('img').style.opacity = '0.4';
+      antItem.querySelector('div').style.opacity = '0.4';
+    }
+  }
+
+  // Marca atual como "abrindo"
+  const statusEl = $(`status-${a.id}`);
+  const itemEl = document.getElementById(`fila-item-${a.id}`);
+  if (statusEl) {
+    statusEl.textContent = '⏳ Abrindo...';
+    statusEl.style.cssText = 'font-size:9px;background:rgba(245,158,11,0.12);color:#f59e0b;';
+  }
+  if (itemEl) itemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  // Monta mensagem
+  const template = $('zap-template')?.value || 'cobranca';
+  const custom = $('zap-msg-custom')?.value?.trim() || '';
+  const mes = $('zap-mes')?.value || '';
+  const valor = a.valor_mensalidade || 25;
+
+  let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
+    .replace(/{nome}/g, a.nome)
+    .replace(/{mes}/g, mes)
+    .replace(/{valor}/g, valor)
+    .replace(/{custom}/g, custom);
+
+  if (!tel || numLimpo.length < 10) {
+    if (statusEl) {
+      statusEl.textContent = '❌ Sem Zap';
+      statusEl.style.cssText = 'font-size:9px;background:rgba(255,82,82,0.12);color:#ff5252;';
+    }
+    // Salva estado e avança para o próximo estar pronto
+    salvarFila({ ids, index: index + 1, template, mes, custom, nomeAtual: a.nome });
+    resetarBotoesFila(ids, index + 1);
+    return;
+  }
+
+  // Abre WhatsApp
+  window.open(`https://wa.me/55${numLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  // Salva estado
+  const proximo = _alunos.find(x => x.id === ids[index + 1]);
+  salvarFila({ 
+    ids, 
+    index: index + 1, 
+    template, 
+    mes, 
+    custom, 
+    nomeAtual: proximo ? proximo.nome.split(' ')[0] : null 
+  });
+
+  // Atualiza botão para o próximo
+  resetarBotoesFila(ids, index + 1);
+};
+
+window.pararFilaDisparo = function() {
+  limparFila();
+  const btnIniciar = $('btn-iniciar-fila');
+  const btnParar = $('btn-parar-fila');
+  if (btnIniciar) {
+    btnIniciar.style.display = 'inline-flex';
+    btnIniciar.innerHTML = `<i class="fa-brands fa-whatsapp"></i> 🚀 Recomeçar Fila`;
+    btnIniciar.onclick = () => {
+      const fila = carregarFila();
+      if (fila) {
+        restaurarFilaUI(fila);
+      } else {
+        montarNovaFila();
+      }
+    };
+  }
+  if (btnParar) btnParar.style.display = 'none';
+};
+
+window.fecharModalDisparo = function(e) {
+  if (e && e.target !== $('modal-disparo-zap')) return;
+  const modal = $('modal-disparo-zap');
+  if (modal) modal.classList.remove('aberto');
+  document.body.style.overflow = '';
+};
+
+// ---------- EXPORTAR CSV ----------
+window.exportarCSVDisparo = function() {
+  if (_alunosSelecionados.size === 0) { 
+    toast('Selecione alunos primeiro', 'error'); 
+    return; 
+  }
+
+  const mes = $('zap-mes')?.value || '';
+  const custom = $('zap-msg-custom')?.value?.trim() || '';
+  const template = $('zap-template')?.value || 'cobranca';
+
+  let csv = 'Nome,Telefone,Mensagem\n';
+
+  _alunosSelecionados.forEach(id => {
+    const a = _alunos.find(x => x.id === id);
+    if (!a || !a.telefone) return;
+    const valor = a.valor_mensalidade || 25;
+    const msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
+      .replace(/{nome}/g, a.nome)
+      .replace(/{mes}/g, mes)
+      .replace(/{valor}/g, valor)
+      .replace(/{custom}/g, custom)
+      .replace(/\n/g, ' ')
+      .replace(/"/g, '""');  // ✅ CORREÇÃO: escapa aspas duplas para não quebrar o CSV
+
+    csv += `"${a.nome}","${a.telefone}","${msg}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `disparo-4l-${new Date().toISOString().slice(0,10)}.csv`;
+  link.click();
+
+  toast('CSV baixado!', 'success');
+};
+
+// ---------- LIMPAR FILA ANTIGA AO CARREGAR PÁGINA ----------
+// Se a fila tiver mais de 24h, apaga sozinha
+(function limparFilaAntiga() {
+  const fila = carregarFila();
+  if (fila && fila.timestamp) {
+    const horas = (Date.now() - fila.timestamp) / 3600000;
+    if (horas > 24) limparFila();
+  }
+})();

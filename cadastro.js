@@ -49,7 +49,7 @@ if (formCadastro) {
             if (feedback) {
                 feedback.style.color = "#E53935";
                 let motivoReal = authError.message || JSON.stringify(authError);
-                feedback.innerText = "Bloqueio do Banco: " + motivoReal;
+                feedback.textContent = "Bloqueio do Banco: " + motivoReal;
             }
             if (btn) {
                 btn.innerText = "FINALIZAR CADASTRO";
@@ -60,7 +60,9 @@ if (formCadastro) {
 
         if (feedback) {
             feedback.style.color = "#2196F3";
-            feedback.innerHTML = `📩 <b>Quase lá, ${nome.split(' ')[0]}!</b><br>Enviamos um link para <b>${email}</b>. Acesse a sua caixa de entrada (ou lixo eletrônico) e confirme o seu e-mail para liberar o acesso.`;
+            const primeiroNome = escapeHtml(nome.split(' ')[0]);
+            const safeEmail = escapeHtml(email);
+            feedback.innerHTML = `📩 <b>Quase lá, ${primeiroNome}!</b><br>Enviamos um link para <b>${safeEmail}</b>. Acesse a sua caixa de entrada (ou lixo eletrônico) e confirme o seu e-mail para liberar o acesso.`;
         }
         if (btn) btn.innerText = "VERIFIQUE O SEU E-MAIL";
 

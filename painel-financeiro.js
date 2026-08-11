@@ -191,7 +191,7 @@ window.abrirMaquinaCartao = async function() {
         if (mesEl) mesEl.textContent = (_mesOriginal || mesEl.textContent) + " (Pagamento Único)";
 
         const valorEl = document.getElementById('valor-pagamento');
-        const valorNaTela = valorEl ? valorEl.textContent.replace('R$ ', '').replace(',00', '').replace(',', '.') : '25';
+        const valorNaTela = valorEl ? parseFloat(valorEl.textContent.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 25 : 25;  // ✅ CORREÇÃO: parse robusto de moeda BRL
 
         const statusEl = document.getElementById('status-pagamento');
         if (statusEl) {
@@ -405,14 +405,15 @@ if (btnAdiantarFatura) {
 
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-        // 🔧 CORREÇÃO 1: Usa 'created_at' (não 'criado_em'!)
+               // 🔧 CORREÇÃO: Usa 'id' em vez de 'created_at' (a coluna não existe no banco)
         const { data: ultimaMens, error: errUltima } = await window.supabase
             .from('mensalidades')
             .select('mes, status')
             .eq('aluno_id', session.user.id)
-            .order('created_at', { ascending: false })  // ← AQUI ESTAVA O ERRO
+            .order('id', { ascending: false })  // ← TROCADO AQUI
             .limit(1)
             .single();
+
 
         if (errUltima) {
             console.error('[Adiantar] Erro ao buscar última mensalidade:', errUltima);
@@ -421,7 +422,8 @@ if (btnAdiantarFatura) {
         let proximoMesIndex, ano;
 
         if (ultimaMens && ultimaMens.mes) {
-            const [nomeMes, anoStr] = ultimaMens.mes.split('/');
+            const [nomeMesRaw, anoStr] = ultimaMens.mes.split('/');
+            const nomeMes = nomeMesRaw.trim();
             const ultimoIndex = meses.indexOf(nomeMes);
             ano = parseInt(anoStr);
 
@@ -557,7 +559,7 @@ window.carregarHistorico = async function() {
 
     lista.innerHTML = '';
     for (const mens of historico) {
-        const isPago = mens.status.toLowerCase() === 'pago';
+        const isPago = (mens.status || '').toLowerCase() === 'pago';
         const corBorda = isPago ? '#4CAF50' : '#ff5252';
         const textoStatus = isPago ? '✅ PAGO' : '🔴 EM ABERTO';
 

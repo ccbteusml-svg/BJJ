@@ -134,7 +134,8 @@ async function carregarAvisosAdmin() {
         card.appendChild(btnDel);
 
         const h4 = document.createElement('h4');
-        h4.style.cssText = 'color: white; margin-bottom: 5px; font-size: 15px;';
+        h4.style.cssText = 'color: white; margin-bottom: 5px; font-size: 15px; padding-right: 32px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+
         h4.textContent = aviso.titulo || '';
         card.appendChild(h4);
 

@@ -555,11 +555,90 @@
         .adm-toast.success { border-color: var(--adm-green); }
         .adm-toast.error { border-color: var(--adm-red); }
 
-        /* ===== RESPONSIVE ===== */
-        @media (min-width: 640px) {
-            .adm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
-        }
-    </style>
+/* ===== RESPONSIVE ===== */
+@media (min-width: 640px) {
+    .adm-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ===== BARRA DE AÇÕES EM MASSA ===== */
+.adm-mass-bar {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--adm-surface);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius-sm);
+    margin-bottom: 14px;
+    animation: admFadeIn 0.2s ease;
+}
+.adm-mass-bar.ativo { display: flex; }
+
+.adm-mass-count {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--adm-text);
+    margin-right: auto;
+    white-space: nowrap;
+}
+
+.adm-mass-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid var(--adm-border);
+    background: var(--adm-surface-2);
+    color: var(--adm-text);
+    cursor: pointer;
+    white-space: nowrap;
+    width: auto;
+    transition: all 0.15s;
+}
+.adm-mass-btn:active { transform: scale(0.95); }
+.adm-mass-btn.ghost {
+    background: transparent;
+    color: var(--adm-text-2);
+    border-color: var(--adm-border);
+}
+.adm-mass-btn.whatsapp {
+    background: rgba(37,211,102,0.12);
+    color: #25D366;
+    border-color: rgba(37,211,102,0.25);
+}
+.adm-mass-btn.success {
+    background: var(--adm-green-dim);
+    color: var(--adm-green);
+    border-color: rgba(34,197,94,0.25);
+}
+
+/* ===== MODO SELEÇÃO ===== */
+.adm-select-wrap {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding-right: 10px;
+}
+.adm-modo-selecao .adm-select-wrap { display: flex; }
+.adm-list-item.selecionado {
+    background: rgba(229,57,53,0.06);
+    border-radius: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
+    margin: 0 -12px;
+}
+.adm-list-item.selecionado .adm-avatar {
+    border-color: var(--adm-red);
+}
+
+/* Botão modo seleção ativo no header */
+.adm-btn-icon.ativo {
+    color: var(--adm-red);
+    border-color: var(--adm-red);
+    background: rgba(229,57,53,0.1);
+}
+</style>
+
 </head>
 <body class="adm-body">
     <!-- HEADER -->
@@ -571,6 +650,9 @@
         <div class="adm-header-actions">
             <button class="adm-btn-icon" onclick="abrirSecao('config')" title="Config">
                 <i class="fa-solid fa-gear"></i>
+            </button>
+            <button class="adm-btn-icon" id="btn-modo-selecao" onclick="toggleModoSelecao()" title="Selecionar">
+                <i class="fa-solid fa-check-square"></i>
             </button>
         </div>
     </header>
@@ -648,30 +730,47 @@
 
         </section>
 
-        <!-- ===== ALUNOS ===== -->
-        <section id="sec-alunos" class="adm-secao">
-            <div class="adm-search">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="busca-aluno" placeholder="Buscar por nome, faixa ou telefone..." oninput="filtrarAlunos()">
-            </div>
+    <!-- ===== ALUNOS ===== -->
+    <section id="sec-alunos" class="adm-secao">
+        <!-- Barra de Ações em Massa -->
+        <div class="adm-mass-bar" id="barra-massa">
+            <span class="adm-mass-count" id="mass-count">0 selecionado</span>
+            <button class="adm-mass-btn ghost" onclick="limparSelecao()">Cancelar</button>
+            
+            <!-- BOTÃO NOVO DO WHATSAPP -->
+            <button class="adm-mass-btn whatsapp" onclick="abrirModalDisparoZap()">
+                <i class="fa-brands fa-whatsapp"></i> Cobrar
+            </button>
+            
+            <button class="adm-mass-btn success" onclick="abrirModalGerarSelecionados()">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Gerar Mensalidade
+            </button>
+        </div>
 
-            <div class="adm-filters" id="filtros-alunos">
-                <button class="adm-chip ativo" data-filtro="todos" onclick="setFiltroAluno('todos')">Todos</button>
-                <button class="adm-chip" data-filtro="ativos" onclick="setFiltroAluno('ativos')">Ativos</button>
-                <button class="adm-chip" data-filtro="inativos" onclick="setFiltroAluno('inativos')">Inativos</button>
-                <button class="adm-chip" data-filtro="vip" onclick="setFiltroAluno('vip')">VIP</button>
-                <button class="adm-chip" data-filtro="pendentes" onclick="setFiltroAluno('pendentes')">Débito</button>
+    
+        <div class="adm-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="busca-aluno" placeholder="Buscar por nome, faixa ou telefone..." oninput="filtrarAlunos()">
+        </div>
+    
+        <div class="adm-filters" id="filtros-alunos">
+            <button class="adm-chip ativo" data-filtro="todos" onclick="setFiltroAluno('todos')">Todos</button>
+            <button class="adm-chip" data-filtro="ativos" onclick="setFiltroAluno('ativos')">Ativos</button>
+            <button class="adm-chip" data-filtro="inativos" onclick="setFiltroAluno('inativos')">Inativos</button>
+            <button class="adm-chip" data-filtro="vip" onclick="setFiltroAluno('vip')">VIP</button>
+            <button class="adm-chip" data-filtro="pendentes" onclick="setFiltroAluno('pendentes')">Débito</button>
+        </div>
+    
+        <!-- Resumo Faixas -->
+        <div class="adm-card" id="card-faixas" style="display:none;">
+            <div class="adm-card-body">
+                <div id="resumo-faixas-content" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
             </div>
+        </div>
+    
+        <div id="lista-alunos"></div>
+    </section>
 
-            <!-- Resumo Faixas -->
-            <div class="adm-card" id="card-faixas" style="display:none;">
-                <div class="adm-card-body">
-                    <div id="resumo-faixas-content" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-                </div>
-            </div>
-
-            <div id="lista-alunos"></div>
-        </section>
 
         <!-- ===== FINANCEIRO ===== -->
         <section id="sec-financeiro" class="adm-secao">
@@ -694,30 +793,6 @@
             <div id="lista-financeiro"></div>
         </section>
 
-        <!-- ===== MURAL ===== -->
-        <section id="sec-mural" class="adm-secao">
-            <div class="adm-card">
-                <div class="adm-card-header">
-                    <div class="adm-card-title"><i class="fa-solid fa-pen-to-square"></i> Novo Aviso</div>
-                </div>
-                <div class="adm-card-body">
-                    <div class="adm-form-group">
-                        <input type="text" id="aviso-titulo" class="adm-form-input" placeholder="Título do aviso">
-                    </div>
-                    <div class="adm-form-group">
-                        <textarea id="aviso-mensagem" class="adm-form-input" rows="3" placeholder="Mensagem..."></textarea>
-                    </div>
-                    <button class="adm-btn-full" onclick="publicarAviso()">
-                        <i class="fa-solid fa-paper-plane"></i> Publicar no Mural
-                    </button>
-                </div>
-            </div>
-
-            <h3 style="font-size:13px; font-weight:800; text-transform:uppercase; color:var(--adm-text-3); margin: 20px 0 12px; letter-spacing:0.5px;">
-                <i class="fa-solid fa-clock-rotate-left"></i> Histórico de Avisos
-            </h3>
-            <div id="lista-avisos"></div>
-        </section>
 
         <!-- ===== CONFIG / FERRAMENTAS ===== -->
         <section id="sec-config" class="adm-secao">
@@ -737,7 +812,9 @@
                         </div>
                         <div class="adm-form-group">
                             <label class="adm-form-label">Senha</label>
-                            <input type="text" id="novo-senha" class="adm-form-input" placeholder="Mínimo 6 caracteres" required>
+                <!-- ✅ CERTO -->
+                <input type="password" id="novo-senha" class="adm-form-input" placeholder="Mínimo 6 caracteres" required>
+
                         </div>
                         <div class="adm-form-group">
                             <label class="adm-form-label">WhatsApp</label>
@@ -799,6 +876,30 @@
                 <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
             </button>
         </section>
+
+        <!-- ===== MURAL ===== -->
+        <section id="sec-mural" class="adm-secao">
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-bullhorn"></i> Publicar Aviso</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Título</label>
+                        <input type="text" id="aviso-titulo" class="adm-form-input" placeholder="Ex: Aula extra sábado">
+                    </div>
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Mensagem</label>
+                        <textarea id="aviso-mensagem" class="adm-form-input" rows="3" placeholder="Digite o aviso..."></textarea>
+                    </div>
+                    <button class="adm-btn-full" onclick="publicarAviso()">
+                        <i class="fa-solid fa-paper-plane"></i> Publicar
+                    </button>
+                </div>
+            </div>
+
+            <div id="lista-avisos"></div>
+        </section>
     </div>
 
     <!-- MODAL DOSSIÊ -->
@@ -810,11 +911,12 @@
                 <h2 class="adm-modal-name" id="dossie-nome">—</h2>
                 <p class="adm-modal-belt" id="dossie-faixa">—</p>
             </div>
-            <div class="adm-modal-tabs">
-                <button class="adm-modal-tab ativo" onclick="setAbaDossie('perfil')">Perfil</button>
-                <button class="adm-modal-tab" onclick="setAbaDossie('financeiro')">Financeiro</button>
-                <button class="adm-modal-tab" onclick="setAbaDossie('acoes')">Ações</button>
-            </div>
+<div class="adm-modal-tabs">
+    <button class="adm-modal-tab ativo" onclick="setAbaDossie('perfil', this)">Perfil</button>
+    <button class="adm-modal-tab" onclick="setAbaDossie('financeiro', this)">Financeiro</button>
+    <button class="adm-modal-tab" onclick="setAbaDossie('acoes', this)">Ações</button>
+</div>
+
             <div class="adm-modal-body" id="dossie-conteudo">
                 <!-- JS popula -->
             </div>
@@ -840,7 +942,9 @@
                     </div>
                     <div class="adm-form-group">
                         <label class="adm-form-label">Senha</label>
-                        <input type="text" id="modal-senha" class="adm-form-input" placeholder="Senha" required>
+                                        <!-- ✅ CERTO -->
+                <input type="password" id="modal-senha" class="adm-form-input" placeholder="Senha" required>
+
                     </div>
                     <div class="adm-form-group">
                         <label class="adm-form-label">WhatsApp</label>
@@ -861,7 +965,99 @@
             </div>
         </div>
     </div>
+    <!-- MODAL GERAR MENSALIDADE EM MASSA / INDIVIDUAL -->
+    <div class="adm-modal-overlay" id="modal-gerar-mens" onclick="fecharModalGerar(event)">
+        <div class="adm-modal" onclick="event.stopPropagation()">
+            <div class="adm-modal-header">
+                <button class="adm-modal-close" onclick="fecharModalGerar()"><i class="fa-solid fa-xmark"></i></button>
+                <h2 class="adm-modal-name" style="margin-top:10px;" id="titulo-gerar-mens">Gerar Cobrança</h2>
+                <p style="color:var(--adm-text-3);font-size:12px;margin-top:4px;" id="sub-gerar-mens">Para os alunos selecionados</p>
+            </div>
+            <div class="adm-modal-body">
+                <div class="adm-form-group">
+                    <label class="adm-form-label">Mês de Referência</label>
+                    <input type="text" id="mass-mes-geral" class="adm-form-input" placeholder="Ex: Agosto / 2026">
+                </div>
+                <div class="adm-form-group">
+                    <label class="adm-form-label">Valor Padrão (R$)</label>
+                    <input type="number" id="mass-valor-geral" class="adm-form-input" placeholder="25" value="25">
+                </div>
+                <button class="adm-btn-full" onclick="confirmarGerarMensalidade()">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cobranças
+                </button>
+            </div>
+        </div>
+    </div>
+<!-- MODAL DISPARO WHATSAPP v2 — MODO FILA -->
+<div class="adm-modal-overlay" id="modal-disparo-zap" onclick="fecharModalDisparo(event)">
+  <div class="adm-modal" onclick="event.stopPropagation()">
+    <div class="adm-modal-header">
+      <button class="adm-modal-close" onclick="fecharModalDisparo()"><i class="fa-solid fa-xmark"></i></button>
+      <h2 class="adm-modal-name" style="margin-top:10px;">
+        <i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> Disparo em Massa
+      </h2>
+      <p style="color:var(--adm-text-3);font-size:12px;margin-top:4px;">
+        Modo Fila: abre um por um automaticamente
+      </p>
+    </div>
+    <div class="adm-modal-body">
 
+      <!-- Template -->
+      <div class="adm-form-group">
+        <label class="adm-form-label">Tipo de Mensagem</label>
+        <select id="zap-template" class="adm-form-input" onchange="atualizarPreviewDisparo()">
+          <option value="cobranca">💰 Cobrança de Mensalidade</option>
+          <option value="aviso">📢 Aviso / Comunicado</option>
+          <option value="parabens">🎉 Parabéns / Aniversário</option>
+          <option value="lembrete">🥋 Lembrete de Treino</option>
+          <option value="convite">📩 Convite / Evento</option>
+        </select>
+      </div>
+
+      <!-- Mês -->
+      <div class="adm-form-group">
+        <label class="adm-form-label">Mês de Referência</label>
+        <input type="text" id="zap-mes" class="adm-form-input" placeholder="Ex: Agosto / 2026" oninput="atualizarPreviewDisparo()">
+      </div>
+
+      <!-- Mensagem custom -->
+      <div class="adm-form-group">
+        <label class="adm-form-label">Texto Adicional (opcional)</label>
+        <textarea id="zap-msg-custom" class="adm-form-input" rows="2" placeholder="Use {nome}, {mes}, {valor}" oninput="atualizarPreviewDisparo()"></textarea>
+      </div>
+
+      <!-- Preview -->
+      <div class="adm-form-group">
+        <label class="adm-form-label">Preview (1º aluno)</label>
+        <pre id="zap-preview" style="background:var(--adm-surface-2);border:1px solid var(--adm-border);border-radius:8px;padding:10px;font-size:11px;color:var(--adm-text-2);white-space:pre-wrap;max-height:100px;overflow-y:auto;"></pre>
+      </div>
+
+      <!-- Contador e Ações -->
+      <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+        <span id="fila-contador" style="font-size:13px;font-weight:800;color:var(--adm-text);">0/0</span>
+        <button id="btn-iniciar-fila" class="adm-btn-full" style="flex:1;" onclick="iniciarFilaDisparo()">
+          <i class="fa-brands fa-whatsapp"></i> 🚀 Iniciar Disparo
+        </button>
+        <button id="btn-parar-fila" class="adm-btn-full" style="flex:1;display:none;background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);" onclick="pararFilaDisparo()">
+          ⏹ Parar
+        </button>
+      </div>
+
+      <button class="adm-btn-full secondary adm-mb-2" onclick="exportarCSVDisparo()">
+        <i class="fa-solid fa-file-csv"></i> Exportar CSV (WhatsApp Business)
+      </button>
+
+      <!-- Lista de alunos na fila -->
+      <div style="max-height: 35vh; overflow-y: auto; padding-right: 4px; border-top: 1px solid var(--adm-border); padding-top: 10px;">
+        <p style="font-size:10px;color:var(--adm-text-3);text-transform:uppercase;margin-bottom:8px;">Fila de envio</p>
+        <div id="lista-disparo-zap"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    
     <!-- TOAST -->
     <div class="adm-toast" id="adm-toast"><span id="adm-toast-msg"></span></div>
 
@@ -889,6 +1085,54 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="admin-lite.js?v=4"></script>
+    <script src="admin-lite.js?v=9"></script>
+
+<!-- FALLBACK: garante que funções novas existam mesmo se o JS externo estiver cacheado -->
+<script>
+if (typeof window.toggleModoSelecao !== 'function') {
+    window._modoSelecao = false;
+    window.toggleModoSelecao = function() {
+        window._modoSelecao = !window._modoSelecao;
+        var sec = document.getElementById('sec-alunos');
+        var btn = document.getElementById('btn-modo-selecao');
+        if (window._modoSelecao) {
+            if (sec) sec.classList.add('adm-modo-selecao');
+            if (btn) btn.classList.add('ativo');
+        } else {
+            if (sec) sec.classList.remove('adm-modo-selecao');
+            if (btn) btn.classList.remove('ativo');
+            if (window._alunosSelecionados) window._alunosSelecionados.clear();
+        }
+        if (typeof renderAlunos === 'function') renderAlunos();
+    };
+}
+
+// ✅ Fallback para o disparo em massa (evita o ReferenceError)
+if (typeof window.abrirModalDisparoZap !== 'function') {
+    window.abrirModalDisparoZap = function() {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sincronizando...',
+            text: 'O app está atualizando. Feche e abra novamente, ou limpe o cache do navegador.',
+            background: '#0a0a0c',
+            color: '#fff',
+            confirmButtonColor: '#E53935'
+        });
+    };
+}
+if (typeof window.fecharModalDisparo !== 'function') {
+    window.fecharModalDisparo = function() {
+        var m = document.getElementById('modal-disparo-zap');
+        if (m) m.classList.remove('aberto');
+        document.body.style.overflow = '';
+    };
+}
+if (typeof window.executarDisparoZap !== 'function') {
+    window.executarDisparoZap = function(alunoId) {
+        window.abrirModalDisparoZap();
+    };
+}
+</script>
+
 </body>
 </html>
