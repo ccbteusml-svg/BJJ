@@ -1,6 +1,18 @@
 // ==========================================
 // 1. INICIALIZAÇÃO DO MERCADO PAGO E EVENTOS DA TELA
 // ==========================================
+// ✅ Helper robusto para converter BRL em float
+const parseBRL = (str) => {
+    if (!str) return 0;
+    const cleaned = String(str).replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.');
+    const val = parseFloat(cleaned);
+    return isNaN(val) || val < 0 ? 0 : val;
+};
+
+// ✅ Chave pública do Mercado Pago — externalizada para facilitar troca futura
+const MP_PUBLIC_KEY = "APP_USR-2dcd1a56-a86a-4967-b8ae-466813eabb1e";
+
+
 if (typeof window.escapeHtml !== 'function') {
     window.escapeHtml = (str) => {
         if (typeof str !== 'string') return str;
@@ -9,6 +21,11 @@ if (typeof window.escapeHtml !== 'function') {
         return div.innerHTML;
     };
 }
+
+// ✅ CORREÇÃO: Limpa polling ao fechar/refresh/navegar
+window.addEventListener('beforeunload', () => {
+    window.pararPollingPagamento();
+});
 
 // ==========================================
 // SISTEMA DE POLLING PARA PIX (CORRIGIDO)
@@ -132,7 +149,7 @@ let mp;
 let bricksBuilder;
 
 if (typeof window.MercadoPago !== 'undefined') {
-    mp = new window.MercadoPago("APP_USR-2dcd1a56-a86a-4967-b8ae-466813eabb1e");
+    mp = new window.MercadoPago(MP_PUBLIC_KEY);
     bricksBuilder = mp.bricks();
 } else {
     console.warn("Mercado Pago offline. Modo restrito ativado.");
@@ -180,6 +197,7 @@ window.abrirMaquinaCartao = async function() {
             feedback.innerHTML = '';
             const btnVoltar = document.createElement('button');
             btnVoltar.id = 'btn-voltar-cartao';
+        btnVoltar.className = 'btn-tactile';
             btnVoltar.style.cssText = 'background-color: transparent; color: #aaa; border: 1px solid #555; padding: 10px; border-radius: 8px; width: 100%; margin-bottom: 15px; cursor: pointer; font-weight: bold;';
             btnVoltar.textContent = '⬅️ Escolher outra forma de pagamento';
             btnVoltar.addEventListener('click', window.voltarParaOpcoes);
@@ -295,7 +313,7 @@ if (btnPagar) {
         }
 
         const valorEl = document.getElementById('valor-pagamento');
-        const valorCobrado = parseFloat(valorEl ? valorEl.textContent.replace('R$ ', '').replace(',', '.') : '0');
+        const valorCobrado = parseBRL(valorEl ? valorEl.textContent : '0');
         const mesEl = document.getElementById('mes-atual');
         const mesCobrado = mesEl ? mesEl.textContent : '';
 
@@ -346,7 +364,9 @@ if (btnPagar) {
 
                     const btnCopiar = document.createElement('button');
                     btnCopiar.id = 'btn-copiar-pix';
-                    btnCopiar.style.cssText = 'background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
+        btnCopiar.className = 'btn-tactile';
+                    btnCopiar.className = 'btn-tactile';
+        btnCopiar.style.cssText = 'background-color: #333333; color: white; padding: 12px; border: none; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
                     btnCopiar.textContent = '📋 Copiar Código Pix';
                     btnCopiar.addEventListener('click', () => {
                         navigator.clipboard.writeText(copiaCola).then(() => {
@@ -360,7 +380,8 @@ if (btnPagar) {
 
                     const btnCancelar = document.createElement('button');
                     btnCancelar.id = 'btn-cancelar-pix';
-                    btnCancelar.style.cssText = 'background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
+                    btnCancelar.className = 'btn-tactile';
+        btnCancelar.style.cssText = 'background-color: transparent; color: #ff5252; border: 1px solid #ff5252; padding: 12px; border-radius: 8px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; font-size: 13px; text-transform: uppercase;';
                     btnCancelar.textContent = '⬅️ Cancelar Pix';
                     btnCancelar.addEventListener('click', window.voltarParaOpcoes);
                     div.appendChild(btnCancelar);
@@ -405,12 +426,14 @@ if (btnAdiantarFatura) {
 
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-               // 🔧 CORREÇÃO: Usa 'id' em vez de 'created_at' (a coluna não existe no banco)
+               // 🔧 NOTA: Usa 'id' como proxy cronológico. Se sua tabela tiver 'created_at',
+        // troque .order('id', ...) por .order('created_at', { ascending: false })
+        // para maior precisão quando mensalidades forem inseridas fora de ordem.
         const { data: ultimaMens, error: errUltima } = await window.supabase
             .from('mensalidades')
             .select('mes, status')
             .eq('aluno_id', session.user.id)
-            .order('id', { ascending: false })  // ← TROCADO AQUI
+            .order('id', { ascending: false })
             .limit(1)
             .single();
 
@@ -421,11 +444,11 @@ if (btnAdiantarFatura) {
 
         let proximoMesIndex, ano;
 
-        if (ultimaMens && ultimaMens.mes) {
+        if (ultimaMens && ultimaMens.mes && ultimaMens.mes.includes('/')) {
             const [nomeMesRaw, anoStr] = ultimaMens.mes.split('/');
-            const nomeMes = nomeMesRaw.trim();
+            const nomeMes = (nomeMesRaw || '').trim();
             const ultimoIndex = meses.indexOf(nomeMes);
-            ano = parseInt(anoStr);
+            ano = parseInt(anoStr) || new Date().getFullYear();
 
             if (ultimoIndex !== -1) {
                 proximoMesIndex = ultimoIndex + 1;
@@ -585,6 +608,7 @@ window.carregarHistorico = async function() {
         if (isPago) {
             const btnRecibo = document.createElement('button');
             btnRecibo.style.cssText = 'background: rgba(76, 175, 80, 0.15); border: 1px solid #4CAF50; color: #4CAF50; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto; margin-top: 6px;';
+            btnRecibo.className = 'btn-tactile';
             btnRecibo.textContent = '🧾 RECIBO';
             btnRecibo.onclick = () => window.abrirRecibo(mens.mes, mens.valor);
             wrap.appendChild(btnRecibo);

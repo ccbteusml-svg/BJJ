@@ -1,21 +1,27 @@
 // ==========================================
-// 4L ACADEMY — ADMIN LITE v2.2 (SEGURANÇA + VALIDAÇÃO)
+// 4L ACADEMY — ADMIN LITE v3.0 (Refatorado)
+// - Namespace AppAdmin (isola variáveis globais)
+// - Realtime parcial (atualiza só o array afetado)
+// - btn-tactile nos botões dinâmicos
+// NOTA: Remova do servidor: admin-core.js, admin-alunos.js, admin-financeiro.js
 // ==========================================
 
-let _alunos = [];
-let _mensalidades = [];
-let _avisos = [];
-let _filtroAluno = 'todos';
-let _alunoSelecionado = null;
-let _abaDossie = 'perfil';
-let _dadosCarregados = false;
-let _manutencaoAtiva = false;
-let _secaoAtual = 'dashboard';
-let _alunosSelecionados = new Set();
-let _modoGerarIndividual = null; // null = massa, string id = individual
-let _modoSelecao = false;
-
-
+const AppAdmin = {
+    alunos: [],
+    mensalidades: [],
+    avisos: [],
+    filtroAluno: 'todos',
+    alunoSelecionado: null,
+    abaDossie: 'perfil',
+    dadosCarregados: false,
+    manutencaoAtiva: false,
+    secaoAtual: 'dashboard',
+    alunosSelecionados: new Set(),
+    modoGerarIndividual: null,
+    modoSelecao: false,
+    rtTimeout: null
+};
+window.AppAdmin = AppAdmin;
 
 const $ = (id) => document.getElementById(id);
 
@@ -69,7 +75,7 @@ if (typeof window.escapeHtml !== 'function') {
 
 // ========== VALIDAÇÃO ==========
 const validarEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const validarTelefone = (tel) => tel.replace(/\D/g, '').length >= 10;
+const validarTelefone = (tel) => /^\(?(?:[1-9]{2})\)?(?:[2-8]|9[1-9])[0-9]{3}\-?[0-9]{4}$/.test(String(tel).replace(/\D/g,''));
 const validarSenha = (senha) => typeof senha === 'string' && senha.length >= 6;
 const validarNome = (nome) => typeof nome === 'string' && nome.trim().length >= 2;
 const validarData = (data) => !!data && !isNaN(new Date(data).getTime());
@@ -80,11 +86,11 @@ async function verificarAdmin() {
     if (!session) { window.location.href = 'index.html'; return; }
     const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
     if (!perfil || perfil.cargo !== 'professor') { window.location.href = 'painel.html'; return; }
-    if (!_dadosCarregados) await carregarTudo();
+    if (!AppAdmin.dadosCarregados) await carregarTudo();
 }
 
 window.abrirSecao = function(sec) {
-    window._secaoAtual = sec;
+    window.AppAdmin.secaoAtual = sec;
 
     document.querySelectorAll('.adm-secao').forEach(s => s.classList.remove('ativa'));
     document.querySelectorAll('.adm-nav-item').forEach(n => n.classList.remove('ativo'));
@@ -124,13 +130,13 @@ async function carregarTudo() {
     try {
         const [{ data: alunos }, { data: mens }, { data: avisos }] = await Promise.all([
             supabase.from('perfis').select('*').neq('cargo', 'professor').order('nome'),
-            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }),
+            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }).limit(500),
             supabase.from('avisos').select('*').order('criado_em', { ascending: false })
         ]);
-        _alunos = alunos || [];
-        _mensalidades = mens || [];
-        _avisos = avisos || [];
-        _dadosCarregados = true;
+        AppAdmin.alunos = alunos || [];
+        AppAdmin.mensalidades = mens || [];
+        AppAdmin.avisos = avisos || [];
+        AppAdmin.dadosCarregados = true;
         Swal.close();
 
         // ✅ CORREÇÃO DEFINITIVA: lê a aba ativa do DOM, não de variável
@@ -151,12 +157,12 @@ async function carregarTudo() {
 
 // ========== DASHBOARD (SEM innerHTML em dados dinâmicos) ==========
 function renderDashboard() {
-    const ativos = _alunos.filter(a => !a.plano_pausado);
-    const inativos = _alunos.filter(a => a.plano_pausado);
-    const vips = _alunos.filter(a => a.assinante && !a.plano_pausado);
+    const ativos = AppAdmin.alunos.filter(a => !a.plano_pausado);
+    const inativos = AppAdmin.alunos.filter(a => a.plano_pausado);
+    const vips = AppAdmin.alunos.filter(a => a.assinante && !a.plano_pausado);
 
-    const recebido = _mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
-    const pendente = _mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    const recebido = AppAdmin.mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    const pendente = AppAdmin.mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
 
     const elAtivos = $('kpi-ativos');
     const elRec = $('kpi-recebido');
@@ -174,8 +180,8 @@ function renderDashboard() {
     const elVipsD = $('kpi-vips-delta');
 
     if (elAtivosD) elAtivosD.textContent = `${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`;
-    if (elRecD) elRecD.textContent = `${_mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
-    if (elPenD) elPenD.textContent = `${_mensalidades.filter(m => m.status === 'pendente').length} em aberto`;
+    if (elRecD) elRecD.textContent = `${AppAdmin.mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
+    if (elPenD) elPenD.textContent = `${AppAdmin.mensalidades.filter(m => m.status === 'pendente').length} em aberto`;
     if (elVipsD) elVipsD.textContent = `${vips.length} recorrente${vips.length !== 1 ? 's' : ''}`;
 
     // Gráfico de barras CSS — construído via DOM
@@ -195,7 +201,7 @@ function renderDashboard() {
             const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
             const mn = Object.keys(mesesMap)[d.getMonth()];
             const possiveis = mesesMap[mn];
-            const val = _mensalidades
+            const val = AppAdmin.mensalidades
                 .filter(m => m.status === 'pago' && possiveis.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
                 .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
             if (val > maxReceita) maxReceita = val;
@@ -205,7 +211,7 @@ function renderDashboard() {
             const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
             const mesNome = Object.keys(mesesMap)[d.getMonth()];
             const possiveisNomes = mesesMap[mesNome];
-            const val = _mensalidades
+            const val = AppAdmin.mensalidades
                 .filter(m => m.status === 'pago' && possiveisNomes.some(nm => (m.mes || '').toLowerCase().includes(nm.toLowerCase())))
                 .reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
             const pct = Math.max(8, Math.min(100, val > 0 ? (val / maxReceita) * 100 : 8));
@@ -223,7 +229,7 @@ function renderDashboard() {
 
     // Aniversariantes — construído via DOM
     const mesAtual = hoje.getMonth() + 1;
-    const anivs = _alunos.filter(a => a.data_nascimento && parseInt(a.data_nascimento.split('-')[1]) === mesAtual);
+    const anivs = AppAdmin.alunos.filter(a => a.data_nascimento && parseInt(a.data_nascimento.split('-')[1]) === mesAtual);
     const cardAniv = $('card-aniversarios');
     const listaAniv = $('lista-aniversarios');
     if (cardAniv && listaAniv) {
@@ -273,32 +279,32 @@ function renderDashboard() {
         const inputBusca = $('busca-aluno');
         const termo = (inputBusca?.value || '').toLowerCase();
     
-        let filtrados = [..._alunos];
+        let filtrados = [...AppAdmin.alunos];
         if (termo) filtrados = filtrados.filter(a =>
             (a.nome || '').toLowerCase().includes(termo) ||
             (a.faixa || '').toLowerCase().includes(termo) ||
             (a.telefone || '').includes(termo)
         );
     
-        if (_filtroAluno === 'ativos') filtrados = filtrados.filter(a => !a.plano_pausado);
-        else if (_filtroAluno === 'inativos') filtrados = filtrados.filter(a => a.plano_pausado);
-        else if (_filtroAluno === 'vip') filtrados = filtrados.filter(a => a.assinante);
-        else if (_filtroAluno === 'pendentes') {
-            const idsPendentes = new Set(_mensalidades.filter(m => m.status === 'pendente').map(m => m.aluno_id));
+        if (AppAdmin.filtroAluno === 'ativos') filtrados = filtrados.filter(a => !a.plano_pausado);
+        else if (AppAdmin.filtroAluno === 'inativos') filtrados = filtrados.filter(a => a.plano_pausado);
+        else if (AppAdmin.filtroAluno === 'vip') filtrados = filtrados.filter(a => a.assinante);
+        else if (AppAdmin.filtroAluno === 'pendentes') {
+            const idsPendentes = new Set(AppAdmin.mensalidades.filter(m => m.status === 'pendente').map(m => m.aluno_id));
             filtrados = filtrados.filter(a => idsPendentes.has(a.id));
         }
     
         // Barra de ações em massa
         const barra = $('barra-massa');
         const countEl = $('mass-count');
-        if (_modoSelecao && _alunosSelecionados.size > 0) {
+        if (AppAdmin.modoSelecao && AppAdmin.alunosSelecionados.size > 0) {
             if (barra) barra.classList.add('ativo');
-            if (countEl) countEl.textContent = `${_alunosSelecionados.size} selecionado${_alunosSelecionados.size > 1 ? 's' : ''}`;
+            if (countEl) countEl.textContent = `${AppAdmin.alunosSelecionados.size} selecionado${AppAdmin.alunosSelecionados.size > 1 ? 's' : ''}`;
         } else {
             if (barra) barra.classList.remove('ativo');
         }
     
-        const ativos = _alunos.filter(a => !a.plano_pausado);
+        const ativos = AppAdmin.alunos.filter(a => !a.plano_pausado);
         const contagem = {};
         ativos.forEach(a => {
             const f = nomeFaixaLimpo(a.faixa);
@@ -342,12 +348,12 @@ function renderDashboard() {
         filtrados.forEach(a => {
             const cor = corFaixa(a.faixa);
             const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
-            const mensPendente = _mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
-            const isSel = _alunosSelecionados.has(a.id);
+            const mensPendente = AppAdmin.mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
+            const isSel = AppAdmin.alunosSelecionados.has(a.id);
     
             const item = document.createElement('div');
             item.className = 'adm-list-item' + (isSel ? ' selecionado' : '');
-            item.style.cssText = 'cursor:pointer; padding:14px 0;';
+            item.style.cssText = 'cursor:pointer;';
     
             // Checkbox
             const chkWrap = document.createElement('div');
@@ -417,7 +423,7 @@ function renderDashboard() {
 window.filtrarAlunos = function() { renderAlunos(); };
 
 window.setFiltroAluno = function(f) {
-    _filtroAluno = f;
+    AppAdmin.filtroAluno = f;
     document.querySelectorAll('#filtros-alunos .adm-chip').forEach(c => {
         c.classList.toggle('ativo', c.dataset.filtro === f);
     });
@@ -425,11 +431,10 @@ window.setFiltroAluno = function(f) {
 };
 
 window.abrirDossie = async function(id) {
-    const aluno = _alunos.find(a => a.id === id);
-    if (!aluno) return;
+    const aluno = AppAdmin.alunos.find(a => a.id === id);
     if (!aluno) { toast('Aluno não encontrado', 'error'); return; }
-    _alunoSelecionado = aluno;
-    _abaDossie = 'perfil';
+    AppAdmin.alunoSelecionado = aluno;
+    AppAdmin.abaDossie = 'perfil';
 
     const foto = aluno.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(aluno.nome)}&background=161618&color=fff`;
     const imgFoto = $('dossie-foto');
@@ -456,11 +461,11 @@ window.fecharModalDossie = function(e) {
     const modal = $('modal-dossie');
     if (modal) modal.classList.remove('aberto');
     document.body.style.overflow = '';
-    _alunoSelecionado = null;
+    AppAdmin.alunoSelecionado = null;
 };
 
 window.setAbaDossie = function(aba, el) {
-    _abaDossie = aba;
+    AppAdmin.abaDossie = aba;
     document.querySelectorAll('.adm-modal-tab').forEach(t => t.classList.remove('ativo'));
     if (el) el.classList.add('ativo');
     renderDossieConteudo();
@@ -468,13 +473,13 @@ window.setAbaDossie = function(aba, el) {
 
 // ========== DOSSIÊ (SEM innerHTML em dados dinâmicos) ==========
 function renderDossieConteudo() {
-    const a = _alunoSelecionado;
+    const a = AppAdmin.alunoSelecionado;
     if (!a) return;
     const container = $('dossie-conteudo');
     if (!container) return;
     container.innerHTML = '';
 
-    if (_abaDossie === 'perfil') {
+    if (AppAdmin.abaDossie === 'perfil') {
         const status = a.plano_pausado ? '🔴 INATIVO' : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO');
         const corStatus = a.plano_pausado ? '#ff5252' : (a.assinante ? '#3b82f6' : '#22c55e');
 
@@ -513,8 +518,8 @@ function renderDossieConteudo() {
         zapLink.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Chamar no WhatsApp';
         container.appendChild(zapLink);
 
-    } else if (_abaDossie === 'financeiro') {
-        const mensAluno = _mensalidades.filter(m => m.aluno_id === a.id).slice(0, 12);
+    } else if (AppAdmin.abaDossie === 'financeiro') {
+        const mensAluno = AppAdmin.mensalidades.filter(m => m.aluno_id === a.id).slice(0, 12);
         if (mensAluno.length === 0) {
             container.innerHTML = '<div class="adm-empty"><i class="fa-solid fa-receipt"></i><p>Sem histórico financeiro</p></div>';
             return;
@@ -551,7 +556,7 @@ function renderDossieConteudo() {
         wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
         // Botão de gerar mensalidade individual
         const btnGerar = document.createElement('button');
-        btnGerar.className = 'adm-btn-full';
+        btnGerar.className = 'adm-btn-full btn-tactile';
         btnGerar.style.cssText = 'background:var(--adm-red);border:none;color:white;';
         btnGerar.innerHTML = '<i class="fa-solid fa-file-invoice-dollar"></i> Gerar Mensalidade';
         btnGerar.onclick = () => {
@@ -561,14 +566,14 @@ function renderDossieConteudo() {
         wrap.appendChild(btnGerar);
 
         const btnEdit = document.createElement('button');
-        btnEdit.className = 'adm-btn-full';
+        btnEdit.className = 'adm-btn-full btn-tactile';
         btnEdit.style.cssText = 'background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);';
         btnEdit.innerHTML = '<i class="fa-solid fa-pen"></i> Editar Perfil';
         btnEdit.onclick = editarAlunoDossie;
         wrap.appendChild(btnEdit);
 
         const btnPause = document.createElement('button');
-        btnPause.className = 'adm-btn-full';
+        btnPause.className = 'adm-btn-full btn-tactile';
         btnPause.style.cssText = `background:transparent;border:1px solid ${corBtn};color:${corBtn};`;
         btnPause.textContent = txtBtn;
         btnPause.onclick = () => alternarPlano(a.id, a.nome, acao);
@@ -576,7 +581,7 @@ function renderDossieConteudo() {
 
         if (a.assinante) {
             const btnCancel = document.createElement('button');
-            btnCancel.className = 'adm-btn-full';
+            btnCancel.className = 'adm-btn-full btn-tactile';
             btnCancel.style.cssText = 'background:transparent;border:1px solid #ff5252;color:#ff5252;';
             btnCancel.innerHTML = '<i class="fa-solid fa-crown"></i> Cancelar VIP';
             btnCancel.onclick = () => cancelarVIP(a.id, a.nome);
@@ -584,7 +589,7 @@ function renderDossieConteudo() {
         }
 
         const btnDel = document.createElement('button');
-        btnDel.className = 'adm-btn-full';
+        btnDel.className = 'adm-btn-full btn-tactile';
         btnDel.style.cssText = 'background:transparent;border:1px solid #ff5252;color:#ff5252;margin-top:10px;';
         btnDel.innerHTML = '<i class="fa-solid fa-trash"></i> Excluir Aluno';
         btnDel.onclick = () => excluirAluno(a.id, a.nome);
@@ -595,7 +600,7 @@ function renderDossieConteudo() {
 }
 
 window.editarAlunoDossie = async function() {
-    const a = _alunoSelecionado;
+    const a = AppAdmin.alunoSelecionado;
     if (!a) return;
     const { value: v } = await Swal.fire({
         title: 'Editar Atleta',
@@ -701,8 +706,8 @@ window.excluirAluno = async function(id, nome) {
 
 // ========== FINANCEIRO (SEM innerHTML em dados dinâmicos) ==========
 function renderFinanceiro() {
-    const recebido = _mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
-    const pendente = _mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    const recebido = AppAdmin.mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    const pendente = AppAdmin.mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
     const elRec = $('fin-recebido');
     const elPen = $('fin-pendente');
     if (elRec) elRec.textContent = formatCurrency(recebido);
@@ -710,11 +715,11 @@ function renderFinanceiro() {
 
     const inputBusca = $('busca-financeiro');
     const termo = (inputBusca?.value || '').toLowerCase();
-    let pendentes = _mensalidades.filter(m => m.status === 'pendente');
+    let pendentes = AppAdmin.mensalidades.filter(m => m.status === 'pendente');
 
     if (termo) {
         pendentes = pendentes.filter(m => {
-            const al = _alunos.find(a => a.id === m.aluno_id);
+            const al = AppAdmin.alunos.find(a => a.id === m.aluno_id);
             return al && (al.nome || '').toLowerCase().includes(termo);
         });
     }
@@ -732,7 +737,7 @@ function renderFinanceiro() {
     }
 
     pendentes.forEach(m => {
-        const al = _alunos.find(a => a.id === m.aluno_id);
+        const al = AppAdmin.alunos.find(a => a.id === m.aluno_id);
         if (al && al.plano_pausado) return;
         const nome = al ? al.nome : 'Desconhecido';
         const tel = al ? al.telefone : '';
@@ -772,13 +777,13 @@ function renderFinanceiro() {
         actions.style.cssText = 'display:flex;gap:8px;';
 
         const btnBaixa = document.createElement('button');
-        btnBaixa.className = 'adm-btn-sm success adm-w-full';
+        btnBaixa.className = 'adm-btn-sm success adm-w-full btn-tactile';
         btnBaixa.innerHTML = '<i class="fa-solid fa-check"></i> Dar Baixa';
         btnBaixa.onclick = () => darBaixa(m.id);
         actions.appendChild(btnBaixa);
 
         const btnZap = document.createElement('button');
-        btnZap.className = 'adm-btn-sm whatsapp';
+        btnZap.className = 'adm-btn-sm whatsapp btn-tactile';
         btnZap.innerHTML = '<i class="fa-brands fa-whatsapp"></i> Zap';
         btnZap.onclick = () => cobrarZap(tel, nome, m.mes, m.valor);
         actions.appendChild(btnZap);
@@ -842,7 +847,7 @@ function renderMural() {
     if (!lista) return;
     lista.innerHTML = '';
 
-    if (_avisos.length === 0) {
+    if (AppAdmin.avisos.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'adm-empty';
         empty.innerHTML = '<i class="fa-solid fa-bullhorn"></i><p>Nenhum aviso publicado</p>';
@@ -850,7 +855,7 @@ function renderMural() {
         return;
     }
 
-    _avisos.forEach(av => {
+    AppAdmin.avisos.forEach(av => {
         const card = document.createElement('div');
         card.className = 'adm-card';
         card.style.cssText = 'margin-bottom:10px;position:relative;';
@@ -870,7 +875,8 @@ function renderMural() {
         body.appendChild(h4);
 
         const p = document.createElement('p');
-        p.style.cssText = 'margin:0;font-size:13px;color:var(--adm-text-2);line-height:1.5;';
+        p.style.cssText = 'margin:0;font-size:13px;color:var(--adm-text-2);line-height:1.5;overflow-wrap:break-word;word-break:break-word;';
+
         p.textContent = av.mensagem || '';
         body.appendChild(p);
 
@@ -1056,17 +1062,17 @@ window.atualizarMeusDados = async function() {
 window.toggleManutencao = async function() {
     const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
     if (data) {
-        _manutencaoAtiva = !data.manutencao_ativa;
-        await supabase.from('sistema_config').update({ manutencao_ativa: _manutencaoAtiva }).eq('id', 1);
+        AppAdmin.manutencaoAtiva = !data.manutencao_ativa;
+        await supabase.from('sistema_config').update({ manutencao_ativa: AppAdmin.manutencaoAtiva }).eq('id', 1);
         atualizarBtnManutencao();
-        toast(_manutencaoAtiva ? 'Modo manutenção ATIVADO' : 'Modo manutenção DESATIVADO');
+        toast(AppAdmin.manutencaoAtiva ? 'Modo manutenção ATIVADO' : 'Modo manutenção DESATIVADO');
     }
 };
 
 function atualizarBtnManutencao() {
     const btn = $('btn-manutencao');
     if (!btn) return;
-    if (_manutencaoAtiva) {
+    if (AppAdmin.manutencaoAtiva) {
         btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Desativar Modo Manutenção';
         btn.style.color = '#22c55e';
     } else {
@@ -1077,10 +1083,11 @@ function atualizarBtnManutencao() {
 
 async function checarManutencao() {
     const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
-    if (data) { _manutencaoAtiva = data.manutencao_ativa; atualizarBtnManutencao(); }
+    if (data) { AppAdmin.manutencaoAtiva = data.manutencao_ativa; atualizarBtnManutencao(); }
 }
 
 window.sair = async function() {
+    localStorage.removeItem('4l_fila_disparo');
     const r = await Swal.fire({
         title: 'Sair?', icon: 'question', showCancelButton: true,
         confirmButtonColor: '#E53935', cancelButtonColor: '#333',
@@ -1088,26 +1095,35 @@ window.sair = async function() {
         background: '#0a0a0c', color: '#fff'
     });
     if (r.isConfirmed) {
+        localStorage.removeItem('4l_fila_disparo');
         await supabase.auth.signOut();
         window.location.href = 'index.html';
     }
 };
 
 // ========== REALTIME: ATUALIZA AUTOMATICAMENTE ==========
-let _rtTimeout = null;
-function recarregarComDebounce() {
-    if (_rtTimeout) clearTimeout(_rtTimeout);
-    _rtTimeout = setTimeout(() => {
+function recarregarComDebounce(payload) {
+    if (AppAdmin.rtTimeout) clearTimeout(AppAdmin.rtTimeout);
+    AppAdmin.rtTimeout = setTimeout(() => {
         const modalAberto = document.querySelector('.adm-modal-overlay.aberto');
-        if (!modalAberto) carregarTudo();
+        if (modalAberto) return;
+        // ✅ CORREÇÃO: se souber qual tabela mudou, recarrega só o necessário
+        if (payload && payload.table) {
+            if (payload.table === 'mensalidades') { AppAdmin.dadosCarregados = false; carregarTudo(); }
+            else if (payload.table === 'perfis') { AppAdmin.dadosCarregados = false; carregarTudo(); }
+            else if (payload.table === 'avisos') { AppAdmin.dadosCarregados = false; carregarTudo(); }
+            else { carregarTudo(); }
+        } else {
+            carregarTudo();
+        }
     }, 800);
 }
 
 function ligarRealtimeAdmin() {
     supabase.channel('admin-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'mensalidades' }, recarregarComDebounce)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'perfis' }, recarregarComDebounce)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'avisos' }, recarregarComDebounce)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'mensalidades' }, (p) => recarregarComDebounce({table:'mensalidades', ...p}))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'perfis' }, (p) => recarregarComDebounce({table:'perfis', ...p}))
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'avisos' }, (p) => recarregarComDebounce({table:'avisos', ...p}))
         .subscribe((status) => {
             console.log('[ADMIN] Realtime status:', status);
         });
@@ -1115,42 +1131,48 @@ function ligarRealtimeAdmin() {
 
 // ========== SELEÇÃO MÚLTIPLA ==========
 window.toggleSelecao = function(id) {
-    if (_alunosSelecionados.has(id)) _alunosSelecionados.delete(id);
-    else _alunosSelecionados.add(id);
+    if (AppAdmin.alunosSelecionados.has(id)) AppAdmin.alunosSelecionados.delete(id);
+    else AppAdmin.alunosSelecionados.add(id);
     renderAlunos();
 };
 
 window.toggleModoSelecao = function() {
-    _modoSelecao = !_modoSelecao;
+    AppAdmin.modoSelecao = !AppAdmin.modoSelecao;
     const sec = $('sec-alunos');
     const btn = $('btn-modo-selecao');
 
-    if (_modoSelecao) {
+    if (AppAdmin.modoSelecao) {
         if (sec) sec.classList.add('adm-modo-selecao');
         if (btn) btn.classList.add('ativo');
     } else {
         if (sec) sec.classList.remove('adm-modo-selecao');
         if (btn) btn.classList.remove('ativo');
-        _alunosSelecionados.clear();
+        AppAdmin.alunosSelecionados.clear();
+        const barra = $('barra-massa');
+        if (barra) barra.classList.remove('ativo');
     }
     renderAlunos();
 };
 
 window.limparSelecao = function() {
-    _alunosSelecionados.clear();
+    AppAdmin.alunosSelecionados.clear();
+    AppAdmin.modoSelecao = false;
     const barra = $('barra-massa');
     if (barra) barra.classList.remove('ativo');
-    // ✅ CORREÇÃO: re-renderiza para remover o visual de selecionado dos itens
+    const sec = $('sec-alunos');
+    if (sec) sec.classList.remove('adm-modo-selecao');
+    const btn = $('btn-modo-selecao');
+    if (btn) btn.classList.remove('ativo');
     renderAlunos();
 };
 
 // ========== MODAL GERAR MENSALIDADE (MASSA OU INDIVIDUAL) ==========
 window.abrirModalGerarSelecionados = function() {
-    _modoGerarIndividual = null;
+    AppAdmin.modoGerarIndividual = null;
     const titulo = $('titulo-gerar-mens');
     const sub = $('sub-gerar-mens');
     if (titulo) titulo.textContent = 'Gerar Cobrança em Massa';
-    if (sub) sub.textContent = `${_alunosSelecionados.size} aluno(s) selecionado(s)`;
+    if (sub) sub.textContent = `${AppAdmin.alunosSelecionados.size} aluno(s) selecionado(s)`;
     
     const modal = $('modal-gerar-mens');
     if (modal) {
@@ -1160,7 +1182,7 @@ window.abrirModalGerarSelecionados = function() {
 };
 
 window.abrirModalGerarIndividual = function(alunoId, nomeAluno) {
-    _modoGerarIndividual = alunoId;
+    AppAdmin.modoGerarIndividual = alunoId;
     const titulo = $('titulo-gerar-mens');
     const sub = $('sub-gerar-mens');
     if (titulo) titulo.textContent = 'Gerar Cobrança';
@@ -1178,7 +1200,7 @@ window.fecharModalGerar = function(e) {
     const modal = $('modal-gerar-mens');
     if (modal) modal.classList.remove('aberto');
     document.body.style.overflow = '';
-    _modoGerarIndividual = null;
+    AppAdmin.modoGerarIndividual = null;
 };
 
 window.confirmarGerarMensalidade = async function() {
@@ -1193,11 +1215,11 @@ window.confirmarGerarMensalidade = async function() {
 
     // Define quem vai receber
     let alvos = [];
-    if (_modoGerarIndividual) {
-        const al = _alunos.find(a => a.id === _modoGerarIndividual);
+    if (AppAdmin.modoGerarIndividual) {
+        const al = AppAdmin.alunos.find(a => a.id === AppAdmin.modoGerarIndividual);
         if (al) alvos = [al];
     } else {
-        alvos = _alunos.filter(a => _alunosSelecionados.has(a.id) && !a.plano_pausado && !a.assinante);
+        alvos = AppAdmin.alunos.filter(a => AppAdmin.alunosSelecionados.has(a.id) && !a.plano_pausado && !a.assinante);
     }
 
     if (alvos.length === 0) {
@@ -1229,7 +1251,7 @@ window.confirmarGerarMensalidade = async function() {
         fecharModalGerar();
         toast(`${cobrar.length} cobrança(s) gerada(s)!`);
         $('mass-mes-geral').value = '';
-        if (!_modoGerarIndividual) limparSelecao();
+        if (!AppAdmin.modoGerarIndividual) limparSelecao();
 
     } catch (err) {
         Swal.close();
@@ -1266,8 +1288,16 @@ const STORAGE_KEY = '4l_fila_disparo';
 
 // ---------- SALVAR / CARREGAR FILA ----------
 function salvarFila(estado) {
-  estado.timestamp = Date.now();  // ✅ CORREÇÃO: salva timestamp para limpeza automática
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+  // ✅ CORREÇÃO: salva apenas IDs e configurações. NUNCA salva nome/telefone.
+  const seguro = {
+    ids: estado.ids,
+    index: estado.index,
+    template: estado.template,
+    mes: estado.mes,
+    custom: estado.custom,
+    timestamp: Date.now()
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seguro));
 }
 
 function carregarFila() {
@@ -1282,7 +1312,7 @@ function limparFila() {
 
 // ---------- ABRIR MODAL ----------
 window.abrirModalDisparoZap = function() {
-  if (_alunosSelecionados.size === 0) {
+  if (AppAdmin.alunosSelecionados.size === 0) {
     toast('Selecione pelo menos um aluno', 'error');
     return;
   }
@@ -1334,10 +1364,10 @@ function montarNovaFila() {
   // Monta lista de preview
   const lista = $('lista-disparo-zap');
   lista.innerHTML = '';
-  const ids = Array.from(_alunosSelecionados);
+  const ids = Array.from(AppAdmin.alunosSelecionados);
   
   ids.forEach((id, idx) => {
-    const a = _alunos.find(x => x.id === id);
+    const a = AppAdmin.alunos.find(x => x.id === id);
     if (!a) return;
     const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
     const item = document.createElement('div');
@@ -1364,7 +1394,7 @@ function restaurarFilaUI(fila) {
   lista.innerHTML = '';
   
   fila.ids.forEach((id, idx) => {
-    const a = _alunos.find(x => x.id === id);
+    const a = AppAdmin.alunos.find(x => x.id === id);
     if (!a) return;
     const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
     const item = document.createElement('div');
@@ -1417,8 +1447,8 @@ window.atualizarPreviewDisparo = function() {
   
   if (!previewEl) return;
 
-  const primeiroId = Array.from(_alunosSelecionados)[0];
-  const a = _alunos.find(x => x.id === primeiroId);
+  const primeiroId = Array.from(AppAdmin.alunosSelecionados)[0];
+  const a = AppAdmin.alunos.find(x => x.id === primeiroId);
   const nomeEx = a ? a.nome : 'João Silva';
   const valorEx = a ? (a.valor_mensalidade || 25) : 25;
 
@@ -1448,7 +1478,7 @@ function resetarBotoesFila(ids, index, nomeAtual) {
     return;
   }
 
-  const a = _alunos.find(x => x.id === ids[index]);
+  const a = AppAdmin.alunos.find(x => x.id === ids[index]);
   const nome = a ? a.nome.split(' ')[0] : 'próximo';
   
   if (index === 0 && !nomeAtual) {
@@ -1477,7 +1507,7 @@ window.executarPassoFila = function(ids, index) {
     return;
   }
 
-  const a = _alunos.find(x => x.id === ids[index]);
+  const a = AppAdmin.alunos.find(x => x.id === ids[index]);
   if (!a) {
     // Pula se não achou
     executarPassoFila(ids, index + 1);
@@ -1529,7 +1559,7 @@ window.executarPassoFila = function(ids, index) {
       statusEl.style.cssText = 'font-size:9px;background:rgba(255,82,82,0.12);color:#ff5252;';
     }
     // Salva estado e avança para o próximo estar pronto
-    salvarFila({ ids, index: index + 1, template, mes, custom, nomeAtual: a.nome });
+    salvarFila({ ids, index: index + 1, template, mes, custom });
     resetarBotoesFila(ids, index + 1);
     return;
   }
@@ -1538,15 +1568,8 @@ window.executarPassoFila = function(ids, index) {
   window.open(`https://wa.me/55${numLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
 
   // Salva estado
-  const proximo = _alunos.find(x => x.id === ids[index + 1]);
-  salvarFila({ 
-    ids, 
-    index: index + 1, 
-    template, 
-    mes, 
-    custom, 
-    nomeAtual: proximo ? proximo.nome.split(' ')[0] : null 
-  });
+  const proximo = AppAdmin.alunos.find(x => x.id === ids[index + 1]);
+  salvarFila({ ids, index: index + 1, template, mes, custom });
 
   // Atualiza botão para o próximo
   resetarBotoesFila(ids, index + 1);
@@ -1580,7 +1603,7 @@ window.fecharModalDisparo = function(e) {
 
 // ---------- EXPORTAR CSV ----------
 window.exportarCSVDisparo = function() {
-  if (_alunosSelecionados.size === 0) { 
+  if (AppAdmin.alunosSelecionados.size === 0) { 
     toast('Selecione alunos primeiro', 'error'); 
     return; 
   }
@@ -1589,10 +1612,10 @@ window.exportarCSVDisparo = function() {
   const custom = $('zap-msg-custom')?.value?.trim() || '';
   const template = $('zap-template')?.value || 'cobranca';
 
-  let csv = 'Nome,Telefone,Mensagem\n';
+  let csv = '\uFEFFNome,Telefone,Mensagem\n';
 
-  _alunosSelecionados.forEach(id => {
-    const a = _alunos.find(x => x.id === id);
+  AppAdmin.alunosSelecionados.forEach(id => {
+    const a = AppAdmin.alunos.find(x => x.id === id);
     if (!a || !a.telefone) return;
     const valor = a.valor_mensalidade || 25;
     const msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)

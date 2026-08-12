@@ -36,9 +36,10 @@
             <div class="menu-item disabled">🥋 Exames & Graduação</div>
 
             <div style="margin-top: auto; border-top: 1px solid var(--cor-borda); padding-top: 15px;">
-                <li class="menu-item" onclick="window.forcarAtualizacao()" style="color: #aaa;">
+                <div class="menu-item" onclick="window.forcarAtualizacao()" style="color: #aaa;">
     🔄 Sincronizar App
-</li>
+</div>
+
                 <div class="menu-item" onclick="document.getElementById('btn-sair').click()" style="color: #E53935;">🚪 Sair da Conta</div>
             </div>
         </div>
@@ -52,7 +53,8 @@
                 <span style="color: var(--cor-destaque); font-size: 18px;">🔺</span>
                 <h2 style="font-style: italic; font-size: 18px; margin: 0; color: white;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
             </div>
-            <button style="background:none; border:none; color:white; font-size:20px; width:auto; padding:0;">🔔</button>
+            <span style="color:white; font-size:20px; opacity:0.3;">🔔</span>
+
         </header>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
@@ -71,7 +73,7 @@
 
         <section id="aba-home" class="secao-admin">
 
-            <button onclick="window.abrirCarteirinha()" style="background: linear-gradient(135deg, #161618 0%, #0a0a0a 100%); color: white; width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #E53935; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2); cursor: pointer; transition: transform 0.2s;">
+            <button onclick="window.abrirCarteirinha()" class="btn-tactile" style="background: linear-gradient(135deg, #161618 0%, #0a0a0a 100%); color: white; width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #E53935; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2); cursor: pointer; transition: transform 0.2s;">
                 <span style="font-size: 24px;">🪪</span>
                 <span style="font-weight: 800; letter-spacing: 1px;">MINHA CARTEIRINHA</span>
             </button>
@@ -107,10 +109,10 @@
                 </div>
 
                 <div id="opcoes-pagamento" style="display: none; flex-direction: column; gap: 10px;">
-                    <button id="btn-pagar" style="background-color: #009ee3; color: white;">⚡ PAGAR COM PIX</button>
-                    <button id="btn-show-card" style="background-color: #ffffff; color: #000;">💳 PAGAR COM CARTÃO</button>
+                    <button id="btn-pagar" class="btn-tactile" style="background-color: #009ee3; color: white;">⚡ PAGAR COM PIX</button>
+                    <button id="btn-show-card" class="btn-tactile" style="background-color: #ffffff; color: #000;">💳 PAGAR COM CARTÃO</button>
                 </div>
-                <button id="btn-adiantar-fatura" style="display: none; background: rgba(229, 57, 53, 0.1); border: 1px solid var(--cor-destaque); color: var(--cor-destaque); width: 100%; margin-top: 15px; font-size: 13px; font-weight: bold; padding: 12px; border-radius: 8px; cursor: pointer;">
+                <button id="btn-adiantar-fatura" class="btn-tactile" style="display: none; background: rgba(229, 57, 53, 0.1); border: 1px solid var(--cor-destaque); color: var(--cor-destaque); width: 100%; margin-top: 15px; font-size: 13px; font-weight: bold; padding: 12px; border-radius: 8px; cursor: pointer;">
                     ⏩ ADIANTAR PRÓXIMO MÊS
                 </button>
 
@@ -138,8 +140,8 @@
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="painel-core.js?v=52"></script>
-    <script src="painel-perfil.js?v=52"></script>
-    <script src="painel-financeiro.js?v=52"></script>
+    <script src="painel-core.js?v=54"></script>
+    <script src="painel-perfil.js?v=54"></script>
+    <script src="painel-financeiro.js?v=54"></script>
 </body>
 </html>

@@ -1,12 +1,13 @@
 // supabase-config.js - Arquivo central de conexão com o banco de dados
 const supabaseUrl = 'https://qrctbkgmztiebluiyzys.supabase.co';
-// ⚠️ WARNING: A chave abaixo NÃO está no formato JWT padrão do Supabase (eyJhbG...).
-// Se a autenticação falhar, substitua pela chave anônima (anon/public) real do projeto.
-const supabaseKey = 'sb_publishable_SoS2YOc2Xr2wZwn8rTaUYA_va1LQi0h'; 
 
-// Validação básica de formato para evitar erros silenciosos
-if (!supabaseKey.startsWith('eyJ') && !supabaseKey.startsWith('sb_')) {
-    console.error('[Supabase] ⚠️ A chave fornecida não está no formato JWT (eyJ...) nem no formato sb_. Isso pode causar falha de autenticação.');
+// ⚠️ ATENÇÃO: Substitua pela chave ANON/PUBLIC real do seu projeto.
+// A chave anônima do Supabase SEMPRE começa com 'eyJhbG...' (formato JWT).
+// Dashboard → Project Settings → API → anon/public.
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyY3Ria2dtenRpZWJsdWl5enlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTQwNjEsImV4cCI6MjA5MjI5MDA2MX0.jUkqO7lj4KylYEfoC3RU438X1c-JmHhsw-xQnWDhtSM'; 
+
+if (!supabaseKey.startsWith('eyJ')) {
+    console.error('[Supabase] ⚠️ A chave fornecida não está no formato JWT (eyJ...). A autenticação vai falhar.');
     console.error('[Supabase] Acesse o painel do Supabase → Project Settings → API → anon/public key e substitua a chave acima.');
 }
 

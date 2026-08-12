@@ -1,4 +1,5 @@
-const NOME_DO_CACHE = '4l-academy-v16'; // 🔥 Versão nova = cache novo
+const SW_VERSION = 'v24';
+const NOME_DO_CACHE = '4l-academy-' + SW_VERSION;
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
@@ -7,6 +8,7 @@ const ARQUIVOS_PARA_SALVAR = [
   './painel.html',
   './admin.html',
   './style.css',
+  './supabase-config.js',
   './app.js',
   './cadastro.js',
   './painel-core.js',
@@ -21,7 +23,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(NOME_DO_CACHE)
       .then(cache => {
-        console.log('[SW v99] Instalando cache novo...');
+        console.log(`[SW ${SW_VERSION}] Instalando cache novo...`);
         return Promise.all(
           ARQUIVOS_PARA_SALVAR.map(url => 
             fetch(url, { cache: 'no-cache' }).then(response => {
@@ -43,13 +45,13 @@ self.addEventListener('activate', event => {
       return Promise.all(
         nomesDosCaches.map(cacheAntigo => {
           if (cacheAntigo !== NOME_DO_CACHE) {
-            console.log('[SW v99] 🗑️ Apagando cache antigo:', cacheAntigo);
+            console.log(`[SW ${SW_VERSION}] 🗑️ Apagando cache antigo:`, cacheAntigo);
             return caches.delete(cacheAntigo);
           }
         })
       );
     }).then(() => {
-      console.log('[SW v99] ✅ Ativado e limpo!');
+      console.log(`[SW ${SW_VERSION}] ✅ Ativado e limpo!`);
       return self.clients.claim();
     })
   );

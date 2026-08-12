@@ -13,7 +13,7 @@
 
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -27,11 +27,12 @@
             <input type="email" id="email" placeholder="Seu E-mail" required autocomplete="email">
 
             <div style="position: relative;">
-                <input type="password" id="senha" placeholder="Sua Senha" required autocomplete="current-password">
+                <input type="password" id="senha" placeholder="Sua Senha" required autocomplete="current-password" style="padding-right: 44px;">
+
                 <button type="button" onclick="toggleSenha()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; width: auto; padding: 0; font-size: 18px;">👁️</button>
             </div>
 
-            <button type="submit">Entrar</button>
+            <button type="submit" class="btn-tactile">Entrar</button>
             <p id="msg-erro" style="color: #E53935; margin-top: 15px; font-size: 14px; font-weight: bold; height: 20px;"></p>
 
             <button type="button" id="btn-esqueci-senha" style="background: none; border: none; color: var(--cor-destaque); margin-top: 15px; font-size: 13px; font-weight: bold; cursor: pointer; width: auto;">
@@ -76,6 +77,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="app.js?v=11" defer></script>
+    <script src="app.js?v=12" defer></script>
 </body>
 </html>

@@ -832,7 +832,7 @@
                             <label class="adm-form-label">Valor Mensalidade (R$)</label>
                             <input type="number" id="novo-valor" class="adm-form-input" placeholder="25" value="25">
                         </div>
-                        <button type="button" class="adm-btn-full" onclick="cadastrarAluno()">
+                        <button type="button" class="adm-btn-full btn-tactile" onclick="cadastrarAluno()">
                             <i class="fa-solid fa-check"></i> Criar Cadastro
                         </button>
                     </form>
@@ -852,7 +852,7 @@
                         <label class="adm-form-label">Valor Padrão (R$)</label>
                         <input type="number" id="valor-geral" class="adm-form-input" placeholder="25" value="25">
                     </div>
-                    <button class="adm-btn-full" onclick="gerarMensalidades()">
+                    <button class="adm-btn-full btn-tactile" onclick="gerarMensalidades()">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cobranças
                     </button>
                 </div>
@@ -863,16 +863,16 @@
                     <div class="adm-card-title"><i class="fa-solid fa-shield-halved"></i> Segurança</div>
                 </div>
                 <div class="adm-card-body">
-                    <button class="adm-btn-full secondary adm-mb-2" onclick="atualizarMeusDados()">
+                    <button class="adm-btn-full secondary adm-mb-2 btn-tactile" onclick="atualizarMeusDados()">
                         <i class="fa-solid fa-key"></i> Alterar E-mail / Senha
                     </button>
-                    <button class="adm-btn-full secondary" onclick="toggleManutencao()" id="btn-manutencao">
+                    <button class="adm-btn-full secondary btn-tactile" onclick="toggleManutencao()" id="btn-manutencao">
                         <i class="fa-solid fa-lock"></i> Ativar Modo Manutenção
                     </button>
                 </div>
             </div>
 
-            <button class="adm-btn-full secondary adm-mt-3" onclick="sair()" style="color:var(--adm-red);">
+            <button class="adm-btn-full secondary adm-mt-3 btn-tactile" onclick="sair()" style="color:var(--adm-red);">
                 <i class="fa-solid fa-right-from-bracket"></i> Sair da Conta
             </button>
         </section>
@@ -892,7 +892,7 @@
                         <label class="adm-form-label">Mensagem</label>
                         <textarea id="aviso-mensagem" class="adm-form-input" rows="3" placeholder="Digite o aviso..."></textarea>
                     </div>
-                    <button class="adm-btn-full" onclick="publicarAviso()">
+                    <button class="adm-btn-full btn-tactile" onclick="publicarAviso()">
                         <i class="fa-solid fa-paper-plane"></i> Publicar
                     </button>
                 </div>
@@ -943,7 +943,8 @@
                     <div class="adm-form-group">
                         <label class="adm-form-label">Senha</label>
                                         <!-- ✅ CERTO -->
-                <input type="password" id="modal-senha" class="adm-form-input" placeholder="Senha" required>
+                <input type="password" id="modal-senha" class="adm-form-input" placeholder="Senha" required style="padding-right: 44px;">
+
 
                     </div>
                     <div class="adm-form-group">
@@ -958,7 +959,7 @@
                         <label class="adm-form-label">Faixa</label>
                         <input type="text" id="modal-faixa" class="adm-form-input" placeholder="Branca">
                     </div>
-                    <button type="button" class="adm-btn-full" onclick="cadastrarAlunoModal()">
+                    <button type="button" class="adm-btn-full btn-tactile" onclick="cadastrarAlunoModal()">
                         <i class="fa-solid fa-check"></i> Salvar
                     </button>
                 </form>
@@ -982,7 +983,7 @@
                     <label class="adm-form-label">Valor Padrão (R$)</label>
                     <input type="number" id="mass-valor-geral" class="adm-form-input" placeholder="25" value="25">
                 </div>
-                <button class="adm-btn-full" onclick="confirmarGerarMensalidade()">
+                <button class="adm-btn-full btn-tactile" onclick="confirmarGerarMensalidade()">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Cobranças
                 </button>
             </div>
@@ -1035,15 +1036,15 @@
       <!-- Contador e Ações -->
       <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
         <span id="fila-contador" style="font-size:13px;font-weight:800;color:var(--adm-text);">0/0</span>
-        <button id="btn-iniciar-fila" class="adm-btn-full" style="flex:1;" onclick="iniciarFilaDisparo()">
+        <button id="btn-iniciar-fila" class="adm-btn-full btn-tactile" style="flex:1;" onclick="iniciarFilaDisparo()">
           <i class="fa-brands fa-whatsapp"></i> 🚀 Iniciar Disparo
         </button>
-        <button id="btn-parar-fila" class="adm-btn-full" style="flex:1;display:none;background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);" onclick="pararFilaDisparo()">
+        <button id="btn-parar-fila" class="adm-btn-full btn-tactile" style="flex:1;display:none;background:var(--adm-surface-2);border:1px solid var(--adm-border);color:var(--adm-text);" onclick="pararFilaDisparo()">
           ⏹ Parar
         </button>
       </div>
 
-      <button class="adm-btn-full secondary adm-mb-2" onclick="exportarCSVDisparo()">
+      <button class="adm-btn-full secondary adm-mb-2 btn-tactile" onclick="exportarCSVDisparo()">
         <i class="fa-solid fa-file-csv"></i> Exportar CSV (WhatsApp Business)
       </button>
 
@@ -1085,54 +1086,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="admin-lite.js?v=9"></script>
-
-<!-- FALLBACK: garante que funções novas existam mesmo se o JS externo estiver cacheado -->
-<script>
-if (typeof window.toggleModoSelecao !== 'function') {
-    window._modoSelecao = false;
-    window.toggleModoSelecao = function() {
-        window._modoSelecao = !window._modoSelecao;
-        var sec = document.getElementById('sec-alunos');
-        var btn = document.getElementById('btn-modo-selecao');
-        if (window._modoSelecao) {
-            if (sec) sec.classList.add('adm-modo-selecao');
-            if (btn) btn.classList.add('ativo');
-        } else {
-            if (sec) sec.classList.remove('adm-modo-selecao');
-            if (btn) btn.classList.remove('ativo');
-            if (window._alunosSelecionados) window._alunosSelecionados.clear();
-        }
-        if (typeof renderAlunos === 'function') renderAlunos();
-    };
-}
-
-// ✅ Fallback para o disparo em massa (evita o ReferenceError)
-if (typeof window.abrirModalDisparoZap !== 'function') {
-    window.abrirModalDisparoZap = function() {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sincronizando...',
-            text: 'O app está atualizando. Feche e abra novamente, ou limpe o cache do navegador.',
-            background: '#0a0a0c',
-            color: '#fff',
-            confirmButtonColor: '#E53935'
-        });
-    };
-}
-if (typeof window.fecharModalDisparo !== 'function') {
-    window.fecharModalDisparo = function() {
-        var m = document.getElementById('modal-disparo-zap');
-        if (m) m.classList.remove('aberto');
-        document.body.style.overflow = '';
-    };
-}
-if (typeof window.executarDisparoZap !== 'function') {
-    window.executarDisparoZap = function(alunoId) {
-        window.abrirModalDisparoZap();
-    };
-}
-</script>
+    <script src="admin-lite.js?v=12"></script>
 
 </body>
 </html>

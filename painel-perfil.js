@@ -307,7 +307,8 @@ window.abrirCarteirinha = async function() {
                 </div>
                 <div class="c4l-back-item c4l-back-full">
                     <div class="c4l-back-label">Contato de Emergência</div>
-                    <div class="c4l-back-value">${escapeHtml(emergenciaNome)} · ${escapeHtml(emergenciaTel)}</div>
+                    <div class="c4l-back-value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(emergenciaNome)} · ${escapeHtml(emergenciaTel)}</div>
+
                 </div>
             </div>
 
@@ -330,13 +331,20 @@ window.abrirCarteirinha = async function() {
 <div class="c4l-hint">👆 Toque na carteirinha para virar</div>
 
 <div class="c4l-actions">
-    <button class="c4l-btn-download" onclick="baixarCarteirinha(event)">
+    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart" style="display:none;">
         💾 Salvar Imagem
     </button>
-    <button class="c4l-btn-share" onclick="compartilharCarteirinha(event)">
+    <button class="c4l-btn-share btn-tactile" onclick="compartilharCarteirinha(event)">
         📤 Compartilhar
     </button>
 </div>
+<script>
+// ✅ CORREÇÃO: mostra botão de salvar só se html2canvas estiver carregado
+if (typeof html2canvas !== 'undefined') {
+    var _bsc = document.getElementById('btn-salvar-cart');
+    if (_bsc) _bsc.style.display = 'inline-block';
+}
+</script>
         `;
 
         Swal.fire({
@@ -368,15 +376,15 @@ window.abrirCarteirinha = async function() {
 window.baixarCarteirinha = async function(e) {
     if (e) e.stopPropagation();
 
-    // Verifica se html2canvas está carregado
+    // ✅ CORREÇÃO: Se html2canvas não estiver disponível, esconde o botão e avisa silenciosamente
     if (typeof html2canvas === 'undefined') {
+        const btn = document.querySelector('.c4l-btn-download');
+        if (btn) btn.style.display = 'none';
         Swal.fire({
-            icon: 'warning',
-            title: 'Biblioteca não carregada',
-            text: 'Adicione o script do html2canvas no painel.html para habilitar o download.',
-            background: '#161618',
-            color: '#fff',
-            confirmButtonColor: '#E53935'
+            toast: true, position: 'top',
+            icon: 'info', title: 'Salvar imagem indisponível no momento',
+            showConfirmButton: false, timer: 2500,
+            background: '#161618', color: '#fff'
         });
         return;
     }

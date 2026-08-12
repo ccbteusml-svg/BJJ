@@ -109,9 +109,12 @@ window.abrirMenu = () => {
     const backdrop = document.getElementById('menu-backdrop');
     if (menu) menu.classList.add('aberto'); 
     if (backdrop) {
+        backdrop.classList.add('ativo');
         backdrop.style.display = 'block'; 
-        setTimeout(() => backdrop.style.opacity = '1', 10); 
+        void backdrop.offsetWidth; // força reflow
+        backdrop.style.opacity = '1'; 
     }
+    document.body.classList.add('menu-aberto');
 };
 
 window.fecharMenu = () => { 
@@ -119,10 +122,15 @@ window.fecharMenu = () => {
     const backdrop = document.getElementById('menu-backdrop');
     if (menu) menu.classList.remove('aberto'); 
     if (backdrop) {
+        backdrop.classList.remove('ativo');
         backdrop.style.opacity = '0'; 
-        setTimeout(() => backdrop.style.display = 'none', 300); 
+        setTimeout(() => {
+            if (!backdrop.classList.contains('ativo')) backdrop.style.display = 'none';
+        }, 350); 
     }
+    document.body.classList.remove('menu-aberto');
 };
+
 
 window.trocarAbaAluno = (idAba, elemento) => { 
     document.querySelectorAll('.secao-admin').forEach(s => s.style.display = 'none');
@@ -194,7 +202,9 @@ window.verificarAcesso = async function() {
         .limit(1);
     const cardReciboHome = document.getElementById('card-recibo-home');
     if (ultimoPago && ultimoPago.length > 0 && cardReciboHome) {
-        cardReciboHome.style.display = "flex";
+    cardReciboHome.style.display = "flex";
+    cardReciboHome.style.alignItems = "center"; // ✅ Alinha botão verticalmente
+
         const btn = document.getElementById('btn-baixar-ultimo-recibo');
         if (btn) btn.onclick = () => {
             if (typeof window.abrirRecibo === 'function') window.abrirRecibo(ultimoPago[0].mes, ultimoPago[0].valor);

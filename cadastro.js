@@ -1,3 +1,11 @@
+// Utilitário de escape (faltava no escopo do cadastro)
+function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ==========================================
 // 1.REDIRECIONA QUEM JÁ ESTÁ LOGADO
 // ==========================================

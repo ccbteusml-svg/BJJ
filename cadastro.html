@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="4L.png">
     <link rel="manifest" href="manifest.json">
 
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
     <div class="banner-topo"></div>
@@ -25,7 +25,8 @@
             <input type="email" id="cad-email" placeholder="Seu E-mail" required>
 
             <div style="position: relative;">
-                <input type="password" id="cad-senha" placeholder="Crie uma senha (mín. 6 dígitos)" required>
+                <input type="password" id="cad-senha" placeholder="Crie uma senha (mín. 6 dígitos)" required style="padding-right: 44px;">
+
                 <button type="button" onclick="toggleSenhaCadastro()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #666; cursor: pointer; width: auto; padding: 0; font-size: 18px;">👁️</button>
             </div>
 
@@ -37,7 +38,7 @@
             </div>
             <input type="text" id="cad-faixa" placeholder="Sua Faixa Atual (Ex: Branca)">
 
-            <button type="submit" id="btn-cadastrar">FINALIZAR CADASTRO</button>
+            <button type="submit" id="btn-cadastrar" class="btn-tactile">FINALIZAR CADASTRO</button>
 
 
             <p style="margin-top: 20px; font-size: 13px; color: #aaaaaa;">
@@ -50,7 +51,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="cadastro.js?v=11" defer></script>
+    <script src="cadastro.js?v=12" defer></script>
     <script>
         window.toggleSenhaCadastro = function() {
             const input = document.getElementById('cad-senha');

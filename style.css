@@ -54,6 +54,29 @@ input, textarea {
 }
 
 /* ==========================================
+   VARIÁVEIS DO ADMIN (v3.0)
+   Extraídas para fácil manutenção
+========================================== */
+:root {
+    --adm-bg: #0a0a0c;
+    --adm-surface: #141416;
+    --adm-surface-2: #1c1c1f;
+    --adm-border: rgba(255,255,255,0.06);
+    --adm-text: #ffffff;
+    --adm-text-2: #a0a0a8;
+    --adm-text-3: #66666e;
+    --adm-red: #E53935;
+    --adm-red-dark: #B71C1C;
+    --adm-green: #22c55e;
+    --adm-green-dim: rgba(34,197,94,0.12);
+    --adm-yellow: #f59e0b;
+    --adm-blue: #3b82f6;
+    --adm-purple: #a855f7;
+    --adm-radius: 14px;
+    --adm-radius-sm: 10px;
+}
+
+/* ==========================================
    CORES GLOBAIS (4L ACADEMY)
 ========================================== */
 :root {
@@ -180,11 +203,7 @@ button {
     transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1); /* Essencial para a mola do botão */
 }
 
-/* O Efeito do toque: Encolhe e reduz opacidade */
-button:active {
-    transform: scale(0.95); 
-    opacity: 0.85; 
-}
+/* Efeito tátil movido para .btn-tactile (v3.0) */
 
 /* Botões Vermelhos (Ação Principal) com Brilho e Gradiente */
 button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
@@ -250,36 +269,41 @@ button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
 }
 
 /* ==========================================
-   MENU LATERAL (DRAWER) SOFISTICADO
+   MENU LATERAL (DRAWER) OTIMIZADO — GPU
 ========================================== */
 .menu-backdrop {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5) !important; 
-    backdrop-filter: blur(4px); /* Fundo desfocado */
-    -webkit-backdrop-filter: blur(4px);
-    z-index: 999; display: none; opacity: 0;
-    transition: opacity 0.3s ease;
-    
-    /* 🛡️ A DEFESA CONTRA A TELA TRAVADA: */
+    background: rgba(0,0,0,0.6); 
+    z-index: 999; 
+    display: none; 
+    opacity: 0;
     pointer-events: none; 
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    transition: opacity 0.35s ease, backdrop-filter 0.35s ease;
 }
 
-/* Quando o menu abrir, o fundo volta a detectar cliques para você poder fechar o menu clicando fora */
-.menu-lateral.aberto + .menu-backdrop, 
-.menu-backdrop[style*="display: block"] {
+.menu-backdrop.ativo {
     pointer-events: auto;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
-
 
 .menu-lateral {
-    position: fixed; top: 0; left: -300px; width: 280px; height: 100%;
+    position: fixed; top: 0; left: 0; width: 280px; height: 100%;
     background-color: var(--cor-cartao); z-index: 1000;
-    transition: left 0.3s ease; display: flex; flex-direction: column;
+    display: flex; flex-direction: column;
     box-shadow: 15px 0 40px rgba(0,0,0,0.8);
     border-right: 1px solid rgba(255, 255, 255, 0.05);
+    /* GPU-accelerated: transform em vez de left */
+    transform: translateX(-105%);
+    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
 }
 
-.menu-lateral.aberto { left: 0; }
+.menu-lateral.aberto { 
+    transform: translateX(0); 
+}
 
 .menu-header { display: flex; justify-content: space-between; align-items: center; padding: 25px 20px 10px; }
 .menu-items { display: flex; flex-direction: column; flex: 1; padding: 0 10px 20px; overflow-y: auto; }
@@ -605,7 +629,6 @@ button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
     margin-bottom: 15px;
 }
 
-
 /* ==========================================
    CORREÇÕES v2.1 — ADIÇÕES E FIXES
    ========================================== */
@@ -644,24 +667,7 @@ button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
     }
 }
 
-/* 2. Limita efeito tátil apenas em botões principais para não quebrar inputs */
-button[type="submit"]:active,
-.adm-btn-full:active,
-.adm-btn-sm:active,
-.btn-vip:active {
-    transform: scale(0.95);
-    opacity: 0.85;
-}
-
-/* Remove o active genérico de elementos de UI (botões de navegação, close, etc) */
-.adm-btn-icon:active,
-.adm-modal-close:active,
-.adm-nav-item:active,
-.adm-chip:active,
-.adm-mass-btn:active {
-    transform: none;
-    opacity: 1;
-}
+/* Efeito tátil unificado em .btn-tactile (v3.0) */
 
 /* 3. Garante que o menu lateral não fique escondido em telas grandes */
 @media (min-width: 451px) {
@@ -681,7 +687,6 @@ img {
 img[style*="border: 3px solid #424242"] {
     border-color: #888 !important;
 }
-
 
 /* ==========================================
    CORREÇÃO v2.2 — ELEMENTOS FIXED EM TELAS GRANDES
@@ -848,4 +853,129 @@ input#modal-senha[type="text"] {
     overflow-x: hidden;
     word-break: break-word;
     overflow-wrap: break-word;
+}
+/* ==========================================
+   v3.0 — Feedback Tátil Isolado (.btn-tactile)
+   ========================================== */
+
+/* Apenas botões com .btn-tactile recebem o efeito de escala */
+.btn-tactile:active {
+    transform: scale(0.95);
+    opacity: 0.85;
+}
+
+/* 2. Scroll bleed nos modais (impede que a página de trás role) */
+.adm-modal-overlay.aberto,
+body.modal-aberto,
+body:has(.adm-modal-overlay.aberto),
+body.menu-aberto,
+
+/* 3. Menu lateral do aluno contido ao app em telas grandes */
+@media (min-width: 451px) {
+    .menu-lateral {
+        left: 50% !important;
+        margin-left: -225px;
+        max-width: 280px;
+        /* mantém transform GPU */
+        transform: translateX(-105%);
+    }
+    .menu-lateral.aberto {
+        transform: translateX(0);
+    }
+    .menu-backdrop {
+        max-width: 450px;
+        left: 50% !important;
+        transform: translateX(-50%);
+    }
+}
+
+/* 4. Date picker visível no tema escuro (Android/Chrome) */
+input[type="date"],
+input[type="datetime-local"] {
+    color-scheme: dark;
+}
+
+/* 5. Inputs de senha nunca escondem texto atrás do ícone de olho */
+input[type="password"],
+input[type="text"].input-senha {
+    padding-right: 44px !important;
+}
+
+/* 6. Avisos e textos longos quebram corretamente */
+.adm-card-body p,
+#lista-avisos-admin p,
+.card-status p {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+/* 7. Verso da carteirinha — grid não estoura */
+.c4l-back-item {
+    min-width: 0;
+    overflow: hidden;
+}
+.c4l-back-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 8. Card de recibo alinhado verticalmente quando vira flex */
+#card-recibo-home {
+    align-items: center !important;
+}
+
+/* 9. Botão de upload de foto — touch target maior */
+#input-foto + label,
+label[for="input-foto"] {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+/* 10. Safe area para iPhone/Android com notch (painel do aluno) */
+body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 11. Botão fantasma "Esqueci senha" vira link elegante */
+#btn-esqueci-senha {
+    width: auto !important;
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+#btn-esqueci-senha:active {
+    background: rgba(229, 57, 53, 0.1);
+    transform: none;
+    opacity: 1;
+}
+
+/* 12. Ícone de notificação desativado visualmente */
+header button:has(.fa-bell) {
+    opacity: 0.3;
+    pointer-events: none;
+    cursor: default;
+}
+
+/* 13. Menu lateral — item li corrigido para parecer div */
+.menu-items li.menu-item {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* 14. Código Pix selecionável manualmente (override do user-select:none) */
+#feedback-pix code,
+#feedback-pix {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+}
+
+/* 15. Container do painel com padding de safe area */
+.painel-container {
+    padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)) !important;
 }
