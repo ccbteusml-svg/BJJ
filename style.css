@@ -24,6 +24,7 @@ body {
     box-shadow: 0px 0px 40px rgba(0, 0, 0, 0.9); /* Sombra 3D elegante ao redor do app */
     
     min-height: 100vh;
+    min-height: 100dvh; /* ✅ mobile: 100vh quebrava com a barra do navegador; dvh se adapta */
     overflow-x: hidden; /* PROÍBE a tela de rolar para os lados */
     
     /* Impede o usuário de selecionar os textos sem querer */
@@ -174,7 +175,7 @@ input, textarea {
     border-radius: 12px;
     background-color: #0a0a0a;
     color: var(--cor-texto);
-    font-size: 15px;
+    font-size: 16px; /* ✅ iOS: fonte < 16px causava zoom automático indesejado ao focar */
     transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -204,6 +205,13 @@ button {
 }
 
 /* Efeito tátil movido para .btn-tactile (v3.0) */
+
+/* Estado desabilitado: feedback visual de que o botão está processando (anti double-submit) */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
 
 /* Botões Vermelhos (Ação Principal) com Brilho e Gradiente */
 button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
@@ -290,7 +298,7 @@ button[type="submit"], #btn-enviar-comprovante, #btn-gerar-mes {
 }
 
 .menu-lateral {
-    position: fixed; top: 0; left: 0; width: 280px; height: 100%;
+    position: fixed; top: 0; left: 0; width: 280px; height: 100%; height: 100dvh;
     background-color: var(--cor-cartao); z-index: 1000;
     display: flex; flex-direction: column;
     box-shadow: 15px 0 40px rgba(0,0,0,0.8);
@@ -868,7 +876,10 @@ input#modal-senha[type="text"] {
 .adm-modal-overlay.aberto,
 body.modal-aberto,
 body:has(.adm-modal-overlay.aberto),
-body.menu-aberto,
+body.menu-aberto {
+    overflow: hidden !important;
+    touch-action: none;
+}
 
 /* 3. Menu lateral do aluno contido ao app em telas grandes */
 @media (min-width: 451px) {

@@ -38,6 +38,16 @@ const loading = (msg) => {
     Swal.fire({ title: msg, background: '#0a0a0c', color: '#fff', showConfirmButton: false, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 };
 
+// ✅ Trava anti double-submit para ações do admin (evita insert/update duplicado
+// quando o professor toca duas vezes seguidas no botão)
+const _acoesEmAndamento = new Set();
+const travarAcao = (nome) => {
+    if (_acoesEmAndamento.has(nome)) return false;
+    _acoesEmAndamento.add(nome);
+    return true;
+};
+const destravarAcao = (nome) => _acoesEmAndamento.delete(nome);
+
 const corFaixa = (nome) => {
     const t = (nome || 'Branca').toLowerCase();
     if (t.includes('branca')) return '#f5f5f5';
@@ -82,11 +92,21 @@ const validarData = (data) => !!data && !isNaN(new Date(data).getTime());
 const validarValor = (v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0;
 
 async function verificarAdmin() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return; }
-    const { data: perfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).single();
-    if (!perfil || perfil.cargo !== 'professor') { window.location.href = 'painel.html'; return; }
-    if (!AppAdmin.dadosCarregados) await carregarTudo();
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error || !session) { window.location.replace('index.html'); return; }
+        // ✅ maybeSingle: .single() lançava exceção não tratada se o perfil não existisse
+        const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).maybeSingle();
+        if (erroPerfil) {
+            console.error('[ADMIN] Erro ao verificar cargo:', erroPerfil);
+            toast('Erro ao verificar permissões', 'error');
+            return;
+        }
+        if (!perfil || perfil.cargo !== 'professor') { window.location.replace('painel.html'); return; }
+        if (!AppAdmin.dadosCarregados) await carregarTudo();
+    } catch (e) {
+        console.error('[ADMIN] Exceção em verificarAdmin:', e);
+    }
 }
 
 window.abrirSecao = function(sec) {
@@ -128,14 +148,41 @@ function getSecaoAtiva() {
 async function carregarTudo() {
     loading('Sincronizando dados...');
     try {
-        const [{ data: alunos }, { data: mens }, { data: avisos }] = await Promise.all([
+        const [{ data: alunos, error: e1 }, { data: mens, error: e2 }] = await Promise.all([
             supabase.from('perfis').select('*').neq('cargo', 'professor').order('nome'),
-            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }).limit(500),
-            supabase.from('avisos').select('*').order('criado_em', { ascending: false })
+            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }).limit(500)
         ]);
+        // ✅ Antes: erros eram engolidos e a tela mostrava tudo zerado como se fosse "vazio"
+        if (e1 || e2) {
+            const erro = e1 || e2;
+            console.error('[ADMIN] Falha ao carregar dados:', erro);
+            Swal.close();
+            toast(navigator.onLine ? 'Erro ao carregar dados' : '📡 Você está offline', 'error');
+            return;
+        }
+
+        // ✅ Avisos: a coluna de data pode ser 'criado_em' OU 'created_at' conforme o banco.
+        // Tenta 'criado_em'; se a coluna não existir (42703), faz fallback — sem derrubar o painel.
+        let avisos = [];
+        let resAvisos = await supabase.from('avisos').select('*').order('criado_em', { ascending: false });
+        if (resAvisos.error && resAvisos.error.code === '42703') {
+            console.warn('[ADMIN] Coluna criado_em ausente em avisos — tentando created_at...');
+            resAvisos = await supabase.from('avisos').select('*').order('created_at', { ascending: false });
+        }
+        if (resAvisos.error && resAvisos.error.code === '42703') {
+            console.warn('[ADMIN] Sem coluna de data em avisos — buscando sem ordenação...');
+            resAvisos = await supabase.from('avisos').select('*');
+        }
+        if (resAvisos.error) {
+            console.error('[ADMIN] Falha ao carregar avisos (não fatal):', resAvisos.error);
+        } else {
+            // Normaliza: garante que todo aviso tenha 'criado_em' preenchido
+            avisos = (resAvisos.data || []).map(av => ({ ...av, criado_em: av.criado_em || av.created_at || null }));
+        }
+
         AppAdmin.alunos = alunos || [];
         AppAdmin.mensalidades = mens || [];
-        AppAdmin.avisos = avisos || [];
+        AppAdmin.avisos = avisos;
         AppAdmin.dadosCarregados = true;
         Swal.close();
 
@@ -632,10 +679,11 @@ window.editarAlunoDossie = async function() {
         if (v.valor && !validarValor(v.valor)) { toast('Valor inválido', 'error'); return; }
 
         loading('Salvando...');
-        await supabase.from('perfis').update({
+        const { error: erroUpdate } = await supabase.from('perfis').update({
             nome: v.nome.trim(), telefone: v.telefone, faixa: v.faixa,
             valor_mensalidade: v.valor ? parseFloat(v.valor) : null
         }).eq('id', a.id);
+        if (erroUpdate) { Swal.close(); toast('Erro ao salvar: ' + erroUpdate.message, 'error'); return; }
         await carregarTudo();
         fecharModalDossie();
         toast('Perfil atualizado!');
@@ -654,7 +702,8 @@ window.alternarPlano = async function(id, nome, acao) {
     });
     if (r.isConfirmed) {
         loading('Processando...');
-        await supabase.from('perfis').update({ plano_pausado: cong }).eq('id', id);
+        const { error: erroUpdate } = await supabase.from('perfis').update({ plano_pausado: cong }).eq('id', id);
+        if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
         await carregarTudo();
         fecharModalDossie();
         toast(cong ? 'Aluno inativado' : 'Aluno reativado!');
@@ -670,7 +719,8 @@ window.cancelarVIP = async function(id, nome) {
     });
     if (r.isConfirmed) {
         loading('Removendo...');
-        await supabase.from('perfis').update({ assinante: false, plano_pausado: false }).eq('id', id);
+        const { error: erroUpdate } = await supabase.from('perfis').update({ assinante: false, plano_pausado: false }).eq('id', id);
+        if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
         await carregarTudo();
         fecharModalDossie();
         toast('VIP removido');
@@ -819,8 +869,11 @@ window.darBaixa = async function(id) {
         background: '#0a0a0c', color: '#fff'
     });
     if (r.isConfirmed) {
+        if (!travarAcao('baixa-' + id)) return;
         loading('Atualizando...');
-        await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', id);
+        const { error: erroUpdate } = await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', id);
+        destravarAcao('baixa-' + id);
+        if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
         await carregarTudo();
         toast('Baixa realizada!');
     }
@@ -835,7 +888,8 @@ window.apagarCobranca = async function(id) {
     });
     if (r.isConfirmed) {
         loading('Removendo...');
-        await supabase.from('mensalidades').delete().eq('id', id);
+        const { error: erroDel } = await supabase.from('mensalidades').delete().eq('id', id);
+        if (erroDel) { Swal.close(); toast('Erro: ' + erroDel.message, 'error'); return; }
         await carregarTudo();
         toast('Cobrança removida');
     }
@@ -900,9 +954,12 @@ window.publicarAviso = async function() {
 
     if (!titulo || titulo.length < 2) { toast('Título muito curto', 'error'); return; }
     if (!mensagem || mensagem.length < 2) { toast('Mensagem muito curta', 'error'); return; }
+    if (!travarAcao('publicar-aviso')) return; // ✅ anti double-tap (aviso duplicado)
 
     loading('Publicando...');
-    await supabase.from('avisos').insert([{ titulo: titulo, mensagem: mensagem }]);
+    const { error: erroInsert } = await supabase.from('avisos').insert([{ titulo: titulo, mensagem: mensagem }]);
+    destravarAcao('publicar-aviso');
+    if (erroInsert) { Swal.close(); toast('Erro ao publicar: ' + erroInsert.message, 'error'); return; }
     tit.value = '';
     msg.value = '';
     await carregarTudo();
@@ -918,7 +975,8 @@ window.apagarAviso = async function(id) {
     });
     if (r.isConfirmed) {
         loading('Removendo...');
-        await supabase.from('avisos').delete().eq('id', id);
+        const { error: erroDel } = await supabase.from('avisos').delete().eq('id', id);
+        if (erroDel) { Swal.close(); toast('Erro: ' + erroDel.message, 'error'); return; }
         await carregarTudo();
         toast('Aviso removido');
     }
@@ -949,6 +1007,7 @@ async function doCadastrar(dados) {
     if (dados.telefone && !validarTelefone(dados.telefone)) { toast('Telefone inválido', 'error'); return false; }
     if (dados.data_nascimento && !validarData(dados.data_nascimento)) { toast('Data de nascimento inválida', 'error'); return false; }
     if (dados.valor_mensalidade && !validarValor(dados.valor_mensalidade)) { toast('Valor da mensalidade inválido', 'error'); return false; }
+    if (!travarAcao('cadastrar-aluno')) return false; // ✅ anti double-tap
 
     loading('Cadastrando...');
     try {
@@ -961,6 +1020,8 @@ async function doCadastrar(dados) {
         Swal.close();
         Swal.fire({ icon: 'error', title: 'Falha no Cadastro', text: err.message, background: '#0a0a0c', color: '#fff', confirmButtonColor: '#E53935' });
         return false;
+    } finally {
+        destravarAcao('cadastrar-aluno');
     }
 }
 
@@ -1003,6 +1064,7 @@ window.gerarMensalidades = async function() {
 
     if (!mes || mes.length < 3) { toast('Informe um mês válido', 'error'); return; }
     if (!val || !validarValor(val)) { toast('Informe um valor válido', 'error'); return; }
+    if (!travarAcao('gerar-mensalidades')) return; // ✅ anti double-tap (cobrança duplicada)
 
     mes = mes.replace(/\s+/g, ' ');
     mes = mes.charAt(0).toUpperCase() + mes.slice(1).toLowerCase();
@@ -1010,12 +1072,14 @@ window.gerarMensalidades = async function() {
     loading('Verificando...');
     try {
         // ✅ CORRIGIDO: Busca TODOS os alunos (incluindo assinante=null) e filtra no JS
-        const { data: alm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado,assinante').neq('cargo', 'professor');
+        const { data: alm, error: eAlm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado,assinante').neq('cargo', 'professor');
+        if (eAlm) throw eAlm;
         const atv = (alm || []).filter(a => !a.plano_pausado && !a.assinante);
 
         if (atv.length === 0) { Swal.close(); toast('Nenhum aluno ativo sem VIP', 'error'); return; }
 
-        const { data: ex } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
+        const { data: ex, error: eEx } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
+        if (eEx) throw eEx;
         const ja = new Set((ex || []).map(m => m.aluno_id));
         const cobrar = atv.filter(a => !ja.has(a.id));
 
@@ -1024,13 +1088,16 @@ window.gerarMensalidades = async function() {
         const cob = cobrar.map(a => ({
             aluno_id: a.id, mes: mes, valor: a.valor_mensalidade || parseFloat(val), status: 'pendente'
         }));
-        await supabase.from('mensalidades').insert(cob);
+        const { error: eIns } = await supabase.from('mensalidades').insert(cob);
+        if (eIns) throw eIns;
         await carregarTudo();
         toast(`${cobrar.length} cobranças geradas!`);
         $('mes-geral').value = '';
     } catch (err) {
         Swal.close();
         toast(err.message, 'error');
+    } finally {
+        destravarAcao('gerar-mensalidades');
     }
 };
 
@@ -1060,12 +1127,20 @@ window.atualizarMeusDados = async function() {
 };
 
 window.toggleManutencao = async function() {
-    const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
-    if (data) {
-        AppAdmin.manutencaoAtiva = !data.manutencao_ativa;
-        await supabase.from('sistema_config').update({ manutencao_ativa: AppAdmin.manutencaoAtiva }).eq('id', 1);
-        atualizarBtnManutencao();
-        toast(AppAdmin.manutencaoAtiva ? 'Modo manutenção ATIVADO' : 'Modo manutenção DESATIVADO');
+    if (!travarAcao('toggle-manutencao')) return;
+    try {
+        const { data, error } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).maybeSingle();
+        if (error) { toast('Erro ao ler configuração', 'error'); return; }
+        if (data) {
+            const novoEstado = !data.manutencao_ativa;
+            const { error: erroUp } = await supabase.from('sistema_config').update({ manutencao_ativa: novoEstado }).eq('id', 1);
+            if (erroUp) { toast('Erro ao salvar: ' + erroUp.message, 'error'); return; }
+            AppAdmin.manutencaoAtiva = novoEstado;
+            atualizarBtnManutencao();
+            toast(AppAdmin.manutencaoAtiva ? 'Modo manutenção ATIVADO' : 'Modo manutenção DESATIVADO');
+        }
+    } finally {
+        destravarAcao('toggle-manutencao');
     }
 };
 
@@ -1082,8 +1157,10 @@ function atualizarBtnManutencao() {
 }
 
 async function checarManutencao() {
-    const { data } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).single();
-    if (data) { AppAdmin.manutencaoAtiva = data.manutencao_ativa; atualizarBtnManutencao(); }
+    try {
+        const { data, error } = await supabase.from('sistema_config').select('manutencao_ativa').eq('id', 1).maybeSingle();
+        if (!error && data) { AppAdmin.manutencaoAtiva = data.manutencao_ativa; atualizarBtnManutencao(); }
+    } catch (e) { console.warn('[ADMIN] Falha ao checar manutenção:', e); }
 }
 
 window.sair = async function() {
@@ -1096,8 +1173,8 @@ window.sair = async function() {
     });
     if (r.isConfirmed) {
         localStorage.removeItem('4l_fila_disparo');
-        await supabase.auth.signOut();
-        window.location.href = 'index.html';
+        try { await supabase.auth.signOut(); } catch (e) { console.warn('[ADMIN] Erro ao deslogar:', e); }
+        window.location.replace('index.html');
     }
 };
 
@@ -1226,10 +1303,12 @@ window.confirmarGerarMensalidade = async function() {
         toast('Nenhum aluno válido selecionado (ativos sem VIP)', 'error');
         return;
     }
+    if (!travarAcao('confirmar-gerar')) return; // ✅ anti double-tap
 
     loading('Verificando...');
     try {
-        const { data: ex } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
+        const { data: ex, error: eEx } = await supabase.from('mensalidades').select('aluno_id').eq('mes', mes);
+        if (eEx) throw eEx;
         const ja = new Set((ex || []).map(m => m.aluno_id));
 
         const cobrar = alvos.filter(a => !ja.has(a.id));
@@ -1246,7 +1325,8 @@ window.confirmarGerarMensalidade = async function() {
             status: 'pendente'
         }));
 
-        await supabase.from('mensalidades').insert(cob);
+        const { error: eIns } = await supabase.from('mensalidades').insert(cob);
+        if (eIns) throw eIns;
         await carregarTudo();
         fecharModalGerar();
         toast(`${cobrar.length} cobrança(s) gerada(s)!`);
@@ -1256,6 +1336,8 @@ window.confirmarGerarMensalidade = async function() {
     } catch (err) {
         Swal.close();
         toast(err.message, 'error');
+    } finally {
+        destravarAcao('confirmar-gerar');
     }
 };
 
@@ -1295,6 +1377,7 @@ function salvarFila(estado) {
     template: estado.template,
     mes: estado.mes,
     custom: estado.custom,
+    nomeAtual: estado.nomeAtual || null,
     timestamp: Date.now()
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(seguro));
@@ -1337,6 +1420,9 @@ window.abrirModalDisparoZap = function() {
       color: '#fff'
     }).then(r => {
       if (r.isConfirmed) {
+        // Recupera nomeAtual do aluno atual na fila
+        const alunoAtual = AppAdmin.alunos.find(x => x.id === filaSalva.ids[filaSalva.index]);
+        if (alunoAtual) filaSalva.nomeAtual = alunoAtual.nome;
         restaurarFilaUI(filaSalva);
       } else {
         limparFila();
@@ -1569,10 +1655,10 @@ window.executarPassoFila = function(ids, index) {
 
   // Salva estado
   const proximo = AppAdmin.alunos.find(x => x.id === ids[index + 1]);
-  salvarFila({ ids, index: index + 1, template, mes, custom });
+  salvarFila({ ids, index: index + 1, template, mes, custom, nomeAtual: proximo ? proximo.nome : null });
 
   // Atualiza botão para o próximo
-  resetarBotoesFila(ids, index + 1);
+  resetarBotoesFila(ids, index + 1, proximo ? proximo.nome : null);
 };
 
 window.pararFilaDisparo = function() {
@@ -1626,7 +1712,8 @@ window.exportarCSVDisparo = function() {
       .replace(/\n/g, ' ')
       .replace(/"/g, '""');  // ✅ CORREÇÃO: escapa aspas duplas para não quebrar o CSV
 
-    csv += `"${a.nome}","${a.telefone}","${msg}"\n`;
+    const safeNome = a.nome.replace(/"/g, '""');
+    csv += `"${safeNome}","${a.telefone}","${msg}"\n`;
   });
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

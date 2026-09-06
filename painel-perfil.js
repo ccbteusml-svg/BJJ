@@ -13,7 +13,12 @@ window.abrirCarteirinha = async function() {
 
     try {
         const { data: { session } } = await window.supabase.auth.getSession();
-        if (!session) return;
+        if (!session) {
+            // ✅ Antes: loading "Gerando Carteirinha..." ficava aberto para sempre
+            Swal.close();
+            window.location.replace("index.html");
+            return;
+        }
 
         const usuarioId = session.user.id;
 
@@ -22,7 +27,7 @@ window.abrirCarteirinha = async function() {
             .from('perfis')
             .select('*')
             .eq('id', usuarioId)
-            .single();
+            .maybeSingle();
 
         if (!perfil) throw new Error("Perfil não encontrado");
 
@@ -331,20 +336,14 @@ window.abrirCarteirinha = async function() {
 <div class="c4l-hint">👆 Toque na carteirinha para virar</div>
 
 <div class="c4l-actions">
-    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart" style="display:none;">
+    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart">
         💾 Salvar Imagem
     </button>
     <button class="c4l-btn-share btn-tactile" onclick="compartilharCarteirinha(event)">
         📤 Compartilhar
     </button>
 </div>
-<script>
-// ✅ CORREÇÃO: mostra botão de salvar só se html2canvas estiver carregado
-if (typeof html2canvas !== 'undefined') {
-    var _bsc = document.getElementById('btn-salvar-cart');
-    if (_bsc) _bsc.style.display = 'inline-block';
-}
-</script>
+
         `;
 
         Swal.fire({

@@ -5,10 +5,19 @@
   "start_url": "./index.html",
   "scope": ".",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "fullscreen",
+    "minimal-ui"
+  ],
   "background_color": "#000000",
   "theme_color": "#E53935",
   "orientation": "portrait",
-  "categories": ["sports", "finance", "lifestyle"],
+  "categories": [
+    "sports",
+    "finance",
+    "lifestyle"
+  ],
   "icons": [
     {
       "src": "icone-192.png",
@@ -22,5 +31,51 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-login.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela de login da 4L Academy"
+    },
+    {
+      "src": "screenshot-painel.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Painel do aluno com mensalidade"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "💳 Pagar Mensalidade",
+      "short_name": "Pagar",
+      "description": "Acesse rapidamente o pagamento do mês",
+      "url": "./painel.html?goto=financeiro",
+      "icons": [
+        {
+          "src": "icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "📢 Mural de Avisos",
+      "short_name": "Avisos",
+      "description": "Veja os avisos mais recentes da academia",
+      "url": "./painel.html?goto=avisos",
+      "icons": [
+        {
+          "src": "icone-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "lang": "pt-BR",
+  "dir": "ltr"
 }

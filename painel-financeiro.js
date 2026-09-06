@@ -52,6 +52,10 @@ window.iniciarPollingPagamento = function(paymentId, mensalidadeId) {
         console.error('[POLLING] paymentId ou mensalidadeId inválidos.');
         return;
     }
+    // ✅ CORREÇÃO: evita polling duplicado se já estiver rodando
+    if (_pollInterval) {
+        console.log('[POLLING] Já existe um polling ativo. Reiniciando...');
+    }
     window.pararPollingPagamento();
     _pollPaymentId = paymentId;
     _pollMensalidadeId = mensalidadeId;
@@ -175,11 +179,15 @@ window.voltarParaOpcoes = function() {
     if (typeof window.verificarAcesso === 'function') window.verificarAcesso();
 };
 
+let _abrindoCartao = false; // ✅ trava anti double-tap
+
 window.abrirMaquinaCartao = async function() {
     if (!bricksBuilder) {
         Swal.fire({ icon: 'error', title: 'Sem Conexão', text: 'Você precisa de internet para abrir a máquina de cartão.', background: '#161618', color: '#fff' });
         return;
     }
+    if (_abrindoCartao) return;
+    _abrindoCartao = true;
 
     try {
         if (typeof window.mostrarCarregamentocartao === 'function') {
@@ -292,7 +300,11 @@ window.abrirMaquinaCartao = async function() {
         }, 500);
 
     } catch (err) {
+        // ✅ Fecha o loading do cartão antes de mostrar o erro (antes ficava preso atrás)
+        if (typeof window.fecharCarregamento === 'function') window.fecharCarregamento();
         Swal.fire({ icon: 'error', title: 'Erro', text: err.message, background: '#161618', color: '#fff' });
+    } finally {
+        _abrindoCartao = false;
     }
 };
 
@@ -302,6 +314,14 @@ if (btnShowCard) btnShowCard.addEventListener('click', () => window.abrirMaquina
 const btnPagar = document.getElementById('btn-pagar');
 if (btnPagar) {
     btnPagar.addEventListener('click', async () => {
+        // ✅ ANTI DOUBLE-SUBMIT: dois toques rápidos geravam 2 cobranças Pix no MP
+        if (btnPagar.disabled) return;
+        if (!navigator.onLine) {
+            Swal.fire({ icon: 'error', title: 'Sem Conexão', text: 'Você precisa de internet para gerar o PIX.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+            return;
+        }
+        btnPagar.disabled = true;
+
         const feedback = document.getElementById('feedback-pix');
         const opcoes = document.getElementById('opcoes-pagamento');
         if (opcoes) opcoes.style.display = "none";
@@ -411,6 +431,10 @@ if (btnPagar) {
             if (opcoes) opcoes.style.display = "flex";
             if (feedback) feedback.innerHTML = "";
             console.error(erro);
+        } finally {
+            // ✅ Destrava o botão em TODOS os caminhos (sucesso mantém QR na tela,
+            // mas o botão some junto com as opções, então não há risco de re-clique)
+            btnPagar.disabled = false;
         }
     });
 }
@@ -421,8 +445,13 @@ if (btnPagar) {
 const btnAdiantarFatura = document.getElementById('btn-adiantar-fatura');
 if (btnAdiantarFatura) {
     btnAdiantarFatura.addEventListener('click', async () => {
-        const { data: { session } } = await window.supabase.auth.getSession();
-        if (!session) return;
+        // ✅ ANTI DOUBLE-SUBMIT + sessão expirada vai pro login (antes falhava em silêncio)
+        if (btnAdiantarFatura.disabled) return;
+        btnAdiantarFatura.disabled = true;
+
+        try {
+        const { data: { session }, error: erroSessao } = await window.supabase.auth.getSession();
+        if (erroSessao || !session) { window.location.replace("index.html"); return; }
 
         const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
@@ -544,6 +573,13 @@ if (btnAdiantarFatura) {
                 });
             }
         }
+
+        } catch (e) {
+            console.error('[Adiantar] Exceção:', e);
+            Swal.fire({ icon: 'error', title: 'Erro inesperado', text: 'Tente novamente em instantes.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+        } finally {
+            btnAdiantarFatura.disabled = false;
+        }
     });
 }
 
@@ -559,7 +595,11 @@ window.carregarHistorico = async function() {
     lista.appendChild(msgBusca);
 
     const { data: { session } } = await window.supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+        // ✅ Antes: ficava "Buscando histórico..." para sempre com sessão expirada
+        window.location.replace("index.html");
+        return;
+    }
 
     const { data: historico, error } = await window.supabase
         .from('mensalidades')
@@ -628,8 +668,8 @@ window.carregarHistorico = async function() {
 window.abrirRecibo = async function(mesReferencia, valorPago) {
     Swal.fire({ title: 'Gerando...', background: '#161618', color: '#fff', didOpen: () => { Swal.showLoading() } });
     const { data: { session } } = await window.supabase.auth.getSession();
-    if (!session) { Swal.close(); return; }
-    const { data: perfil } = await window.supabase.from('perfis').select('nome').eq('id', session.user.id).single();
+    if (!session) { Swal.close(); window.location.replace("index.html"); return; }
+    const { data: perfil } = await window.supabase.from('perfis').select('nome').eq('id', session.user.id).maybeSingle();
     const nomeAluno = perfil ? perfil.nome : "Aluno";
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
 
