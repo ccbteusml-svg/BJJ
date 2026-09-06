@@ -512,24 +512,59 @@
             letter-spacing: 1px;
         }
 
+        /* ===== TABS DO DOSSIÊ v2 — troca suave =====
+           Decisões: (1) indicador vira um "pill" via ::after com scaleX — sem border-bottom,
+           logo nenhum salto de layout ao trocar de aba; (2) conteúdo injetado pelo JS entra
+           com fade + slide curto (#dossie-conteudo > *), eliminando a troca "seca" do innerHTML;
+           (3) zero alteração de markup/JS — 100% CSS, todos os seletores originais intactos. */
         .adm-modal-tabs {
             display: flex; gap: 0; border-bottom: 1px solid var(--adm-border);
             margin-top: 16px;
         }
 
         .adm-modal-tab {
+            position: relative; /* âncora do indicador ::after */
             flex: 1; min-height: 48px; padding: 12px; text-align: center;
             font-size: 12px; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.6px;
-            color: var(--adm-text-3); cursor: pointer; border-bottom: 2px solid transparent;
-            transition: color var(--adm-dur) var(--adm-ease), border-color var(--adm-dur) var(--adm-ease);
-            background: none; border-top: none; border-left: none; border-right: none;
+            color: var(--adm-text-3); cursor: pointer;
+            transition: color var(--adm-dur) var(--adm-ease),
+                        background-color var(--adm-dur) var(--adm-ease);
+            background: none; border: none; /* indicador sai do border e vira ::after */
             font-family: inherit;
+            border-radius: 8px 8px 0 0;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        @media (hover: hover) { .adm-modal-tab:not(.ativo):hover { color: var(--adm-text-2); } }
+        /* Indicador animado: pill de 3px que desliza/cresce no centro da aba ativa */
+        .adm-modal-tab::after {
+            content: ""; position: absolute; left: 20%; right: 20%; bottom: -1px;
+            height: 3px; border-radius: 3px 3px 0 0;
+            background: var(--adm-red);
+            box-shadow: 0 -2px 12px rgba(229, 57, 53, 0.45);
+            transform: scaleX(0); opacity: 0; transform-origin: center;
+            transition: transform 0.28s var(--adm-ease), opacity 0.2s ease;
+            pointer-events: none;
+        }
 
-        .adm-modal-tab.ativo { color: var(--adm-red); border-bottom-color: var(--adm-red); }
+        .adm-modal-tab.ativo { color: var(--adm-red); background: rgba(229, 57, 53, 0.06); }
+        .adm-modal-tab.ativo::after { transform: scaleX(1); opacity: 1; }
+
+        /* Feedback de toque imediato (sensação de app nativo) */
+        .adm-modal-tab:active { background: rgba(255, 255, 255, 0.04); }
+        .adm-modal-tab.ativo:active { background: rgba(229, 57, 53, 0.1); }
+
+        @media (hover: hover) { .adm-modal-tab:not(.ativo):hover { color: var(--adm-text-2); background: rgba(255,255,255,0.03); } }
+
+        /* Entrada suave do conteúdo a cada troca de aba.
+           Como o JS recria os filhos via innerHTML, a animação reexecuta sozinha. */
+        @keyframes admTabIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #dossie-conteudo > * {
+            animation: admTabIn 0.26s var(--adm-ease) both;
+        }
 
         .adm-modal-body { padding: 16px; }
 

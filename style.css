@@ -990,3 +990,196 @@ header button:has(.fa-bell) {
 .painel-container {
     padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px)) !important;
 }
+/* ==========================================
+   v4.0 — ABA AJUSTES & SUPORTE (aditivo)
+   Decisões:
+   - Reaproveita .card-status (padrão visual já existente do app)
+   - Inputs escuros com foco vermelho visível (acessibilidade)
+   - FAQ usa <details> nativo: zero JS, acessível por teclado
+   - Badge de não lidos: pill vermelho com leve pulso (desliga em reduced-motion)
+========================================== */
+
+/* --- Badge de avisos não lidos (menu lateral) --- */
+.badge-naolido {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    margin-left: auto; /* empurra para a direita do item do menu */
+    background: #E53935;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 99px;
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.18);
+    animation: badgePulso 2s ease-in-out infinite;
+}
+
+@keyframes badgePulso {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.18); }
+    50%      { box-shadow: 0 0 0 6px rgba(229, 57, 53, 0.06); }
+}
+
+/* --- Cartões da aba Ajustes --- */
+.ajs-card {
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+
+.ajs-titulo {
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    margin: 0 0 14px;
+    letter-spacing: 0.2px;
+}
+
+.ajs-label {
+    display: block;
+    color: #9e9e9e;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 12px 0 6px;
+}
+
+.ajs-input {
+    width: 100%;
+    min-height: 48px; /* alvo de toque AA */
+    background: #0d0d10;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ajs-input:focus {
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.18);
+}
+
+/* --- Botões da aba --- */
+.ajs-btn-primario,
+.ajs-btn-sec,
+.ajs-btn-zap,
+.ajs-btn-perigo {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.15s ease, opacity 0.15s ease, background 0.18s ease;
+}
+
+.ajs-btn-primario { background: linear-gradient(135deg, #E53935, #B71C1C); color: #fff; }
+.ajs-btn-sec      { background: rgba(255,255,255,0.06); color: #ddd; border: 1px solid rgba(255,255,255,0.1); }
+.ajs-btn-zap      { background: #22c55e; color: #06270f; }
+.ajs-btn-perigo   { background: transparent; color: #E53935; border: 1px solid rgba(229,57,53,0.5); }
+
+.ajs-btn-primario:disabled,
+.ajs-btn-sec:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+
+.ajs-divisor {
+    height: 1px;
+    background: var(--cor-borda);
+    margin: 20px 0 6px;
+}
+
+/* --- Linha da foto --- */
+.ajs-foto-linha {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 6px;
+}
+
+#ajs-foto-preview {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--cor-destaque);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    background: #0d0d10;
+}
+
+.ajs-btn-foto {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #ddd;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s ease;
+}
+
+.ajs-btn-foto:active { background: rgba(255,255,255,0.12); }
+
+/* --- FAQ nativo (details/summary) --- */
+.ajs-faq-item {
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.02);
+    overflow: hidden;
+}
+
+.ajs-faq-item summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px;
+    color: #ddd;
+    font-size: 13.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 48px;
+}
+
+.ajs-faq-item summary::-webkit-details-marker { display: none; }
+
+.ajs-faq-item summary::after {
+    content: '▾';
+    color: #666;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.ajs-faq-item[open] summary::after { transform: rotate(180deg); }
+
+.ajs-faq-item p {
+    padding: 0 14px 14px;
+    margin: 0;
+    color: #9e9e9e;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+/* --- Acessibilidade: sem pulso/anim extra para quem pede menos movimento --- */
+@media (prefers-reduced-motion: reduce) {
+    .badge-naolido { animation: none; }
+    .ajs-input, .ajs-btn-primario, .ajs-btn-sec, .ajs-btn-zap, .ajs-btn-perigo,
+    .ajs-btn-foto, .ajs-faq-item summary::after { transition: none; }
+}
