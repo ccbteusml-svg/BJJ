@@ -1,7 +1,7 @@
 // ⚠️ REGRA DE DEPLOY: suba este número (v27 → v28 → ...) a CADA deploy.
 // É ele que apaga o cache antigo e força o celular a baixar o JS/HTML novo.
 // Se esquecer de subir, os alunos continuam rodando a versão velha do app.
-const SW_VERSION = 'v31';
+const SW_VERSION = 'v32';
 const NOME_DO_CACHE = '4l-academy-' + SW_VERSION;
 
 const ARQUIVOS_PARA_SALVAR = [
@@ -107,4 +107,53 @@ self.addEventListener('fetch', event => {
       })
     );
   }
+});
+
+// ============================================================
+// PUSH NOTIFICATIONS (v32)
+// Recebe o push do servidor mesmo com o app fechado e mostra
+// a notificacao na barra do celular. Ao tocar, abre o painel.
+// ============================================================
+self.addEventListener('push', event => {
+  let dados = {
+    titulo: '4L Academy',
+    corpo: 'Voce tem uma nova notificacao.',
+    url: './painel.html'
+  };
+  try {
+    if (event.data) {
+      const recebido = event.data.json();
+      dados = { ...dados, ...recebido };
+    }
+  } catch (e) {
+    console.warn('[SW] Push sem JSON valido, usando padrao.', e);
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(dados.titulo, {
+      body: dados.corpo,
+      icon: './icone-192.png',
+      badge: './icone-192.png',
+      tag: '4l-academy-cobranca',
+      renotify: true,
+      data: { url: dados.url }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const urlAlvo = (event.notification.data && event.notification.data.url) || './painel.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(janelas => {
+      for (const janela of janelas) {
+        if ('focus' in janela) {
+          janela.navigate(urlAlvo);
+          return janela.focus();
+        }
+      }
+      return clients.openWindow(urlAlvo);
+    })
+  );
 });

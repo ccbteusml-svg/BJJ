@@ -208,6 +208,7 @@
             <!-- Ações da conta -->
             <div class="card-status ajs-card">
                 <h4 class="ajs-titulo">📱 Aplicativo</h4>
+                <button class="btn-tactile ajs-btn-sec" id="btn-push" onclick="window.toggleNotificacoes()">🔔 ATIVAR NOTIFICAÇÕES</button>
                 <button class="btn-tactile ajs-btn-sec" onclick="window.forcarAtualizacao()">🔄 SINCRONIZAR APP</button>
                 <button class="btn-tactile ajs-btn-perigo" onclick="document.getElementById('btn-sair').click()">🚪 SAIR DA CONTA</button>
                 <p style="color:#444; font-size:11px; text-align:center; margin:14px 0 0;">4L Academy · Portal do Aluno v4</p>
@@ -227,6 +228,7 @@
     <script src="painel-perfil.js?v=56"></script>
     <script src="painel-financeiro.js?v=57"></script>
     <script src="painel-ajustes.js?v=1"></script>
+    <script src="push-notificacoes.js?v=1"></script>
     <script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
