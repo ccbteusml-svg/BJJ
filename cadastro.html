@@ -74,5 +74,11 @@ function mascararTelefone(el) {
     el.value = v.substring(0, 15);
 }
 </script>
+    <script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+    </script>
+    
 </body>
 </html>
