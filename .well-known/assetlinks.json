@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "br.com.app_4lacademy.twa",
+        "sha256_cert_fingerprints": ["76:41:42:90:80:05:17:F1:58:F0:DC:A2:C0:74:53:94:73:D8:7A:9A:21:6B:C9:CF:0D:F1:B3:94:88:96:21:F7"]
+      }
+    }]
