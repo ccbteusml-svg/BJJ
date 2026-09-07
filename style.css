@@ -1183,3 +1183,64 @@ header button:has(.fa-bell) {
     .ajs-input, .ajs-btn-primario, .ajs-btn-sec, .ajs-btn-zap, .ajs-btn-perigo,
     .ajs-btn-foto, .ajs-faq-item summary::after { transition: none; }
 }
+
+
+/* ==========================================
+   v5.0 — REDE GUARDA (blindagem internet fraca)
+   ========================================== */
+
+/* Banner global de conexão (criado pelo rede-guarda.js) */
+#rg-banner-rede {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 999998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transform: translateY(0);
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+#rg-banner-rede.rg-banner-off {
+    background: rgba(183, 28, 28, 0.97);
+    color: #fff;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+}
+
+#rg-banner-rede.rg-banner-voltou {
+    background: rgba(27, 94, 32, 0.97);
+    color: #fff;
+}
+
+/* Empurra o conteúdo pra baixo quando o banner aparece, pra não cobrir o topo */
+body:has(#rg-banner-rede.rg-banner-off[style*="flex"]),
+body:has(#rg-banner-rede.rg-banner-voltou[style*="flex"]) {
+    padding-top: 38px;
+}
+
+/* Skeleton shimmer (estado de carregamento de listas em rede lenta) */
+.rg-skeleton {
+    border-radius: 12px;
+    background: linear-gradient(90deg, #1c1c1e 25%, #2a2a2d 50%, #1c1c1e 75%);
+    background-size: 200% 100%;
+    animation: rgShimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes rgShimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rg-skeleton { animation: none; background: #2a2a2d; }
+    #rg-banner-rede { transition: none; }
+}

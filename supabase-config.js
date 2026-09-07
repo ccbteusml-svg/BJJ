@@ -22,11 +22,31 @@ if (!window.supabase || typeof window.supabase.createClient !== 'function') {
         document.body.appendChild(aviso);
     });
 } else {
+    // ✅ BLINDAGEM DE REDE: fetch customizado com TIMEOUT para TODAS as chamadas.
+    // Sem isso, uma requisição em 3G ruim ficava pendurada para sempre e a tela
+    // travava sem explicação. Dados: 15s. Upload de foto (storage): 30s.
+    // O estouro gera AbortError → tratado como "erro de rede" pelos módulos.
+    const _fetchComTimeout = (url, options = {}) => {
+        const ehUpload = (typeof url === 'string' && url.includes('/storage/'));
+        const timeoutMs = ehUpload ? 30000 : 15000;
+        const ctrl = new AbortController();
+        // Se a chamada original já tinha um signal, respeita o que disparar primeiro
+        const signalOriginal = options.signal;
+        if (signalOriginal) {
+            if (signalOriginal.aborted) ctrl.abort();
+            else signalOriginal.addEventListener('abort', () => ctrl.abort(), { once: true });
+        }
+        const t = setTimeout(() => ctrl.abort(), timeoutMs);
+        return fetch(url, { ...options, signal: ctrl.signal })
+            .finally(() => clearTimeout(t));
+    };
+
     var supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
         auth: {
             persistSession: true,        // mantém o aluno logado entre aberturas do app
             autoRefreshToken: true,      // renova o token sozinho (evita sessão expirada no meio do uso)
             detectSessionInUrl: true     // necessário pro fluxo de recuperação de senha
-        }
+        },
+        global: { fetch: _fetchComTimeout } // timeout em banco, auth, storage e functions
     });
 }

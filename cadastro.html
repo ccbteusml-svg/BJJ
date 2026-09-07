@@ -11,7 +11,7 @@
     <link rel="apple-touch-icon" href="4L.png">
     <link rel="manifest" href="manifest.json">
 
-    <link rel="stylesheet" href="style.css?v=13">
+    <link rel="stylesheet" href="style.css?v=38">
 </head>
 <body>
     <div class="banner-topo"></div>
@@ -51,6 +51,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="rede-guarda.js?v=1"></script>
     <script src="cadastro.js?v=13" defer></script>
     <script>
         window.toggleSenhaCadastro = function() {
@@ -74,11 +75,11 @@ function mascararTelefone(el) {
     el.value = v.substring(0, 15);
 }
 </script>
-    <script>
+<script>
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
 }
-    </script>
-    
+</script>
+
 </body>
 </html>

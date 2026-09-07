@@ -113,6 +113,8 @@ window._verificarPagamentoPoll = async function(paymentId, mensalidadeId) {
         }
 
         _pollErrosSeguidos = 0; // Reset de erros
+        const avisoRede = document.getElementById('poll-aguardando-rede');
+        if (avisoRede) avisoRede.remove(); // ✅ conexão voltou: some com o aviso
         console.log('[POLLING] Resposta MP:', data?.status, data?.detail || '');
 
         if (data && data.status === 'approved') {
@@ -140,6 +142,24 @@ window._verificarPagamentoPoll = async function(paymentId, mensalidadeId) {
             });
         }
     } catch (e) {
+        // ✅ BLINDAGEM: erro de REDE não conta como "serviço indisponível".
+        // O intervalo continua rodando — quando a internet voltar, o próximo
+        // ciclo já confirma o pagamento. Só avisa na tela que está aguardando.
+        const ehRede = (typeof window._rgEhErroDeRede === 'function' && window._rgEhErroDeRede(e)) || !navigator.onLine;
+        if (ehRede) {
+            console.warn('[POLLING] Sem conexão — aguardando internet voltar (não conta como falha).');
+            const feedback = document.getElementById('feedback-pix');
+            if (feedback && !document.getElementById('poll-aguardando-rede')) {
+                const aviso = document.createElement('div');
+                aviso.id = 'poll-aguardando-rede';
+                aviso.style.cssText = 'padding: 10px; background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.4); border-radius: 8px; color: #FFC107; font-size: 12px; margin-top: 10px;';
+                aviso.textContent = '📡 Aguardando conexão para confirmar o pagamento...';
+                feedback.appendChild(aviso);
+            }
+            return;
+        }
+        const avisoRede = document.getElementById('poll-aguardando-rede');
+        if (avisoRede) avisoRede.remove(); // conexão ok, erro real: remove o aviso de rede
         _pollErrosSeguidos++;
         console.warn('[POLLING] Exceção na verificação:', e);
         if (_pollErrosSeguidos >= MAX_ERROS_POLL) window.pararPollingPagamento();

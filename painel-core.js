@@ -254,7 +254,23 @@ window.verificarAcesso = async function() {
         .eq('aluno_id', usuarioId)
         .eq('status', 'pendente')
         .order('criado_em', { ascending: true });
-    if (erroMens) console.warn('[APP] Falha ao buscar mensalidades:', erroMens);
+    if (erroMens) {
+        console.warn('[APP] Falha ao buscar mensalidades:', erroMens);
+        // ✅ BLINDAGEM DE REDE: se a falha foi de CONEXÃO (timeout/offline), NÃO
+        // renderiza "EM DIA" — isso faria um aluno devendo achar que está quite.
+        // Mostra estado de conexão instável e sai; o banner/re-sync recarrega depois.
+        const msgErro = String(erroMens.message || erroMens.code || '').toLowerCase();
+        const ehRede = (typeof window._rgEhErroDeRede === 'function' && window._rgEhErroDeRede(erroMens))
+            || /fetch|network|timeout|abort|connection/.test(msgErro);
+        if (ehRede) {
+            if (statusEl) { statusEl.textContent = "📡 CONEXÃO INSTÁVEL"; statusEl.style.color = "#FFC107"; }
+            if (mesEl) mesEl.textContent = "Verificando...";
+            if (valEl) valEl.textContent = "—";
+            if (opcoesEl) opcoesEl.style.display = "none";
+            if (btnAdiantar) btnAdiantar.style.display = "none";
+            return; // sai sem renderizar estado financeiro falso
+        }
+    }
 
     const mesEl = document.getElementById('mes-atual');
     const valEl = document.getElementById('valor-pagamento');
@@ -346,7 +362,9 @@ window.verificarAcesso = async function() {
 window.carregarAvisos = async function() {
     const lista = document.getElementById('lista-avisos');
     if (!lista) return;
-    lista.innerHTML = '<p style="color:#aaa;text-align:center;margin-top:20px;">Buscando avisos...</p>';
+    // ✅ BLINDAGEM: skeleton shimmer em vez de texto parado — em 3G lento
+    // o usuário vê que está carregando de verdade, não uma tela quebrada
+    lista.innerHTML = '<div class="rg-skeleton" style="height:76px;margin-bottom:12px;"></div>'.repeat(3);
 
     // ✅ A coluna de data pode ser 'criado_em' OU 'created_at' conforme o banco — tolera ambos
     let resAvisos = await supabase.from('avisos').select('*').order('criado_em', { ascending: false });
@@ -360,6 +378,23 @@ window.carregarAvisos = async function() {
     const avisos = (resAvisos.data || []).map(av => ({ ...av, criado_em: av.criado_em || av.created_at || null }));
 
     if (error || !avisos || avisos.length === 0) {
+        // ✅ BLINDAGEM: se a falha foi de rede e existe cache salvo, mostra os
+        // avisos da última vez com selo de data — mural nunca fica "vazio falso"
+        if (error) {
+            const msgLow = String(error.message || '').toLowerCase();
+            const ehRede = (typeof window._rgEhErroDeRede === 'function' && window._rgEhErroDeRede(error))
+                || /fetch|network|timeout|abort/.test(msgLow) || !navigator.onLine;
+            if (ehRede) {
+                try {
+                    const cache = JSON.parse(localStorage.getItem('4l_cache_avisos') || 'null');
+                    if (cache && cache.dados && cache.dados.length > 0) {
+                        const hora = new Date(cache.ts).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                        _renderAvisos(cache.dados, `📡 Sem conexão — avisos de ${hora}`);
+                        return;
+                    }
+                } catch (e) { /* cache corrompido: cai no estado de erro normal */ }
+            }
+        }
         // ✅ Distingue "sem avisos" de "sem internet" — antes parecia tudo a mesma coisa
         const msgVazio = error
             ? (navigator.onLine ? 'Não foi possível carregar os avisos. Tente novamente.' : '📡 Você está offline. Os avisos aparecem quando a internet voltar.')
@@ -371,7 +406,24 @@ window.carregarAvisos = async function() {
         return;
     }
 
+    // Sucesso: salva cache para o modo offline do próximo acesso
+    try { localStorage.setItem('4l_cache_avisos', JSON.stringify({ ts: Date.now(), dados: avisos })); } catch (e) { /* storage cheio: sem drama */ }
+
+    _renderAvisos(avisos, null);
+};
+
+// ✅ Render separado — usado tanto no fluxo normal quanto no fallback de cache
+function _renderAvisos(avisos, seloOffline) {
+    const lista = document.getElementById('lista-avisos');
+    if (!lista) return;
     lista.innerHTML = '';
+    if (seloOffline) {
+        const selo = document.createElement('div');
+        selo.style.cssText = 'padding:8px 12px;margin-bottom:12px;border-radius:8px;background:rgba(255,193,7,0.08);border:1px solid rgba(255,193,7,0.35);color:#FFC107;font-size:11px;text-align:center;';
+        selo.textContent = seloOffline;
+        lista.appendChild(selo);
+    }
+
     avisos.forEach(av => {
         const card = document.createElement('div');
         card.className = 'card-status';
@@ -403,7 +455,14 @@ window.ligarRadarEmTempoReal = async function() {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error || !session) return;
 
-    supabase.channel('mensalidades-espiao')
+    // ✅ BLINDAGEM: ao re-ligar (volta da internet), remove o canal velho
+    // antes — sem isso, cada queda/retorno duplicaria o listener
+    if (window._radarCanal) {
+        try { await supabase.removeChannel(window._radarCanal); } catch (e) { /* canal já morto */ }
+        window._radarCanal = null;
+    }
+
+    window._radarCanal = supabase.channel('mensalidades-espiao')
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'mensalidades', filter: `aluno_id=eq.${session.user.id}` },
         (payload) => {
             if (payload.new.status === 'pago') {
