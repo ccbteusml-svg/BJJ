@@ -1,7 +1,7 @@
 // push-notificacoes.js — Ativa/desativa notificacoes push no celular do aluno.
 // Depende de: supabase-config.js (cliente "supabase") e do sw.js registrado.
 
-const PUSH_VAPID_PUBLIC_KEY = 'BEEUGELCz7RKv87oYERLOnwMiTiLJApZalGzr6Oz1qT1v0JBDGTtyS13Qc5khWHsw0PPQAlDFpTM0px8S85ZTJ0';
+const PUSH_VAPID_PUBLIC_KEY = 'BO912HKLd3rAnCY1kOL1sberMAbuxmKWhNAsmEMWMHPZx-8RP6yse1KYfqBpa32QqyLtO-FxsVoiVLeCVTMLfFA';
 
 // Converte a chave VAPID (base64url) para o formato que o navegador exige
 function _pushUrlBase64ParaUint8(base64String) {
