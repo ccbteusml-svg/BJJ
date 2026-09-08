@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#E53935">
     <link rel="icon" type="image/png" href="4L.png">
     <link rel="apple-touch-icon" href="4L.png">
-    <link rel="stylesheet" href="style.css?v=38">
+    <link rel="stylesheet" href="style.css?v=36">
     <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body style="padding-bottom: 30px;">
@@ -28,9 +28,8 @@
         <div class="menu-items">
             <div class="menu-item active" onclick="trocarAbaAluno('aba-home', this)">🏠 Início</div>
             <div class="menu-item" onclick="trocarAbaAluno('aba-mensalidade', this)">💳 Financeiro</div>
-            <div class="menu-item" onclick="trocarAbaAluno('aba-avisos', this)">📢 Mural de Avisos <span id="badge-avisos" class="badge-naolido" style="display:none;" aria-label="avisos não lidos"></span></div>
+            <div class="menu-item" onclick="trocarAbaAluno('aba-avisos', this)">📢 Mural de Avisos</div>
             <div class="menu-item" onclick="trocarAbaAluno('aba-historico', this)">📜 Histórico</div>
-            <div class="menu-item" onclick="trocarAbaAluno('aba-ajustes', this)">⚙️ Ajustes & Suporte</div>
 
             <p style="color: #444; font-size: 10px; margin: 25px 20px 10px; text-transform: uppercase; font-weight: bold;">Em Breve</p>
             <div class="menu-item disabled">📈 Linha do Tempo</div>
@@ -90,15 +89,6 @@
                 </div>
             </div>
 
-            <!-- Card: situação da mensalidade (preenchido pelo painel-ajustes.js) -->
-            <div id="card-proxima-cobranca" style="display: none; background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; margin-bottom: 15px; align-items: center; justify-content: space-between; gap: 10px;">
-                <div>
-                    <h5 style="color: white; margin: 0; font-size: 13px;" id="prox-cobranca-titulo">Mensalidade</h5>
-                    <p style="color: #666; margin: 3px 0 0; font-size: 11px;" id="prox-cobranca-sub">—</p>
-                </div>
-                <button id="btn-ir-financeiro" class="btn-tactile" style="background: transparent; border: 1px solid var(--cor-destaque); color: var(--cor-destaque); padding: 8px 12px; border-radius: 6px; font-size: 11px; font-weight: bold; width: auto;">VER</button>
-            </div>
-
             <div id="card-recibo-home" style="display: none; background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; align-items: center; justify-content: space-between;">
                 <div>
                     <h5 style="color: white; margin: 0; font-size: 13px;">Último Recibo</h5>
@@ -142,79 +132,6 @@
             <div id="lista-historico"></div>
         </section>
 
-        <!-- ============ ABA AJUSTES & SUPORTE (v4 — aditiva, preenchida por painel-ajustes.js) ============ -->
-        <section id="aba-ajustes" class="secao-admin" style="display: none;">
-            <h3 style="margin-bottom: 20px; font-size: 18px; font-weight: 800; color: white; text-align: left;">⚙️ AJUSTES</h3>
-
-            <!-- Meus dados -->
-            <div class="card-status ajs-card">
-                <h4 class="ajs-titulo">👤 Meus Dados</h4>
-                <div class="ajs-foto-linha">
-                    <img id="ajs-foto-preview" src="https://ui-avatars.com/api/?name=Aluno&background=161618&color=fff" alt="Foto de perfil">
-                    <label for="input-foto-ajustes" class="ajs-btn-foto btn-tactile">📷 Trocar foto</label>
-                    <input type="file" id="input-foto-ajustes" accept="image/*" style="display:none;">
-                </div>
-                <label class="ajs-label" for="ajs-nome">Nome</label>
-                <input type="text" id="ajs-nome" class="ajs-input" placeholder="Seu nome completo">
-                <label class="ajs-label" for="ajs-telefone">WhatsApp</label>
-                <input type="tel" id="ajs-telefone" class="ajs-input" placeholder="(92) 99999-9999">
-                <label class="ajs-label" for="ajs-nascimento">Data de Nascimento</label>
-                <input type="date" id="ajs-nascimento" class="ajs-input">
-                <button id="ajs-salvar-dados" class="btn-tactile ajs-btn-primario" onclick="salvarDadosPessoais()">💾 SALVAR DADOS</button>
-            </div>
-
-            <!-- Segurança -->
-            <div class="card-status ajs-card">
-                <h4 class="ajs-titulo">🔐 Segurança</h4>
-                <label class="ajs-label" for="ajs-email">E-mail de login</label>
-                <input type="email" id="ajs-email" class="ajs-input" placeholder="seu@email.com">
-                <button id="ajs-salvar-email" class="btn-tactile ajs-btn-sec" onclick="alterarEmail()">✉️ ALTERAR E-MAIL</button>
-                <div class="ajs-divisor"></div>
-                <label class="ajs-label" for="ajs-senha-nova">Nova senha</label>
-                <input type="password" id="ajs-senha-nova" class="ajs-input" placeholder="Mínimo 6 dígitos">
-                <label class="ajs-label" for="ajs-senha-confirma">Confirmar nova senha</label>
-                <input type="password" id="ajs-senha-confirma" class="ajs-input" placeholder="Repita a senha">
-                <button id="ajs-salvar-senha" class="btn-tactile ajs-btn-sec" onclick="alterarSenha()">🔑 ALTERAR SENHA</button>
-            </div>
-
-            <!-- Suporte -->
-            <div class="card-status ajs-card">
-                <h4 class="ajs-titulo">🆘 Precisa de ajuda?</h4>
-                <p style="color:#9e9e9e; font-size:13px; margin:0 0 14px;">Fale direto com o professor no WhatsApp — sua mensagem já vai com seu nome preenchido.</p>
-                <button class="btn-tactile ajs-btn-zap" onclick="abrirSuporteZap()">💬 CHAMAR NO WHATSAPP</button>
-
-                <div class="ajs-divisor"></div>
-                <h4 class="ajs-titulo" style="font-size:13px;">❓ Dúvidas frequentes</h4>
-                <div class="ajs-faq">
-                    <details class="ajs-faq-item">
-                        <summary>Como pago minha mensalidade?</summary>
-                        <p>Vá em <strong>Financeiro</strong> no menu e escolha Pix ou Cartão. O Pix libera na hora após o pagamento.</p>
-                    </details>
-                    <details class="ajs-faq-item">
-                        <summary>Como troco minha foto de perfil?</summary>
-                        <p>Toque no ícone 📷 na sua foto (aqui em Ajustes ou na tela inicial) e escolha uma imagem de até 2MB.</p>
-                    </details>
-                    <details class="ajs-faq-item">
-                        <summary>Esqueci minha senha. E agora?</summary>
-                        <p>Saia da conta e, na tela de login, toque em "Esqueci a senha" para receber o link por e-mail. Ou altere aqui em Segurança.</p>
-                    </details>
-                    <details class="ajs-faq-item">
-                        <summary>O que significa "Adiantar próximo mês"?</summary>
-                        <p>Gera a cobrança do mês seguinte antes da hora, para quem quer quitar adiantado. Limite de 2 faturas futuras.</p>
-                    </details>
-                </div>
-            </div>
-
-            <!-- Ações da conta -->
-            <div class="card-status ajs-card">
-                <h4 class="ajs-titulo">📱 Aplicativo</h4>
-                <button class="btn-tactile ajs-btn-sec" id="btn-push" onclick="window.toggleNotificacoes()">🔔 ATIVAR NOTIFICAÇÕES</button>
-                <button class="btn-tactile ajs-btn-sec" onclick="window.forcarAtualizacao()">🔄 SINCRONIZAR APP</button>
-                <button class="btn-tactile ajs-btn-perigo" onclick="document.getElementById('btn-sair').click()">🚪 SAIR DA CONTA</button>
-                <p style="color:#444; font-size:11px; text-align:center; margin:14px 0 0;">4L Academy · Portal do Aluno v4</p>
-            </div>
-        </section>
-
         <button id="btn-sair" style="display: none;"></button>
     </div>
 
@@ -223,17 +140,8 @@
     <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="rede-guarda.js?v=1"></script>
-    <script src="painel-core.js?v=59"></script>
+    <script src="painel-core.js?v=57"></script>
     <script src="painel-perfil.js?v=56"></script>
-    <script src="painel-financeiro.js?v=57"></script>
-    <script src="painel-ajustes.js?v=1"></script>
-    <script src="push-notificacoes.js?v=1"></script>
-    <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
-</script>
-
+    <script src="painel-financeiro.js?v=55"></script>
 </body>
 </html>
