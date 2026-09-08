@@ -982,6 +982,19 @@
                     <div class="adm-kpi-value" id="kpi-vips">0</div>
                     <div class="adm-kpi-delta up" id="kpi-vips-delta">0 recorrentes</div>
                 </div>
+                <div class="adm-kpi red">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-triangle-exclamation"></i> Inadimplentes</div>
+                    <div class="adm-kpi-value" id="kpi-inadimplentes">0</div>
+                    <div class="adm-kpi-delta down" id="kpi-inadimplentes-delta">0 cobranças vencidas</div>
+                </div>
+            </div>
+
+            <!-- Alertas de inconsistência -->
+            <div class="adm-card" id="card-alertas" style="display:none;">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-bell"></i> Atenção</div>
+                </div>
+                <div class="adm-card-body" id="lista-alertas"></div>
             </div>
 
             <!-- Gráfico -->
@@ -1060,6 +1073,7 @@
             <button class="adm-chip" data-filtro="inativos" onclick="setFiltroAluno('inativos')">Inativos</button>
             <button class="adm-chip" data-filtro="vip" onclick="setFiltroAluno('vip')">VIP</button>
             <button class="adm-chip" data-filtro="pendentes" onclick="setFiltroAluno('pendentes')">Débito</button>
+            <button class="adm-chip" data-filtro="atrasados" onclick="setFiltroAluno('atrasados')">🔴 Atrasados</button>
         </div>
     
         <!-- Resumo Faixas -->
@@ -1432,7 +1446,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=16"></script>
+    <script src="admin-lite.js?v=17"></script>
 
 
 <!-- Máscara de telefone -->

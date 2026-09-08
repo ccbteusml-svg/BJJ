@@ -27,6 +27,29 @@ window.AppAdmin = AppAdmin;
 
 const $ = (id) => document.getElementById(id);
 
+// ===== Helpers de mês (formato "Setembro/2026") =====
+const MESES_NOMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+function mesAtualStr() {
+    const d = new Date();
+    return MESES_NOMES[d.getMonth()] + '/' + d.getFullYear();
+}
+// Converte "Setembro/2026" em número comparável (ano*12 + mes)
+function parseMesNum(mes) {
+    if (!mes) return -1;
+    const partes = String(mes).split('/');
+    if (partes.length !== 2) return -1;
+    const mi = MESES_NOMES.findIndex(n => n.toLowerCase() === partes[0].trim().toLowerCase());
+    const ano = parseInt(partes[1], 10);
+    if (mi < 0 || isNaN(ano)) return -1;
+    return ano * 12 + mi;
+}
+// Mensalidade pendente e VENCIDA (mês anterior ao atual)
+function isVencida(m) {
+    if (m.status !== 'pendente') return false;
+    const n = parseMesNum(m.mes);
+    return n >= 0 && n < parseMesNum(mesAtualStr());
+}
+
 const toast = (msg, tipo = 'success') => {
     const el = $('adm-toast');
     const msgEl = $('adm-toast-msg');
@@ -299,8 +322,52 @@ function renderDashboard() {
 
     if (elAtivosD) elAtivosD.textContent = `${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`;
     if (elRecD) elRecD.textContent = `${AppAdmin.mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
-    if (elPenD) elPenD.textContent = `${AppAdmin.mensalidades.filter(m => m.status === 'pendente').length} em aberto`;
+    const _pendentes = AppAdmin.mensalidades.filter(m => m.status === 'pendente');
+    const _vencidas = _pendentes.filter(isVencida);
+    const _aVencer = _pendentes.length - _vencidas.length;
+    if (elPenD) elPenD.textContent = `🔴 ${_vencidas.length} vencida${_vencidas.length !== 1 ? 's' : ''} · 🟡 ${_aVencer} a vencer`;
     if (elVipsD) elVipsD.textContent = `${vips.length} recorrente${vips.length !== 1 ? 's' : ''}`;
+
+    // KPI Inadimplentes (alunos com cobrança vencida)
+    const idsVencidos = new Set(_vencidas.map(m => m.aluno_id));
+    const elInad = $('kpi-inadimplentes');
+    const elInadD = $('kpi-inadimplentes-delta');
+    if (elInad) elInad.textContent = idsVencidos.size;
+    if (elInadD) elInadD.textContent = `${_vencidas.length} cobrança${_vencidas.length !== 1 ? 's' : ''} vencida${_vencidas.length !== 1 ? 's' : ''}`;
+
+    // Alertas de inconsistência
+    const cardAlertas = $('card-alertas');
+    const listaAlertas = $('lista-alertas');
+    if (cardAlertas && listaAlertas) {
+        const alertas = [];
+        const mesAtual = mesAtualStr();
+        const alunosCobraveis = ativos.filter(a => !a.assinante);
+        const semValor = alunosCobraveis.filter(a => a.valor_mensalidade == null);
+        if (semValor.length > 0) {
+            alertas.push({ cor: '#f97316', txt: semValor.length + ' aluno(s) ativo(s) sem valor de mensalidade cadastrado: ' + semValor.map(a => a.nome).join(', ') + '. A cobrança automática do dia 10 não inclui esses alunos.' });
+        }
+        const idsComMensAtual = new Set(AppAdmin.mensalidades.filter(m => m.mes === mesAtual).map(m => m.aluno_id));
+        const semMens = alunosCobraveis.filter(a => a.valor_mensalidade != null && !idsComMensAtual.has(a.id));
+        if (semMens.length > 0) {
+            alertas.push({ cor: '#eab308', txt: semMens.length + ' aluno(s) sem mensalidade de ' + mesAtual + ': ' + semMens.map(a => a.nome).join(', ') + '.' });
+        }
+        if (idsVencidos.size > 0) {
+            const nomesVenc = [...idsVencidos].map(id => { const a = AppAdmin.alunos.find(x => x.id === id); return a ? a.nome : '?'; });
+            alertas.push({ cor: '#ef4444', txt: idsVencidos.size + ' aluno(s) com cobrança vencida: ' + nomesVenc.join(', ') + '.' });
+        }
+        if (alertas.length > 0) {
+            cardAlertas.style.display = 'block';
+            listaAlertas.innerHTML = '';
+            alertas.forEach(al => {
+                const div = document.createElement('div');
+                div.style.cssText = 'font-size:13px;line-height:1.5;padding:10px 12px;border-radius:10px;margin-bottom:8px;background:' + al.cor + '14;border:1px solid ' + al.cor + '44;color:var(--adm-text);';
+                div.textContent = '⚠️ ' + al.txt;
+                listaAlertas.appendChild(div);
+            });
+        } else {
+            cardAlertas.style.display = 'none';
+        }
+    }
 
     // Gráfico de barras CSS — construído via DOM
     const mesesMap = {
@@ -410,6 +477,10 @@ function renderDashboard() {
         else if (AppAdmin.filtroAluno === 'pendentes') {
             const idsPendentes = new Set(AppAdmin.mensalidades.filter(m => m.status === 'pendente').map(m => m.aluno_id));
             filtrados = filtrados.filter(a => idsPendentes.has(a.id));
+        }
+        else if (AppAdmin.filtroAluno === 'atrasados') {
+            const idsAtrasados = new Set(AppAdmin.mensalidades.filter(isVencida).map(m => m.aluno_id));
+            filtrados = filtrados.filter(a => idsAtrasados.has(a.id));
         }
     
         // Barra de ações em massa
@@ -637,7 +708,8 @@ function renderDossieConteudo() {
         container.appendChild(zapLink);
 
     } else if (AppAdmin.abaDossie === 'financeiro') {
-        const mensAluno = AppAdmin.mensalidades.filter(m => m.aluno_id === a.id).slice(0, 12);
+        const mensAluno = AppAdmin.mensalidades.filter(m => m.aluno_id === a.id)
+            .sort((x, y) => parseMesNum(y.mes) - parseMesNum(x.mes)).slice(0, 12);
         if (mensAluno.length === 0) {
             container.innerHTML = '<div class="adm-empty"><i class="fa-solid fa-receipt"></i><p>Sem histórico financeiro</p></div>';
             return;
@@ -654,7 +726,7 @@ function renderDossieConteudo() {
             info.appendChild(h4);
             const p = document.createElement('p');
             p.className = 'adm-tag ' + (isPago ? 'pago' : 'pendente');
-            p.textContent = isPago ? '✅ Pago' : '🔴 Pendente';
+            p.textContent = isPago ? '✅ Pago' : (isVencida(m) ? '🔴 Atrasado' : '🟡 A vencer');
             info.appendChild(p);
             item.appendChild(info);
 
