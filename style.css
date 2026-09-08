@@ -706,6 +706,13 @@ img[style*="border: 3px solid #424242"] {
         right: auto !important;
         transform: translateX(-50%);
     }
+    /* HOTFIX v2.4 — shrink-to-fit: com left:50% + right:auto e SEM width,
+       o navegador calculava a largura pelo CONTEÚDO (shrink-to-fit).
+       Resultado: o modal do dossiê ficava estreito/largo conforme o nome
+       do aluno. Travando em 100%, todos os modais ficam iguais (450px). */
+    .adm-nav, .adm-header, .adm-modal-overlay {
+        width: 100% !important;
+    }
     .adm-modal-overlay {
         align-items: center !important;
         justify-content: center !important;
