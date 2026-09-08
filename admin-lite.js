@@ -624,6 +624,8 @@ window.abrirDossie = async function(id) {
     if (!aluno) { toast('Aluno não encontrado', 'error'); return; }
     AppAdmin.alunoSelecionado = aluno;
     AppAdmin.abaDossie = 'perfil';
+    // ✅ Reseta o destaque visual das abas (evita aba "acesa" errada ao reabrir)
+    document.querySelectorAll('.adm-modal-tab').forEach((t, idx) => t.classList.toggle('ativo', idx === 0));
 
     const foto = aluno.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(aluno.nome)}&background=161618&color=fff`;
     const imgFoto = $('dossie-foto');
