@@ -1201,6 +1201,46 @@
 
             <div id="lista-avisos"></div>
         </section>
+
+        <!-- ===== AUDITORIA ===== -->
+        <section id="sec-auditoria" class="adm-secao">
+            <div class="adm-card">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-clipboard-list"></i> Registro de Atividades</div>
+                </div>
+                <div class="adm-card-body">
+                    <div class="adm-form-group">
+                        <label class="adm-form-label">Filtrar por tipo</label>
+                        <select id="aud-filtro" class="adm-form-input" onchange="filtrarAuditoria()">
+                            <option value="todos">Todos</option>
+                            <option value="cadastrar_aluno">Cadastro de aluno</option>
+                            <option value="editar_aluno">Edicao de aluno</option>
+                            <option value="inativar_aluno">Aluno inativado</option>
+                            <option value="reativar_aluno">Aluno reativado</option>
+                            <option value="remover_vip">VIP removido</option>
+                            <option value="excluir_aluno">Aluno excluido</option>
+                            <option value="baixa_mensalidade">Pagamento (baixa)</option>
+                            <option value="excluir_mensalidade">Cobranca excluida</option>
+                            <option value="gerar_cobrancas">Cobrancas geradas</option>
+                            <option value="publicar_aviso">Aviso publicado</option>
+                            <option value="excluir_aviso">Aviso excluido</option>
+                            <option value="modo_manutencao">Modo manutencao</option>
+                        </select>
+                    </div>
+                    <div id="lista-auditoria"></div>
+                </div>
+            </div>
+        </section>
+
+        <style>
+            .aud-linha { padding: 12px 0; border-bottom: 1px solid var(--adm-border); }
+            .aud-linha:last-child { border-bottom: none; }
+            .aud-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+            .aud-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+            .aud-data { font-size: 11px; color: var(--adm-text-3); white-space: nowrap; }
+            .aud-detalhe { font-size: 13px; color: var(--adm-text); margin-top: 6px; line-height: 1.4; }
+            .aud-admin { font-size: 11px; color: var(--adm-text-3); margin-top: 4px; }
+        </style>
     </div>
 
     <!-- MODAL DOSSIÊ -->
@@ -1381,6 +1421,10 @@
             <i class="fa-solid fa-bullhorn"></i>
             <span>Mural</span>
         </button>
+        <button class="adm-nav-item" onclick="abrirSecao('auditoria')" aria-label="Auditoria">
+            <i class="fa-solid fa-clipboard-list"></i>
+            <span>Auditoria</span>
+        </button>
     </nav>
 
     <!-- SCRIPTS -->
@@ -1388,7 +1432,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=15"></script>
+    <script src="admin-lite.js?v=16"></script>
 
 
 <!-- Máscara de telefone -->

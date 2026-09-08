@@ -16,6 +16,8 @@ const AppAdmin = {
     dadosCarregados: false,
     manutencaoAtiva: false,
     secaoAtual: 'dashboard',
+    adminId: null,
+    adminNome: '',
     alunosSelecionados: new Set(),
     modoGerarIndividual: null,
     modoSelecao: false,
@@ -96,18 +98,86 @@ async function verificarAdmin() {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error || !session) { window.location.replace('index.html'); return; }
         // ✅ maybeSingle: .single() lançava exceção não tratada se o perfil não existisse
-        const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('cargo').eq('id', session.user.id).maybeSingle();
+        const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('cargo, nome').eq('id', session.user.id).maybeSingle();
         if (erroPerfil) {
             console.error('[ADMIN] Erro ao verificar cargo:', erroPerfil);
             toast('Erro ao verificar permissões', 'error');
             return;
         }
         if (!perfil || perfil.cargo !== 'professor') { window.location.replace('painel.html'); return; }
+        AppAdmin.adminId = session.user.id;
+        AppAdmin.adminNome = perfil.nome || 'Admin';
         if (!AppAdmin.dadosCarregados) await carregarTudo();
     } catch (e) {
         console.error('[ADMIN] Exceção em verificarAdmin:', e);
     }
 }
+
+
+// ========== AUDITORIA ==========
+// Registra uma acao do admin no banco (fire-and-forget: nunca trava a UI)
+function registrarLog(acao, detalhes, alvoId, alvoNome) {
+    try {
+        supabase.from('audit_log').insert([{
+            admin_id: AppAdmin.adminId,
+            admin_nome: AppAdmin.adminNome || 'Admin',
+            acao: acao,
+            detalhes: detalhes || '',
+            alvo_id: alvoId || null,
+            alvo_nome: alvoNome || null
+        }]).then(({ error }) => { if (error) console.warn('[AUDIT] Falha ao registrar:', error.message); });
+    } catch (e) { console.warn('[AUDIT]', e); }
+}
+
+const AUDIT_ROTULOS = {
+    cadastrar_aluno:  { txt: 'Cadastro de aluno',  cor: '#22c55e' },
+    editar_aluno:     { txt: 'Edicao de aluno',    cor: '#3b82f6' },
+    inativar_aluno:   { txt: 'Aluno inativado',    cor: '#9e9e9e' },
+    reativar_aluno:   { txt: 'Aluno reativado',    cor: '#22c55e' },
+    remover_vip:      { txt: 'VIP removido',       cor: '#eab308' },
+    excluir_aluno:    { txt: 'Aluno excluido',     cor: '#ef4444' },
+    baixa_mensalidade:{ txt: 'Pagamento (baixa)',  cor: '#22c55e' },
+    excluir_mensalidade: { txt: 'Cobranca excluida', cor: '#ef4444' },
+    gerar_cobrancas:  { txt: 'Cobrancas geradas',  cor: '#8b5cf6' },
+    publicar_aviso:   { txt: 'Aviso publicado',    cor: '#3b82f6' },
+    excluir_aviso:    { txt: 'Aviso excluido',     cor: '#ef4444' },
+    modo_manutencao:  { txt: 'Modo manutencao',    cor: '#f97316' }
+};
+
+async function renderAuditoria() {
+    const lista = $('lista-auditoria');
+    if (!lista) return;
+    lista.innerHTML = '<div style="text-align:center;color:#71717a;padding:24px;">Carregando...</div>';
+    const filtro = ($('aud-filtro') && $('aud-filtro').value) || 'todos';
+    let q = supabase.from('audit_log').select('*').order('created_at', { ascending: false }).limit(100);
+    if (filtro !== 'todos') q = q.eq('acao', filtro);
+    const { data, error } = await q;
+    if (error) {
+        lista.innerHTML = '<div style="text-align:center;color:#ef4444;padding:24px;">Erro ao carregar: ' + escapeHtml(error.message) + '</div>';
+        return;
+    }
+    if (!data || data.length === 0) {
+        lista.innerHTML = '<div style="text-align:center;color:#71717a;padding:24px;">Nenhum registro ainda.<br>As acoes do admin passam a aparecer aqui.</div>';
+        return;
+    }
+    lista.innerHTML = '';
+    for (const log of data) {
+        const r = AUDIT_ROTULOS[log.acao] || { txt: log.acao, cor: '#71717a' };
+        const dt = new Date(log.created_at);
+        const dtFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const linha = document.createElement('div');
+        linha.className = 'aud-linha';
+        linha.innerHTML =
+            '<div class="aud-topo">' +
+                '<span class="aud-badge" style="background:' + r.cor + '22;color:' + r.cor + ';border:1px solid ' + r.cor + '55;">' + escapeHtml(r.txt) + '</span>' +
+                '<span class="aud-data">' + dtFmt + '</span>' +
+            '</div>' +
+            (log.detalhes ? '<div class="aud-detalhe">' + escapeHtml(log.detalhes) + '</div>' : '') +
+            '<div class="aud-admin">por ' + escapeHtml(log.admin_nome || 'Admin') + '</div>';
+        lista.appendChild(linha);
+    }
+}
+window.filtrarAuditoria = function() { renderAuditoria(); };
 
 window.abrirSecao = function(sec) {
     window.AppAdmin.secaoAtual = sec;
@@ -119,7 +189,7 @@ window.abrirSecao = function(sec) {
     if (secEl) secEl.classList.add('ativa');
 
     // ✅ CORREÇÃO: Config não tem ícone no nav inferior — não ativa nenhum
-    const map = { dashboard: 0, alunos: 1, financeiro: 2, mural: 3 };
+    const map = { dashboard: 0, alunos: 1, financeiro: 2, mural: 3, auditoria: 4 };
     const navIdx = map[sec];
     if (navIdx !== undefined) {
         const navs = document.querySelectorAll('.adm-nav-item');
@@ -132,12 +202,13 @@ window.abrirSecao = function(sec) {
     if (sec === 'alunos') renderAlunos();
     if (sec === 'financeiro') renderFinanceiro();
     if (sec === 'mural') renderMural();
+    if (sec === 'auditoria') renderAuditoria();
 };
 
 
 // Detecta qual aba está visível no momento — nunca erra
 function getSecaoAtiva() {
-    const secoes = ['dashboard', 'alunos', 'financeiro', 'mural', 'config'];
+    const secoes = ['dashboard', 'alunos', 'financeiro', 'mural', 'auditoria', 'config'];
     for (const sec of secoes) {
         const el = $('sec-' + sec);
         if (el && el.classList.contains('ativa')) return sec;
@@ -684,6 +755,7 @@ window.editarAlunoDossie = async function() {
             valor_mensalidade: v.valor ? parseFloat(v.valor) : null
         }).eq('id', a.id);
         if (erroUpdate) { Swal.close(); toast('Erro ao salvar: ' + erroUpdate.message, 'error'); return; }
+        registrarLog('editar_aluno', 'Editou dados de ' + v.nome.trim() + ' (faixa: ' + v.faixa + ', valor: ' + (v.valor || 'sem valor') + ')', a.id, v.nome.trim());
         await carregarTudo();
         fecharModalDossie();
         toast('Perfil atualizado!');
@@ -704,6 +776,7 @@ window.alternarPlano = async function(id, nome, acao) {
         loading('Processando...');
         const { error: erroUpdate } = await supabase.from('perfis').update({ plano_pausado: cong }).eq('id', id);
         if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
+        registrarLog(cong ? 'inativar_aluno' : 'reativar_aluno', (cong ? 'Inativou ' : 'Reativou ') + nome, id, nome);
         await carregarTudo();
         fecharModalDossie();
         toast(cong ? 'Aluno inativado' : 'Aluno reativado!');
@@ -721,6 +794,7 @@ window.cancelarVIP = async function(id, nome) {
         loading('Removendo...');
         const { error: erroUpdate } = await supabase.from('perfis').update({ assinante: false, plano_pausado: false }).eq('id', id);
         if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
+        registrarLog('remover_vip', 'Removeu VIP de ' + nome, id, nome);
         await carregarTudo();
         fecharModalDossie();
         toast('VIP removido');
@@ -744,6 +818,7 @@ window.excluirAluno = async function(id, nome) {
                 body: { aluno_id: id }
             });
             if (error) throw error;
+            registrarLog('excluir_aluno', 'Excluiu permanentemente o aluno ' + nome, null, nome);
             await carregarTudo();
             fecharModalDossie();
             toast('Aluno e fotos removidos!');
@@ -874,6 +949,9 @@ window.darBaixa = async function(id) {
         const { error: erroUpdate } = await supabase.from('mensalidades').update({ status: 'pago' }).eq('id', id);
         destravarAcao('baixa-' + id);
         if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
+        const _m = (AppAdmin.mensalidades || []).find(x => x.id === id);
+        const _a = _m && (AppAdmin.alunos || []).find(x => x.id === _m.aluno_id);
+        registrarLog('baixa_mensalidade', 'Baixa de ' + (_m ? _m.mes : 'mensalidade') + ' - ' + (_a ? _a.nome : 'aluno') + (_m ? ' (R$ ' + Number(_m.valor).toFixed(2).replace('.', ',') + ')' : ''), _m ? _m.aluno_id : null, _a ? _a.nome : null);
         await carregarTudo();
         toast('Baixa realizada!');
     }
@@ -890,6 +968,9 @@ window.apagarCobranca = async function(id) {
         loading('Removendo...');
         const { error: erroDel } = await supabase.from('mensalidades').delete().eq('id', id);
         if (erroDel) { Swal.close(); toast('Erro: ' + erroDel.message, 'error'); return; }
+        const _m = (AppAdmin.mensalidades || []).find(x => x.id === id);
+        const _a = _m && (AppAdmin.alunos || []).find(x => x.id === _m.aluno_id);
+        registrarLog('excluir_mensalidade', 'Excluiu cobranca de ' + (_m ? _m.mes : '?') + ' - ' + (_a ? _a.nome : 'aluno') + (_m ? ' (R$ ' + Number(_m.valor).toFixed(2).replace('.', ',') + ')' : ''), _m ? _m.aluno_id : null, _a ? _a.nome : null);
         await carregarTudo();
         toast('Cobrança removida');
     }
@@ -960,6 +1041,7 @@ window.publicarAviso = async function() {
     const { error: erroInsert } = await supabase.from('avisos').insert([{ titulo: titulo, mensagem: mensagem }]);
     destravarAcao('publicar-aviso');
     if (erroInsert) { Swal.close(); toast('Erro ao publicar: ' + erroInsert.message, 'error'); return; }
+    registrarLog('publicar_aviso', 'Publicou aviso: "' + titulo + '"');
     tit.value = '';
     msg.value = '';
     await carregarTudo();
@@ -977,6 +1059,7 @@ window.apagarAviso = async function(id) {
         loading('Removendo...');
         const { error: erroDel } = await supabase.from('avisos').delete().eq('id', id);
         if (erroDel) { Swal.close(); toast('Erro: ' + erroDel.message, 'error'); return; }
+        registrarLog('excluir_aviso', 'Excluiu um aviso do mural');
         await carregarTudo();
         toast('Aviso removido');
     }
@@ -1013,6 +1096,7 @@ async function doCadastrar(dados) {
     try {
         const { data, error } = await supabase.functions.invoke('criar-aluno-admin', { body: dados });
         if (error || (data && data.error)) throw new Error(error?.message || data?.error);
+        registrarLog('cadastrar_aluno', 'Cadastrou ' + dados.nome + ' (' + dados.email + ')' + (dados.valor_mensalidade ? ' - R$ ' + dados.valor_mensalidade : ''), null, dados.nome);
         await carregarTudo();
         toast('Aluno criado com sucesso!');
         return true;
@@ -1090,6 +1174,7 @@ window.gerarMensalidades = async function() {
         }));
         const { error: eIns } = await supabase.from('mensalidades').insert(cob);
         if (eIns) throw eIns;
+        registrarLog('gerar_cobrancas', cobrar.length + ' cobranca(s) gerada(s) para ' + mes + ' (geral)');
         await carregarTudo();
         toast(`${cobrar.length} cobranças geradas!`);
         $('mes-geral').value = '';
@@ -1136,6 +1221,7 @@ window.toggleManutencao = async function() {
             const { error: erroUp } = await supabase.from('sistema_config').update({ manutencao_ativa: novoEstado }).eq('id', 1);
             if (erroUp) { toast('Erro ao salvar: ' + erroUp.message, 'error'); return; }
             AppAdmin.manutencaoAtiva = novoEstado;
+            registrarLog('modo_manutencao', novoEstado ? 'Ativou o modo manutencao' : 'Desativou o modo manutencao');
             atualizarBtnManutencao();
             toast(AppAdmin.manutencaoAtiva ? 'Modo manutenção ATIVADO' : 'Modo manutenção DESATIVADO');
         }
@@ -1327,6 +1413,7 @@ window.confirmarGerarMensalidade = async function() {
 
         const { error: eIns } = await supabase.from('mensalidades').insert(cob);
         if (eIns) throw eIns;
+        registrarLog('gerar_cobrancas', cobrar.length + ' cobranca(s) gerada(s) para ' + mes + ' (' + (AppAdmin.modoGerarIndividual ? 'individual' : 'em lote') + ')');
         await carregarTudo();
         fecharModalGerar();
         toast(`${cobrar.length} cobrança(s) gerada(s)!`);
