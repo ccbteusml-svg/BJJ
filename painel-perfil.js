@@ -406,11 +406,8 @@ window.abrirCarteirinha = async function() {
 <div class="c4l-hint">👆 Toque na carteirinha para virar</div>
 
 <div class="c4l-actions">
-    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart">
+    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart" style="flex:1;">
         💾 Salvar Imagem
-    </button>
-    <button class="c4l-btn-share btn-tactile" onclick="compartilharCarteirinha(event)">
-        📤 Compartilhar
     </button>
 </div>
 
@@ -480,21 +477,27 @@ window.baixarCarteirinha = async function(e) {
             logging: false
         });
 
-        const link = document.createElement('a');
-        link.download = '4l-academy-carteirinha.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        const dataUrl = canvas.toDataURL('image/png');
 
-        Swal.close();
+        // 1) Tenta o download automático (funciona na maioria dos navegadores)
+        try {
+            const link = document.createElement('a');
+            link.download = '4l-academy-carteirinha.png';
+            link.href = dataUrl;
+            link.click();
+        } catch (_) { /* segue pro plano B */ }
+
+        // 2) Plano B garantido (TWA/WebView): mostra a imagem pronta —
+        //    "pressionar e segurar" nela salva na galeria em qualquer aparelho
         Swal.fire({
-            toast: true,
-            position: 'top',
-            icon: 'success',
-            title: 'Imagem salva!',
-            showConfirmButton: false,
-            timer: 2000,
+            title: '📥 Carteirinha pronta!',
+            html: `<img src="${dataUrl}" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.12);" alt="Carteirinha 4L Academy">
+                   <p style="color:#888;font-size:12px;margin:12px 0 0;line-height:1.5;">Se o download não começou sozinho:<br><b style="color:#ccc;">pressione e segure a imagem</b> acima e toque em <b style="color:#ccc;">"Salvar imagem"</b> 💾</p>`,
             background: '#161618',
-            color: '#fff'
+            color: '#fff',
+            showCloseButton: true,
+            confirmButtonText: 'Fechar',
+            confirmButtonColor: '#E53935'
         });
     } catch (err) {
         Swal.fire({ 
@@ -507,26 +510,5 @@ window.baixarCarteirinha = async function(e) {
     }
 };
 
-window.compartilharCarteirinha = async function(e) {
-    if (e) e.stopPropagation();
-
-    if (navigator.share) {
-        try {
-            await navigator.share({
-                title: 'Minha Carteirinha - 4L Academy',
-                text: 'Confira minha carteirinha digital da 4L Academy! 🥋',
-                url: window.location.href
-            });
-        } catch (err) {
-            // Usuário cancelou
-        }
-    } else {
-        Swal.fire({
-            icon: 'info',
-            title: 'Compartilhar',
-            text: 'Seu navegador não suporta compartilhamento nativo.',
-            background: '#161618',
-            color: '#fff'
-        });
-    }
-};
+// (função compartilharCarteirinha removida a pedido do professor — o botão
+//  só mandava o link do app, não a imagem, então não tinha utilidade real)
