@@ -941,6 +941,75 @@
 
 </head>
 <body class="adm-body">
+
+    <!-- ===== SPLASH SCREEN 4L ACADEMY =====
+         Aparece 1x por sessão (a cada abertura do app), some sozinha.
+         Inline de propósito: renderiza ANTES do CSS externo carregar. -->
+    <div id="splash-4l" aria-hidden="true">
+        <div class="splash-inner">
+            <div class="splash-logo-wrap">
+                <span class="splash-onda"></span>
+                <span class="splash-onda delay"></span>
+                <img src="4L.png" alt="4L Academy" class="splash-logo">
+            </div>
+            <h1 class="splash-titulo">4L <span>ACADEMY</span></h1>
+            <p class="splash-sub">JIU-JITSU</p>
+            <div class="splash-barra"><div class="splash-barra-fill"></div></div>
+        </div>
+    </div>
+    <style>
+        #splash-4l { position: fixed; inset: 0; z-index: 99999; background: #050507;
+            display: flex; align-items: center; justify-content: center;
+            transition: opacity .55s ease, visibility .55s ease; }
+        #splash-4l.saindo { opacity: 0; visibility: hidden; pointer-events: none; }
+        #splash-4l .splash-inner { text-align: center; animation: splashSobe .7s cubic-bezier(.22,1,.36,1) both; }
+        .splash-logo-wrap { position: relative; width: 130px; height: 130px; margin: 0 auto 18px; }
+        .splash-logo { width: 130px; height: 130px; border-radius: 50%; object-fit: cover;
+            border: 3px solid #E53935; box-shadow: 0 0 0 5px rgba(229,57,53,.15), 0 0 45px rgba(229,57,53,.45);
+            animation: splashPulsa 1.6s ease-in-out infinite; }
+        .splash-onda { position: absolute; inset: -3px; border-radius: 50%;
+            border: 2px solid rgba(229,57,53,.55); animation: splashOnda 1.8s ease-out infinite; }
+        .splash-onda.delay { animation-delay: .9s; }
+        .splash-titulo { font-family: Inter, system-ui, sans-serif; font-style: italic; font-weight: 800;
+            font-size: 28px; letter-spacing: -0.5px; color: #fff; margin: 0 0 4px; }
+        .splash-titulo span { color: #E53935; }
+        .splash-sub { font-family: Inter, system-ui, sans-serif; font-size: 11px; font-weight: 700;
+            letter-spacing: 5px; color: rgba(255,255,255,.45); margin: 0 0 26px; }
+        .splash-barra { width: 150px; height: 3px; margin: 0 auto; border-radius: 3px;
+            background: rgba(255,255,255,.1); overflow: hidden; }
+        .splash-barra-fill { height: 100%; width: 0; border-radius: 3px; background: #E53935;
+            box-shadow: 0 0 10px rgba(229,57,53,.7); animation: splashCarrega 1.8s ease-in-out forwards; }
+        @keyframes splashSobe { from { opacity: 0; transform: translateY(18px) scale(.96); } to { opacity: 1; transform: none; } }
+        @keyframes splashPulsa { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
+        @keyframes splashOnda { from { transform: scale(1); opacity: .8; } to { transform: scale(1.65); opacity: 0; } }
+        @keyframes splashCarrega { from { width: 0; } to { width: 100%; } }
+        @media (prefers-reduced-motion: reduce) {
+            #splash-4l .splash-inner, .splash-logo, .splash-onda, .splash-barra-fill { animation: none !important; }
+            .splash-barra-fill { width: 100%; }
+        }
+    </style>
+    <script>
+    (function () {
+        var splash = document.getElementById('splash-4l');
+        if (!splash) return;
+        // Mostra só 1x por sessão (a cada abertura do app)
+        if (sessionStorage.getItem('splash4l_ok')) { splash.remove(); return; }
+        sessionStorage.setItem('splash4l_ok', '1');
+        var inicio = Date.now(), MINIMO = 1400, MAXIMO = 3500, fechou = false;
+        function fechar() {
+            if (fechou) return; fechou = true;
+            splash.classList.add('saindo');
+            setTimeout(function () { splash.remove(); }, 650);
+        }
+        window.addEventListener('load', function () {
+            var falta = MINIMO - (Date.now() - inicio);
+            setTimeout(fechar, Math.max(0, falta));
+        });
+        setTimeout(fechar, MAXIMO); // garantia: nunca trava o app
+    })();
+    </script>
+    <!-- ===== FIM SPLASH SCREEN ===== -->
+
     <!-- HEADER -->
     <header class="adm-header">
         <div class="adm-header-brand">
