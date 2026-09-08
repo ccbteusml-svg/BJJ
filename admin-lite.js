@@ -1364,6 +1364,50 @@ function ligarRealtimeAdmin() {
         });
 }
 
+// ========== BAIXA EM LOTE ==========
+window.darBaixaSelecionados = async function() {
+    if (AppAdmin.alunosSelecionados.size === 0) { toast('Selecione ao menos 1 aluno', 'error'); return; }
+    const ids = [...AppAdmin.alunosSelecionados];
+    const pendentes = AppAdmin.mensalidades.filter(m => m.status === 'pendente' && ids.includes(m.aluno_id));
+    if (pendentes.length === 0) {
+        toast('Nenhum dos selecionados tem cobrança pendente', 'error');
+        return;
+    }
+    const nomes = [...new Set(pendentes.map(m => {
+        const a = AppAdmin.alunos.find(x => x.id === m.aluno_id);
+        return a ? a.nome.split(' ')[0] : '?';
+    }))];
+    const total = pendentes.reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    const r = await Swal.fire({
+        title: 'Dar baixa em lote?',
+        html: '<b>' + pendentes.length + '</b> cobrança(s) de <b>' + nomes.length + '</b> aluno(s) serão marcadas como pagas:<br><span style="color:#a1a1aa;font-size:13px;">' + nomes.join(', ') + '</span><br><b style="color:#22c55e;">Total: R$ ' + total.toFixed(2).replace('.', ',') + '</b>',
+        icon: 'question', showCancelButton: true,
+        confirmButtonColor: '#22c55e', cancelButtonColor: '#333',
+        confirmButtonText: 'Sim, dar baixa', cancelButtonText: 'Cancelar',
+        background: '#0a0a0c', color: '#fff'
+    });
+    if (!r.isConfirmed) return;
+    if (!travarAcao('baixa-lote')) return;
+    loading('Dando baixa...');
+    try {
+        const idsMens = pendentes.map(m => m.id);
+        const { error } = await supabase.from('mensalidades').update({ status: 'pago' }).in('id', idsMens);
+        if (error) throw error;
+        for (const m of pendentes) {
+            const a = AppAdmin.alunos.find(x => x.id === m.aluno_id);
+            registrarLog('baixa_mensalidade', 'Baixa em lote de ' + m.mes + ' - ' + (a ? a.nome : 'aluno') + ' (R$ ' + Number(m.valor).toFixed(2).replace('.', ',') + ')', m.aluno_id, a ? a.nome : null);
+        }
+        await carregarTudo();
+        limparSelecao();
+        toast(pendentes.length + ' baixa(s) realizada(s)!');
+    } catch (err) {
+        Swal.close();
+        toast(err.message || 'Erro na baixa em lote', 'error');
+    } finally {
+        destravarAcao('baixa-lote');
+    }
+};
+
 // ========== SELEÇÃO MÚLTIPLA ==========
 window.toggleSelecao = function(id) {
     if (AppAdmin.alunosSelecionados.has(id)) AppAdmin.alunosSelecionados.delete(id);
