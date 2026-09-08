@@ -34,7 +34,7 @@ window.abrirCarteirinha = async function() {
         // Busca contagem de mensalidades pagas (como proxy de "treinos/meses ativos")
         const { data: mensalidades } = await window.supabase
             .from('mensalidades')
-            .select('status, criado_em, mes')
+            .select('status, criado_em')
             .eq('aluno_id', usuarioId)
             .order('criado_em', { ascending: false });
 
@@ -98,61 +98,12 @@ window.abrirCarteirinha = async function() {
             ? new Date(perfil.data_inicio).toLocaleDateString('pt-BR') 
             : new Date(perfil.created_at || Date.now()).toLocaleDateString('pt-BR');
 
-        // ===== NOVOS DADOS DO ALUNO (v2 — tudo derivado do que já existe no banco) =====
-
-        // Idade + categoria (útil pra campeonato e turma)
-        let nascTxt = 'Não informado';
-        let categoriaTxt = '—';
-        if (perfil.data_nascimento && typeof perfil.data_nascimento === 'string') {
-            const nasc = new Date(perfil.data_nascimento + 'T12:00:00');
-            if (!isNaN(nasc)) {
-                nascTxt = nasc.toLocaleDateString('pt-BR');
-                let idade = hoje.getFullYear() - nasc.getFullYear();
-                const mDiff = hoje.getMonth() - nasc.getMonth();
-                if (mDiff < 0 || (mDiff === 0 && hoje.getDate() < nasc.getDate())) idade--;
-                if (idade >= 0 && idade < 130) {
-                    let cat;
-                    if (idade <= 15) cat = 'Infantil';
-                    else if (idade <= 17) cat = 'Juvenil';
-                    else if (idade <= 29) cat = 'Adulto';
-                    else if (idade <= 35) cat = 'Master 1';
-                    else if (idade <= 40) cat = 'Master 2';
-                    else if (idade <= 45) cat = 'Master 3';
-                    else if (idade <= 50) cat = 'Master 4';
-                    else cat = 'Master 5+';
-                    categoriaTxt = `${cat} · ${idade} anos`;
-                }
-            }
+        // Barrinhas de grau
+        let grausHtml = '';
+        if (qtdGraus > 0) {
+            const bolinhas = Array(qtdGraus).fill(`<span style="width:7px;height:7px;background:${corBorda};border-radius:50%;display:inline-block;border:1px solid rgba(255,255,255,0.3);"></span>`).join('');
+            grausHtml = `<div style="display:flex;gap:4px;justify-content:center;margin-top:5px;">${bolinhas}</div>`;
         }
-
-        // Tempo de casa (desde a data de início/cadastro)
-        const inicioDate = perfil.data_inicio ? new Date(perfil.data_inicio) : new Date(perfil.created_at || Date.now());
-        let mesesCasa = (hoje.getFullYear() - inicioDate.getFullYear()) * 12 + (hoje.getMonth() - inicioDate.getMonth());
-        if (isNaN(mesesCasa) || mesesCasa < 0) mesesCasa = 0;
-        const anosCasa = Math.floor(mesesCasa / 12), restoCasa = mesesCasa % 12;
-        const tempoDeCasa = anosCasa > 0
-            ? `${anosCasa} ano${anosCasa > 1 ? 's' : ''}${restoCasa ? ' e ' + restoCasa + (restoCasa > 1 ? ' meses' : ' mês') : ''}`
-            : `${restoCasa} ${restoCasa === 1 ? 'mês' : 'meses'}`;
-
-        // Situação financeira do mês atual (visível e relevante pro aluno)
-        const MESES_C4L = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-        const mesAtualC4L = MESES_C4L[hoje.getMonth()] + '/' + hoje.getFullYear();
-        const mensAtual = (mensalidades || []).find(m => m.mes === mesAtualC4L);
-        const situacao = !mensAtual ? { txt: 'Sem cobrança', cor: '#9e9e9e' }
-            : (mensAtual.status === 'pago' ? { txt: 'Em dia ✅', cor: '#22c55e' }
-            : { txt: 'Pendente ⚠️', cor: '#f59e0b' });
-
-        // Faixa visual estilo kimono (barra colorida + ponteira com os graus)
-        const isPreta = faixaRaw.includes('preta');
-        const corFaixaReal = isPreta ? '#161616' : corBorda; // faixa preta renderiza preta de verdade
-        const corPonteira = isPreta ? '#C62828' : '#141414'; // preta = ponteira vermelha; demais = ponteira preta
-        const larguraPonteira = qtdGraus > 0 ? Math.max(34, 12 + qtdGraus * 9) : 26;
-        const stripesHtml = Array(qtdGraus).fill('<span class="c4l-grau-stripe"></span>').join('');
-        const faixaVisualHtml = `
-            <div class="c4l-faixa-visual" title="${escapeHtml(faixaDisplay)}${qtdGraus ? ' · ' + qtdGraus + 'º grau' : ''}">
-                <div class="c4l-faixa-corpo" style="background: linear-gradient(180deg, ${corFaixaReal}99 0%, ${corFaixaReal} 35%, ${corFaixaReal} 65%, ${corFaixaReal}99 100%);"></div>
-                <div class="c4l-faixa-ponteira" style="background:${corPonteira};width:${larguraPonteira}px;">${stripesHtml}</div>
-            </div>`;
 
         // Safe escapes
         const safeNome = escapeHtml(nome);
@@ -172,14 +123,13 @@ window.abrirCarteirinha = async function() {
     .c4l-face { 
         position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
         border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
-        display: flex; flex-direction: column; /* conteúdo ocupa o cartão inteiro (rodapé colado embaixo) */
     }
     .c4l-front { 
         background: linear-gradient(160deg, #0c0c0e 0%, #16161a 50%, #0f0f12 100%);
     }
     .c4l-back { 
         background: linear-gradient(160deg, #111113 0%, #1a1a1e 100%); 
-        transform: rotateY(180deg); padding: 14px; display: flex; flex-direction: column;
+        transform: rotateY(180deg); padding: 18px; display: flex; flex-direction: column;
     }
     .c4l-watermark {
         position: absolute; inset: 0; pointer-events: none; opacity: 0.025;
@@ -203,8 +153,8 @@ window.abrirCarteirinha = async function() {
         background: linear-gradient(135deg, #d4af37, #f9e076, #d4af37); position: relative; 
     }
     .c4l-chip::after { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(0,0,0,0.25); border-radius: 2px; }
-    .c4l-body { display: flex; padding: 14px; gap: 14px; flex: 1; position: relative; z-index: 2; align-items: center; }
-    .c4l-photo-wrap { position: relative; flex-shrink: 0; align-self: center; }
+    .c4l-body { display: flex; padding: 14px; gap: 14px; flex: 1; position: relative; z-index: 2; }
+    .c4l-photo-wrap { position: relative; flex-shrink: 0; }
     .c4l-photo { 
         width: 80px; height: 80px; border-radius: 50%; object-fit: cover; 
         border: 3px solid ${corBorda}; box-shadow: 0 0 0 4px ${corBorda}22;
@@ -218,18 +168,6 @@ window.abrirCarteirinha = async function() {
     .c4l-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
     .c4l-name { font-size: 16px; font-weight: 800; color: #fff; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .c4l-belt-text { font-size: 12px; font-weight: 700; color: ${corBorda}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-    /* Faixa visual estilo kimono: corpo na cor da faixa + ponteira com listras de grau */
-    .c4l-faixa-visual {
-        display: flex; height: 13px; max-width: 175px; border-radius: 3px; overflow: hidden;
-        margin: 0 0 8px; border: 1px solid rgba(255,255,255,0.18);
-        box-shadow: 0 1px 5px rgba(0,0,0,0.55);
-    }
-    .c4l-faixa-corpo { flex: 1; }
-    .c4l-faixa-ponteira {
-        flex-shrink: 0; display: flex; align-items: stretch; justify-content: flex-end;
-        gap: 3px; padding: 0 5px 0 6px; border-left: 1px solid rgba(0,0,0,0.5);
-    }
-    .c4l-grau-stripe { width: 4px; background: #f5f5f5; box-shadow: 0 0 2px rgba(0,0,0,0.7); }
     .c4l-badges { display: flex; gap: 5px; flex-wrap: wrap; }
     .c4l-badge { 
         font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 20px; 
@@ -252,9 +190,9 @@ window.abrirCarteirinha = async function() {
     }
     .c4l-mat { font-size: 10px; color: #555; font-family: monospace; letter-spacing: 0.5px; }
     .c4l-qr { width: 34px; height: 34px; background: #fff; border-radius: 4px; padding: 3px; }
-    .c4l-back-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .c4l-back-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-    .c4l-back-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; }
+    .c4l-back-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .c4l-back-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .c4l-back-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 10px; }
     .c4l-back-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
     .c4l-back-value { font-size: 12px; color: #ccc; font-weight: 600; }
     .c4l-back-full { grid-column: 1 / -1; }
@@ -297,8 +235,8 @@ window.abrirCarteirinha = async function() {
                 <div class="c4l-meta">
                     <h3 class="c4l-name">${safeNome}</h3>
                     <div class="c4l-belt-text">🥋 ${safeFaixa}</div>
-                    ${faixaVisualHtml}
-                    <div class="c4l-badges">
+                    ${grausHtml}
+                    <div class="c4l-badges" style="margin-top:8px;">
                         <span class="c4l-badge active">${textoStatus}</span>
                         ${isVip ? '<span class="c4l-badge vip">👑 VIP</span>' : ''}
                         <span class="c4l-badge since">Desde ${dataInicio.split('/')[2]}</span>
@@ -354,31 +292,23 @@ window.abrirCarteirinha = async function() {
 
         <!-- VERSO -->
         <div class="c4l-face c4l-back">
-            <div class="c4l-back-title">📋 Dados do Aluno</div>
+            <div class="c4l-back-title">⚕️ Dados Complementares</div>
             <div class="c4l-back-grid">
                 <div class="c4l-back-item">
                     <div class="c4l-back-label">Tipo Sanguíneo</div>
                     <div class="c4l-back-value" style="color:${tipoSanguineo !== 'Não informado' ? '#E53935' : '#555'};">${escapeHtml(tipoSanguineo)}</div>
                 </div>
                 <div class="c4l-back-item">
-                    <div class="c4l-back-label">Nascimento</div>
-                    <div class="c4l-back-value">${escapeHtml(nascTxt)}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Categoria</div>
-                    <div class="c4l-back-value">${escapeHtml(categoriaTxt)}</div>
-                </div>
-                <div class="c4l-back-item">
                     <div class="c4l-back-label">Plano</div>
                     <div class="c4l-back-value">${isVip ? 'VIP Recorrente' : 'Mensal'}</div>
                 </div>
                 <div class="c4l-back-item">
-                    <div class="c4l-back-label">Situação</div>
-                    <div class="c4l-back-value" style="color:${situacao.cor};">${situacao.txt}</div>
+                    <div class="c4l-back-label">Início</div>
+                    <div class="c4l-back-value">${dataInicio}</div>
                 </div>
                 <div class="c4l-back-item">
-                    <div class="c4l-back-label">Tempo de Casa</div>
-                    <div class="c4l-back-value">${escapeHtml(tempoDeCasa)}</div>
+                    <div class="c4l-back-label">Validade</div>
+                    <div class="c4l-back-value">${validade}</div>
                 </div>
                 <div class="c4l-back-item c4l-back-full">
                     <div class="c4l-back-label">Contato de Emergência</div>
@@ -387,9 +317,9 @@ window.abrirCarteirinha = async function() {
                 </div>
             </div>
 
-            <div style="margin-top:6px;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">📍 ACADEMIA</div>
-                <div style="font-size:10px;color:#777;line-height:1.4;">
+            <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
+                <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">📍 ACADEMIA</div>
+                <div style="font-size:11px;color:#777;line-height:1.5;">
                     4L Academy — Brazilian Jiu-Jitsu<br>
                     Manaus/AM · WhatsApp: (92) 98558-9868
                 </div>
@@ -397,7 +327,7 @@ window.abrirCarteirinha = async function() {
 
             <div class="c4l-back-footer">
                 <span class="c4l-valid">Validade: <b>${validade}</b></span>
-                <span style="font-size:8px;color:#333;">4L TEAM · OSS 🥋</span>
+                <span style="font-size:8px;color:#333;">ID: ${usuarioId.slice(0,8)}...</span>
             </div>
         </div>
     </div>
