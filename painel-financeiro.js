@@ -692,43 +692,121 @@ window.abrirRecibo = async function(mesReferencia, valorPago) {
     const { data: perfil } = await window.supabase.from('perfis').select('nome').eq('id', session.user.id).maybeSingle();
     const nomeAluno = perfil ? perfil.nome : "Aluno";
     const dataEmissao = new Date().toLocaleDateString('pt-BR');
+    const horaEmissao = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const valorFmt = Number(valorPago).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
-    const safeNome = escapeHtml(nomeAluno);
-    const safeMes = escapeHtml(mesReferencia);
+    try {
+        // Recibo desenhado em canvas — vira imagem pra salvar/compartilhar
+        const W = 900, H = 1240;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
 
-    const htmlRecibo = `
-        <div id="recibo-print" class="recibo-print">
-            <div class="recibo-header">
-                <h2 style="margin: 0; font-size: 22px; font-style: italic; font-weight: 900;">4L ACADEMY</h2>
-                <p style="margin: 5px 0 0; font-size: 12px; text-transform: uppercase;">Comprovante de Pagamento</p>
-            </div>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Aluno(a):</strong> ${safeNome}</p>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Referência:</strong> ${safeMes}</p>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Valor Pago:</strong> R$ ${valorPago}</p>
-            <p style="margin-bottom: 8px; font-size: 14px;"><strong>Emissão:</strong> ${dataEmissao}</p>
-            <div style="text-align: center; margin-top: 25px; border-top: 1px dashed black; padding-top: 15px;">
-                <p style="font-size: 11px; margin: 0;">Este documento atesta o pagamento da mensalidade supracitada.</p>
-                <p style="font-size: 12px; margin-top: 8px; font-weight: bold;">Oss! 🥋</p>
-            </div>
-        </div>
-    `;
+        // Papel
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, W, H);
 
-    Swal.close();
-    Swal.fire({
-        html: htmlRecibo,
-        background: '#161618',
-        showCloseButton: true,
-        showCancelButton: true,
-        focusConfirm: false,
-        confirmButtonText: '💾 Salvar PDF / Imprimir',
-        cancelButtonText: 'Fechar',
-        confirmButtonColor: '#4CAF50',
-        cancelButtonColor: '#333',
-        width: '90%',
-        customClass: { popup: 'swal-recibo' }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.print();
-        }
-    });
+        // Cabeçalho escuro
+        const head = ctx.createLinearGradient(0, 0, W, 0);
+        head.addColorStop(0, '#161618');
+        head.addColorStop(1, '#2a1215');
+        ctx.fillStyle = head;
+        ctx.fillRect(0, 0, W, 190);
+        ctx.fillStyle = '#E53935';
+        ctx.fillRect(0, 190, W, 10);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'italic 900 64px Arial';
+        ctx.fillText('4L ACADEMY', W / 2, 88);
+        ctx.fillStyle = '#E53935';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('B R A Z I L I A N   J I U - J I T S U', W / 2, 128);
+        ctx.fillStyle = '#999';
+        ctx.font = '22px Arial';
+        ctx.fillText('COMPROVANTE DE PAGAMENTO', W / 2, 165);
+
+        // Selo PAGO
+        ctx.save();
+        ctx.translate(W - 170, 330);
+        ctx.rotate(-0.18);
+        ctx.strokeStyle = '#2e7d32';
+        ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.roundRect(-110, -50, 220, 100, 14); ctx.stroke();
+        ctx.fillStyle = 'rgba(46,125,50,0.08)';
+        ctx.fill();
+        ctx.fillStyle = '#2e7d32';
+        ctx.font = '900 46px Arial';
+        ctx.fillText('PAGO', 0, 16);
+        ctx.restore();
+
+        // Valor em destaque
+        ctx.fillStyle = '#111';
+        ctx.font = '900 96px Arial';
+        ctx.fillText(valorFmt, W / 2, 390);
+        ctx.fillStyle = '#777';
+        ctx.font = '24px Arial';
+        ctx.fillText('Mensalidade · ' + mesReferencia, W / 2, 435);
+
+        // Linha tracejada
+        const trac = (y) => {
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 8]);
+            ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(W - 70, y); ctx.stroke();
+            ctx.setLineDash([]);
+        };
+        trac(490);
+
+        // Detalhes
+        const linha = (rotulo, valor, y) => {
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#999';
+            ctx.font = 'bold 22px Arial';
+            ctx.fillText(rotulo.toUpperCase(), 80, y);
+            ctx.fillStyle = '#161618';
+            ctx.font = 'bold 30px Arial';
+            ctx.fillText(valor, 80, y + 40);
+        };
+        linha('Aluno(a)', nomeAluno, 560);
+        linha('Referência', 'Mensalidade ' + mesReferencia, 660);
+        linha('Valor pago', valorFmt, 760);
+        linha('Emissão', dataEmissao + ' às ' + horaEmissao, 860);
+        linha('Forma de pagamento', 'Online · Mercado Pago', 960);
+
+        trac(1020);
+
+        // Rodapé
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#888';
+        ctx.font = '20px Arial';
+        ctx.fillText('Este documento atesta o pagamento da mensalidade supracitada.', W / 2, 1070);
+        ctx.fillText('4L Academy · Manaus/AM · WhatsApp: (92) 98558-9868', W / 2, 1104);
+        ctx.fillStyle = '#161618';
+        ctx.font = 'bold 30px Arial';
+        ctx.fillText('Oss! 🥋', W / 2, 1160);
+
+        const dataUrl = canvas.toDataURL('image/png');
+
+        // Tenta download automático
+        try {
+            const link = document.createElement('a');
+            link.download = 'recibo-4l-' + mesReferencia.replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.png';
+            link.href = dataUrl;
+            link.click();
+        } catch (_) { /* plano B abaixo */ }
+
+        Swal.fire({
+            title: '🧾 Recibo pronto!',
+            html: `<img src="${dataUrl}" style="width:100%;max-width:340px;border-radius:10px;border:1px solid rgba(255,255,255,0.12);display:block;margin:0 auto;" alt="Recibo 4L Academy">
+                   <p style="color:#888;font-size:12px;margin:12px 0 0;line-height:1.5;">Se o download não começou sozinho:<br><b style="color:#ccc;">pressione e segure a imagem</b> acima e toque em <b style="color:#ccc;">"Salvar imagem"</b> 💾</p>`,
+            background: '#161618',
+            color: '#fff',
+            showCloseButton: true,
+            confirmButtonText: 'Fechar',
+            confirmButtonColor: '#4CAF50'
+        });
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Erro ao gerar recibo', text: err.message, background: '#161618', color: '#fff' });
+    }
 };

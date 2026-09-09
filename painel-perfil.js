@@ -159,6 +159,13 @@ window.abrirCarteirinha = async function() {
         const safeFaixa = escapeHtml(faixaDisplay);
         const safeMatricula = escapeHtml(matricula);
 
+        // Guarda os dados pra gerar a imagem da carteirinha em canvas (sem html2canvas)
+        window._cart4l = {
+            nome, faixaDisplay, corBorda, corFaixaReal, corPonteira,
+            qtdGraus, mesesAtivos, validade, matricula,
+            isAtivo, isVip, anoInicio: dataInicio.split('/')[2], foto
+        };
+
         // HTML da carteirinha
         const htmlCarteirinha = `
 <style>
@@ -442,44 +449,210 @@ window.abrirCarteirinha = async function() {
 window.baixarCarteirinha = async function(e) {
     if (e) e.stopPropagation();
 
-    // ✅ CORREÇÃO: Se html2canvas não estiver disponível, esconde o botão e avisa silenciosamente
-    if (typeof html2canvas === 'undefined') {
-        const btn = document.querySelector('.c4l-btn-download');
-        if (btn) btn.style.display = 'none';
-        Swal.fire({
-            toast: true, position: 'top',
-            icon: 'info', title: 'Salvar imagem indisponível no momento',
-            showConfirmButton: false, timer: 2500,
-            background: '#161618', color: '#fff'
-        });
+    const d = window._cart4l;
+    if (!d) {
+        Swal.fire({ icon: 'error', title: 'Erro ao salvar', text: 'Dados da carteirinha não encontrados. Feche e abra novamente.', background: '#161618', color: '#fff' });
         return;
     }
 
-    const wrapper = document.getElementById('carteirinha-4l-wrapper');
-    if (!wrapper) return;
-
-    // Remove o flip temporariamente para capturar a frente
-    wrapper.classList.remove('flipped');
-
-    Swal.fire({ 
-        title: 'Gerando imagem...', 
-        background: '#161618', 
-        color: '#fff', 
-        didOpen: () => { Swal.showLoading() } 
+    Swal.fire({
+        title: 'Gerando imagem...',
+        background: '#161618',
+        color: '#fff',
+        didOpen: () => { Swal.showLoading() }
     });
 
     try {
-        const canvas = await html2canvas(wrapper, {
-            backgroundColor: '#0c0c0e',
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            logging: false
+        // Desenha a carteirinha direto num canvas (sem html2canvas = sem erro de 3D/CORS)
+        const W = 1050, H = 660;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+
+        // Fundo do cartão (gradiente escuro)
+        const bg = ctx.createLinearGradient(0, 0, W, H);
+        bg.addColorStop(0, '#1a1a1e');
+        bg.addColorStop(0.5, '#121214');
+        bg.addColorStop(1, '#1c1114');
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, W, H, 36);
+        ctx.fill();
+
+        // Borda sutil
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Marca d'água
+        ctx.save();
+        ctx.globalAlpha = 0.05;
+        ctx.fillStyle = '#fff';
+        ctx.font = 'italic 900 150px Arial';
+        ctx.textAlign = 'center';
+        ctx.translate(W / 2, H / 2);
+        ctx.rotate(-0.12);
+        ctx.fillText('4L', 0, 50);
+        ctx.restore();
+
+        // Faixa vermelha superior
+        const top = ctx.createLinearGradient(0, 0, W, 0);
+        top.addColorStop(0, '#E53935');
+        top.addColorStop(1, '#B71C1C');
+        ctx.fillStyle = top;
+        ctx.beginPath();
+        ctx.roundRect(0, 0, W, 14, [36, 36, 0, 0]);
+        ctx.fill();
+
+        // Logo
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fff';
+        ctx.font = 'italic 900 52px Arial';
+        ctx.fillText('4L', 48, 92);
+        const w4l = ctx.measureText('4L').width;
+        ctx.fillStyle = '#E53935';
+        ctx.font = 'italic 900 30px Arial';
+        ctx.fillText('ACADEMY', 48 + w4l + 12, 90);
+
+        // Chip
+        ctx.fillStyle = '#d4af37';
+        ctx.beginPath();
+        ctx.roundRect(W - 130, 52, 72, 54, 10);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(W - 118, 66, 48, 26);
+
+        // Foto (círculo) — com fallback de iniciais se a imagem falhar
+        const cx = 150, cy = 300, r = 95;
+        const desenharFotoFallback = () => {
+            ctx.fillStyle = '#252528';
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+            const iniciais = d.nome.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+            ctx.fillStyle = '#888';
+            ctx.font = 'bold 60px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(iniciais, cx, cy + 20);
+            ctx.textAlign = 'left';
+        };
+        try {
+            const img = await new Promise((res, rej) => {
+                const i = new Image();
+                i.crossOrigin = 'anonymous';
+                i.onload = () => res(i);
+                i.onerror = rej;
+                i.src = d.foto;
+            });
+            ctx.save();
+            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+            const lado = Math.min(img.width, img.height);
+            ctx.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, cx - r, cy - r, r * 2, r * 2);
+            ctx.restore();
+        } catch (_) {
+            desenharFotoFallback();
+        }
+        // Anel da foto na cor da faixa
+        ctx.strokeStyle = d.corBorda;
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.stroke();
+
+        // Badge de grau na foto
+        if (d.qtdGraus > 0) {
+            ctx.fillStyle = '#E53935';
+            ctx.beginPath(); ctx.arc(cx + r - 14, cy + r - 14, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(d.qtdGraus + 'º', cx + r - 14, cy + r - 4);
+            ctx.textAlign = 'left';
+        }
+
+        // Nome / faixa
+        const nx = 290;
+        ctx.fillStyle = '#fff';
+        ctx.font = '900 44px Arial';
+        let nomeTxt = d.nome;
+        while (ctx.measureText(nomeTxt).width > W - nx - 60 && nomeTxt.length > 3) nomeTxt = nomeTxt.slice(0, -2);
+        if (nomeTxt !== d.nome) nomeTxt = nomeTxt.trim() + '…';
+        ctx.fillText(nomeTxt, nx, 240);
+
+        ctx.fillStyle = '#aaa';
+        ctx.font = 'bold 26px Arial';
+        ctx.fillText('🥋 ' + d.faixaDisplay, nx, 285);
+
+        // Faixa visual (corpo + ponteira + graus)
+        const fy = 310, fh = 26, fw = 340;
+        ctx.fillStyle = d.corFaixaReal;
+        ctx.beginPath(); ctx.roundRect(nx, fy, fw, fh, 6); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+        const pw = d.qtdGraus > 0 ? Math.max(100, 36 + d.qtdGraus * 26) : 78;
+        ctx.fillStyle = d.corPonteira;
+        ctx.fillRect(nx + fw - pw, fy, pw, fh);
+        ctx.fillStyle = '#fff';
+        for (let g = 0; g < d.qtdGraus; g++) {
+            ctx.fillRect(nx + fw - pw + 16 + g * 26, fy + 3, 9, fh - 6);
+        }
+
+        // Badges (status / VIP / desde)
+        let bx = nx;
+        const desenharBadge = (txt, corFundo, corTxt) => {
+            ctx.font = 'bold 20px Arial';
+            const bw = ctx.measureText(txt).width + 36;
+            ctx.fillStyle = corFundo;
+            ctx.beginPath(); ctx.roundRect(bx, 372, bw, 40, 20); ctx.fill();
+            ctx.fillStyle = corTxt;
+            ctx.fillText(txt, bx + 18, 399);
+            bx += bw + 14;
+        };
+        desenharBadge(d.isAtivo ? 'MEMBRO ATIVO' : 'INATIVO', d.isAtivo ? 'rgba(34,197,94,0.18)' : 'rgba(255,82,82,0.18)', d.isAtivo ? '#22c55e' : '#ff5252');
+        if (d.isVip) desenharBadge('👑 VIP', 'rgba(245,158,11,0.18)', '#f59e0b');
+        desenharBadge('Desde ' + d.anoInicio, 'rgba(255,255,255,0.08)', '#bbb');
+
+        // Barra de stats
+        const sy = 470;
+        ctx.fillStyle = 'rgba(255,255,255,0.04)';
+        ctx.beginPath(); ctx.roundRect(48, sy, W - 96, 96, 18); ctx.fill();
+        const stats = [
+            [String(d.mesesAtivos), 'MESES'],
+            [String(d.qtdGraus), 'GRAUS'],
+            [d.validade.split('/')[1], 'VALIDADE']
+        ];
+        ctx.textAlign = 'center';
+        stats.forEach((s, i) => {
+            const sx = 48 + (W - 96) * (i + 0.5) / 3;
+            ctx.fillStyle = '#E53935';
+            ctx.font = '900 40px Arial';
+            ctx.fillText(s[0], sx, sy + 44);
+            ctx.fillStyle = '#777';
+            ctx.font = 'bold 17px Arial';
+            ctx.fillText(s[1], sx, sy + 76);
+        });
+        ctx.textAlign = 'left';
+
+        // Rodapé: matrícula + QR decorativo
+        ctx.fillStyle = '#666';
+        ctx.font = 'bold 22px monospace';
+        ctx.fillText(d.matricula, 48, H - 42);
+
+        const qx = W - 116, qy = H - 116, q = 68;
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(qx, qy, q, q);
+        ctx.fillStyle = '#000';
+        const olho = (ex, ey) => {
+            ctx.fillRect(ex, ey, 20, 20);
+            ctx.fillStyle = '#fff'; ctx.fillRect(ex + 4, ey + 4, 12, 12);
+            ctx.fillStyle = '#000'; ctx.fillRect(ex + 7, ey + 7, 6, 6);
+        };
+        olho(qx + 4, qy + 4);
+        olho(qx + q - 24, qy + 4);
+        olho(qx + 4, qy + q - 24);
+        [[32, 6, 8, 8], [30, 30, 10, 4], [44, 28, 8, 8], [28, 44, 6, 12], [42, 44, 12, 12], [30, 20, 4, 6], [52, 52, 8, 8]].forEach(b => {
+            ctx.fillRect(qx + b[0], qy + b[1], b[2], b[3]);
         });
 
         const dataUrl = canvas.toDataURL('image/png');
 
-        // 1) Tenta o download automático (funciona na maioria dos navegadores)
+        // 1) Tenta o download automático
         try {
             const link = document.createElement('a');
             link.download = '4l-academy-carteirinha.png';
@@ -487,8 +660,7 @@ window.baixarCarteirinha = async function(e) {
             link.click();
         } catch (_) { /* segue pro plano B */ }
 
-        // 2) Plano B garantido (TWA/WebView): mostra a imagem pronta —
-        //    "pressionar e segurar" nela salva na galeria em qualquer aparelho
+        // 2) Plano B garantido (TWA/WebView): mostra a imagem pronta
         Swal.fire({
             title: '📥 Carteirinha pronta!',
             html: `<img src="${dataUrl}" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.12);" alt="Carteirinha 4L Academy">
@@ -500,12 +672,12 @@ window.baixarCarteirinha = async function(e) {
             confirmButtonColor: '#E53935'
         });
     } catch (err) {
-        Swal.fire({ 
-            icon: 'error', 
-            title: 'Erro ao salvar', 
-            text: err.message, 
-            background: '#161618', 
-            color: '#fff' 
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro ao salvar',
+            text: err.message,
+            background: '#161618',
+            color: '#fff'
         });
     }
 };
