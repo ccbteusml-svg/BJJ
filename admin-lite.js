@@ -1448,8 +1448,28 @@ window.limparSelecao = function() {
 };
 
 // ========== MODAL GERAR MENSALIDADE (MASSA OU INDIVIDUAL) ==========
+// Preenche o <select> de mês: mês atual (padrão) + próximos 2 meses.
+// Evita erro de digitação do ADM e mantém o formato "Setembro/2026" do banco.
+const MESES_GERAR = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+window.preencherMesesGerar = function() {
+    const sel = $('mass-mes-geral');
+    if (!sel) return;
+    const hoje = new Date();
+    const opcoes = [];
+    for (let i = 0; i < 3; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+        opcoes.push(MESES_GERAR[d.getMonth()] + '/' + d.getFullYear());
+    }
+    const valorAnterior = sel.value;
+    sel.innerHTML = opcoes.map(m => `<option value="${m}">${m}</option>`).join('');
+    // Mantém o mês atual como padrão (primeira opção), a menos que já houvesse escolha válida
+    sel.value = opcoes.includes(valorAnterior) ? valorAnterior : opcoes[0];
+};
+
 window.abrirModalGerarSelecionados = function() {
     AppAdmin.modoGerarIndividual = null;
+    preencherMesesGerar();
     const titulo = $('titulo-gerar-mens');
     const sub = $('sub-gerar-mens');
     if (titulo) titulo.textContent = 'Gerar Cobrança em Massa';
@@ -1464,6 +1484,7 @@ window.abrirModalGerarSelecionados = function() {
 
 window.abrirModalGerarIndividual = function(alunoId, nomeAluno) {
     AppAdmin.modoGerarIndividual = alunoId;
+    preencherMesesGerar();
     const titulo = $('titulo-gerar-mens');
     const sub = $('sub-gerar-mens');
     if (titulo) titulo.textContent = 'Gerar Cobrança';
@@ -1535,7 +1556,6 @@ window.confirmarGerarMensalidade = async function() {
         await carregarTudo();
         fecharModalGerar();
         toast(`${cobrar.length} cobrança(s) gerada(s)!`);
-        $('mass-mes-geral').value = '';
         if (!AppAdmin.modoGerarIndividual) limparSelecao();
 
     } catch (err) {
