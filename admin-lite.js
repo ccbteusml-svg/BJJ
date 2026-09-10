@@ -1567,6 +1567,33 @@ window.confirmarGerarMensalidade = async function() {
 };
 
 // ========== INICIALIZAÇÃO ÚNICA ==========
+// ---------- SINCRONIZAR APP (igual ao botão do painel do aluno) ----------
+window.sincronizarAdmin = async function() {
+  const r = await Swal.fire({
+    title: 'Sincronizar App?',
+    text: 'Limpa a memória do app e baixa a versão mais nova do GitHub. Continuar?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#E53935', cancelButtonColor: '#333',
+    confirmButtonText: 'Sim, sincronizar!', cancelButtonText: 'Cancelar',
+    background: '#0a0a0c', color: '#fff'
+  });
+  if (!r.isConfirmed) return;
+
+  Swal.fire({ title: 'Limpando o tatame...', background: '#0a0a0c', color: '#fff', didOpen: () => { Swal.showLoading() } });
+  try {
+    if ('caches' in window) {
+      const nomes = await caches.keys();
+      await Promise.all(nomes.map(n => caches.delete(n)));
+    }
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(reg => reg.unregister()));
+    }
+  } catch (e) { console.warn('[SYNC] Falha parcial:', e); }
+  location.reload(true);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     verificarAdmin();
     checarManutencao();
