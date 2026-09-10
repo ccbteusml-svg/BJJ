@@ -1663,19 +1663,66 @@ window.abrirModalDisparoZap = function() {
   document.body.style.overflow = 'hidden';
 };
 
+// ---------- AJUDANTES DE COBRANÇA ----------
+// Busca a fatura daquele aluno naquele mês (pra saber se deve e quanto)
+function dadosCobrancaMes(id, mes) {
+  return (AppAdmin.mensalidades || []).find(x => x.aluno_id === id && x.mes === mes) || null;
+}
+
+// Chamado quando o ADM troca o tipo de mensagem ou o mês no modal
+window.montarNovaFilaPublica = function() {
+  limparFila();
+  montarNovaFila();
+};
+
 function montarNovaFila() {
-  // Preenche mês atual
+  // Preenche mês atual (seletor à prova de erro de digitação)
   const hoje = new Date();
   const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const inputMes = $('zap-mes');
-  if (inputMes && !inputMes.value) {
+  if (inputMes && inputMes.tagName === 'SELECT' && inputMes.options.length === 0) {
+    const opcoes = [];
+    for (let i = 0; i < 3; i++) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
+      opcoes.push(meses[d.getMonth()] + '/' + d.getFullYear());
+    }
+    inputMes.innerHTML = opcoes.map(m => `<option value="${m}">${m}</option>`).join('');
+    inputMes.value = opcoes[0];
+  } else if (inputMes && inputMes.tagName !== 'SELECT' && !inputMes.value) {
     inputMes.value = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
   }
 
   // Monta lista de preview
   const lista = $('lista-disparo-zap');
   lista.innerHTML = '';
-  const ids = Array.from(AppAdmin.alunosSelecionados);
+  let ids = Array.from(AppAdmin.alunosSelecionados);
+
+  // ✅ COBRANÇA INTELIGENTE: só entra na fila quem tem fatura PENDENTE no mês escolhido
+  const templateSel = $('zap-template')?.value || 'cobranca';
+  const mesSel = ($('zap-mes')?.value || '').trim();
+  if (templateSel === 'cobranca' && mesSel) {
+    const devedores = ids.filter(id => {
+      const m = dadosCobrancaMes(id, mesSel);
+      return m && m.status !== 'pago';
+    });
+    const pulados = ids.length - devedores.length;
+    if (pulados > 0) {
+      const nomesPulados = ids.filter(id => !devedores.includes(id))
+        .map(id => (AppAdmin.alunos.find(x => x.id === id) || {}).nome)
+        .filter(Boolean);
+      Swal.fire({
+        icon: 'info',
+        title: 'Cobrança inteligente 🎯',
+        html: '<b>' + pulados + '</b> aluno(s) selecionado(s) <b>não têm débito</b> em ' + mesSel + ' e foram removidos da fila:<br><br><span style="color:#aaa;">' + nomesPulados.join('<br>') + '</span>',
+        background: '#0a0a0c', color: '#fff',
+        confirmButtonColor: '#E53935', confirmButtonText: 'Entendi'
+      });
+    }
+    ids = devedores;
+    if (ids.length === 0) {
+      toast('Nenhum dos selecionados tem débito em ' + mesSel + '. Fila vazia!', 'error');
+    }
+  }
   
   ids.forEach((id, idx) => {
     const a = AppAdmin.alunos.find(x => x.id === id);
@@ -1690,7 +1737,7 @@ function montarNovaFila() {
         <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
         <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>
       </div>
-      <span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);" id="status-${id}">#${idx + 1}</span>
+      <span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);" id="status-${id}">#${idx + 1}${templateSel === 'cobranca' && dadosCobrancaMes(id, mesSel) ? ' · R$ ' + dadosCobrancaMes(id, mesSel).valor : ''}</span>
     `;
     lista.appendChild(item);
   });
@@ -1758,10 +1805,12 @@ window.atualizarPreviewDisparo = function() {
   
   if (!previewEl) return;
 
+  const mesAtual = ($('zap-mes')?.value || '').trim();
   const primeiroId = Array.from(AppAdmin.alunosSelecionados)[0];
   const a = AppAdmin.alunos.find(x => x.id === primeiroId);
   const nomeEx = a ? a.nome : 'João Silva';
-  const valorEx = a ? (a.valor_mensalidade || 25) : 25;
+  const mPrev = a ? dadosCobrancaMes(a.id, mesAtual) : null;
+  const valorEx = (mPrev && mPrev.valor != null) ? mPrev.valor : (a ? (a.valor_mensalidade || 25) : 25);
 
   let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
     .replace(/{nome}/g, nomeEx)
@@ -1825,6 +1874,17 @@ window.executarPassoFila = function(ids, index) {
     return;
   }
 
+  // ✅ Segurança extra: cobrança só pra quem tem fatura pendente no mês
+  const templatePasso = $('zap-template')?.value || 'cobranca';
+  const mesPasso = ($('zap-mes')?.value || '').trim();
+  if (templatePasso === 'cobranca' && mesPasso) {
+    const mCob = dadosCobrancaMes(a.id, mesPasso);
+    if (!mCob || mCob.status === 'pago') {
+      executarPassoFila(ids, index + 1);
+      return;
+    }
+  }
+
   const tel = a.telefone || '';
   const numLimpo = tel.replace(/\D/g, '');
 
@@ -1856,7 +1916,8 @@ window.executarPassoFila = function(ids, index) {
   const template = $('zap-template')?.value || 'cobranca';
   const custom = $('zap-msg-custom')?.value?.trim() || '';
   const mes = $('zap-mes')?.value || '';
-  const valor = a.valor_mensalidade || 25;
+  const mFatura = dadosCobrancaMes(a.id, mes);
+  const valor = (mFatura && mFatura.valor != null) ? mFatura.valor : (a.valor_mensalidade || 25);
 
   let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
     .replace(/{nome}/g, a.nome)
@@ -1928,7 +1989,9 @@ window.exportarCSVDisparo = function() {
   AppAdmin.alunosSelecionados.forEach(id => {
     const a = AppAdmin.alunos.find(x => x.id === id);
     if (!a || !a.telefone) return;
-    const valor = a.valor_mensalidade || 25;
+    const mCsv = dadosCobrancaMes(id, mes);
+    if (template === 'cobranca' && mes && (!mCsv || mCsv.status === 'pago')) return; // pula quem não deve
+    const valor = (mCsv && mCsv.valor != null) ? mCsv.valor : (a.valor_mensalidade || 25);
     const msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
       .replace(/{nome}/g, a.nome)
       .replace(/{mes}/g, mes)

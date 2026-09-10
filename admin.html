@@ -1435,7 +1435,7 @@
       <!-- Template -->
       <div class="adm-form-group">
         <label class="adm-form-label">Tipo de Mensagem</label>
-        <select id="zap-template" class="adm-form-input" onchange="atualizarPreviewDisparo()">
+        <select id="zap-template" class="adm-form-input" onchange="atualizarPreviewDisparo();montarNovaFilaPublica()">
           <option value="cobranca">💰 Cobrança de Mensalidade</option>
           <option value="aviso">📢 Aviso / Comunicado</option>
           <option value="parabens">🎉 Parabéns / Aniversário</option>
@@ -1447,7 +1447,7 @@
       <!-- Mês -->
       <div class="adm-form-group">
         <label class="adm-form-label">Mês de Referência</label>
-        <input type="text" id="zap-mes" class="adm-form-input" placeholder="Ex: Agosto / 2026" oninput="atualizarPreviewDisparo()">
+        <select id="zap-mes" class="adm-form-input" onchange="atualizarPreviewDisparo();montarNovaFilaPublica()"></select>
       </div>
 
       <!-- Mensagem custom -->
@@ -1520,7 +1520,7 @@
     <script src="supabase-config.js?v=2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=21"></script>
+    <script src="admin-lite.js?v=22"></script>
 
 
 <!-- Máscara de telefone -->
