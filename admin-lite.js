@@ -804,7 +804,7 @@ window.editarAlunoDossie = async function() {
             <label style="color:#888;font-size:11px;text-transform:uppercase;">Faixa</label>
             <input id="ed-faixa" class="swal2-input" value="${escapeHtml(a.faixa || 'Branca')}" style="background:#0a0a0c;color:white;border:1px solid #333;margin-bottom:10px;">
             <label style="color:#888;font-size:11px;text-transform:uppercase;">Valor Mensalidade</label>
-            <input id="ed-valor" type="number" class="swal2-input" value="${a.valor_mensalidade || ''}" style="background:#0a0a0c;color:white;border:1px solid #333;">
+            <input id="ed-valor" type="number" class="swal2-input" value="${a.valor_mensalidade || ''}" placeholder="Se vazio, mantém o atual" style="background:#0a0a0c;color:white;border:1px solid #333;">
         </div>`,
         focusConfirm: false, showCancelButton: true,
         confirmButtonColor: '#E53935', cancelButtonColor: '#333',
@@ -826,7 +826,7 @@ window.editarAlunoDossie = async function() {
         loading('Salvando...');
         const { error: erroUpdate } = await supabase.from('perfis').update({
             nome: v.nome.trim(), telefone: v.telefone, faixa: v.faixa,
-            valor_mensalidade: v.valor ? parseFloat(v.valor) : null
+            valor_mensalidade: v.valor ? parseFloat(v.valor) : (a.valor_mensalidade || 25)
         }).eq('id', a.id);
         if (erroUpdate) { Swal.close(); toast('Erro ao salvar: ' + erroUpdate.message, 'error'); return; }
         registrarLog('editar_aluno', 'Editou dados de ' + v.nome.trim() + ' (faixa: ' + v.faixa + ', valor: ' + (v.valor || 'sem valor') + ')', a.id, v.nome.trim());
