@@ -1003,10 +1003,10 @@ window.cobrarZap = function(tel, nome, mes, val) {
 Lembrete da mensalidade de *${mes}*.
 💰 *Valor:* R$ ${val},00
 
-📱 *Pague no App*
-_Ou Pix (Celular):_ *92985589868*
+📱 *Pague no App (Pix ou Cartão):*
+https://4lacademy.com.br/?modo=app
 
-Nos vemos no tatame!`;
+Nos vemos no tatame! 🥋`;
     window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
 };
 
@@ -1580,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 
 const TEMPLATES_ZAP = {
-  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor},00\n\n📱 *Pague no App:* https://ccbteusml-svg.github.io/?modo=app\n\n_Ou Pix (Celular):_ *92985589868*\n\nNos vemos no tatame!`,
+  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor},00\n\n📱 *Pague no App (Pix ou Cartão):*\nhttps://4lacademy.com.br/?modo=app\n\nNos vemos no tatame! 🥋`,
 
   aviso: `Olá, *{nome}*! Oss! 🥋\n\n📢 *Aviso da 4L Academy:*\n\n{custom}\n\nQualquer dúvida, chama no Zap!`,
 
