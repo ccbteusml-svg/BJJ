@@ -1001,7 +1001,7 @@ window.cobrarZap = function(tel, nome, mes, val) {
     const msg = `Olá, *${nome}*! Oss! 🥋
 
 Lembrete da mensalidade de *${mes}*.
-💰 *Valor:* R$ ${val},00
+💰 *Valor:* R$ ${Number(val).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
 
 📱 *Pague no App (Pix ou Cartão):*
 https://4lacademy.com.br/?modo=app
@@ -1580,7 +1580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 
 const TEMPLATES_ZAP = {
-  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor},00\n\n📱 *Pague no App (Pix ou Cartão):*\nhttps://4lacademy.com.br/?modo=app\n\nNos vemos no tatame! 🥋`,
+  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor}\n\n📱 *Pague no App (Pix ou Cartão):*\nhttps://4lacademy.com.br/?modo=app\n\nNos vemos no tatame! 🥋`,
 
   aviso: `Olá, *{nome}*! Oss! 🥋\n\n📢 *Aviso da 4L Academy:*\n\n{custom}\n\nQualquer dúvida, chama no Zap!`,
 
@@ -1664,9 +1664,41 @@ window.abrirModalDisparoZap = function() {
 };
 
 // ---------- AJUDANTES DE COBRANÇA ----------
+const MES_TODOS = '__TODOS__';
+
+// Normaliza nome do mês pra comparar sem erro (maiúscula/espaço não importam)
+function normMes(m) {
+  return String(m || '').trim().toLowerCase().replace(/\s+/g, '');
+}
+
 // Busca a fatura daquele aluno naquele mês (pra saber se deve e quanto)
 function dadosCobrancaMes(id, mes) {
-  return (AppAdmin.mensalidades || []).find(x => x.aluno_id === id && x.mes === mes) || null;
+  return (AppAdmin.mensalidades || []).find(x => x.aluno_id === id && normMes(x.mes) === normMes(mes)) || null;
+}
+
+// Todas as faturas PENDENTES do aluno (qualquer mês)
+function pendentesDoAluno(id) {
+  return (AppAdmin.mensalidades || []).filter(x => x.aluno_id === id && x.status !== 'pago');
+}
+
+// Resumo da cobrança de um aluno: meses devidos + valor total
+function resumoCobranca(id, mesSel) {
+  if (mesSel && mesSel !== MES_TODOS) {
+    const m = dadosCobrancaMes(id, mesSel);
+    if (!m || m.status === 'pago') return null;
+    return { mesTxt: m.mes, valor: parseFloat(m.valor) || 0 };
+  }
+  const pends = pendentesDoAluno(id);
+  if (pends.length === 0) return null;
+  return {
+    mesTxt: pends.map(m => m.mes).join(' e '),
+    valor: pends.reduce((soma, m) => soma + (parseFloat(m.valor) || 0), 0)
+  };
+}
+
+// Formata valor em R$ pt-BR sem o símbolo (ex: 50,00)
+function fmtValor(v) {
+  return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Chamado quando o ADM troca o tipo de mensagem ou o mês no modal
@@ -1686,8 +1718,8 @@ function montarNovaFila() {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() + i, 1);
       opcoes.push(meses[d.getMonth()] + '/' + d.getFullYear());
     }
-    inputMes.innerHTML = opcoes.map(m => `<option value="${m}">${m}</option>`).join('');
-    inputMes.value = opcoes[0];
+    inputMes.innerHTML = `<option value="${MES_TODOS}">🗓️ Todos os meses pendentes</option>` + opcoes.map(m => `<option value="${m}">${m}</option>`).join('');
+    inputMes.value = MES_TODOS;
   } else if (inputMes && inputMes.tagName !== 'SELECT' && !inputMes.value) {
     inputMes.value = `${meses[hoje.getMonth()]}/${hoje.getFullYear()}`;
   }
@@ -1697,14 +1729,13 @@ function montarNovaFila() {
   lista.innerHTML = '';
   let ids = Array.from(AppAdmin.alunosSelecionados);
 
-  // ✅ COBRANÇA INTELIGENTE: só entra na fila quem tem fatura PENDENTE no mês escolhido
+  // ✅ COBRANÇA INTELIGENTE: só entra na fila quem tem fatura PENDENTE
+  //    (no mês escolhido — ou em QUALQUER mês, se "Todos os meses pendentes")
   const templateSel = $('zap-template')?.value || 'cobranca';
   const mesSel = ($('zap-mes')?.value || '').trim();
   if (templateSel === 'cobranca' && mesSel) {
-    const devedores = ids.filter(id => {
-      const m = dadosCobrancaMes(id, mesSel);
-      return m && m.status !== 'pago';
-    });
+    const rotuloMes = mesSel === MES_TODOS ? 'qualquer mês' : mesSel;
+    const devedores = ids.filter(id => resumoCobranca(id, mesSel) !== null);
     const pulados = ids.length - devedores.length;
     if (pulados > 0) {
       const nomesPulados = ids.filter(id => !devedores.includes(id))
@@ -1713,14 +1744,22 @@ function montarNovaFila() {
       Swal.fire({
         icon: 'info',
         title: 'Cobrança inteligente 🎯',
-        html: '<b>' + pulados + '</b> aluno(s) selecionado(s) <b>não têm débito</b> em ' + mesSel + ' e foram removidos da fila:<br><br><span style="color:#aaa;">' + nomesPulados.join('<br>') + '</span>',
+        html: '<b>' + pulados + '</b> aluno(s) selecionado(s) <b>não têm débito</b> em ' + rotuloMes + ' e foram removidos da fila:<br><br><span style="color:#aaa;">' + nomesPulados.join('<br>') + '</span>',
         background: '#0a0a0c', color: '#fff',
         confirmButtonColor: '#E53935', confirmButtonText: 'Entendi'
       });
     }
     ids = devedores;
     if (ids.length === 0) {
-      toast('Nenhum dos selecionados tem débito em ' + mesSel + '. Fila vazia!', 'error');
+      // Dica inteligente: mostra em quais meses EXISTEM pendências entre os selecionados
+      const mesesComDivida = {};
+      ids.concat(Array.from(AppAdmin.alunosSelecionados)).forEach(id => {
+        pendentesDoAluno(id).forEach(m => {
+          mesesComDivida[m.mes] = (mesesComDivida[m.mes] || 0) + 1;
+        });
+      });
+      const dicas = Object.entries(mesesComDivida).map(([m, q]) => m + ' (' + q + ' aluno' + (q > 1 ? 's' : '') + ')');
+      toast('Nenhum débito em ' + rotuloMes + (dicas.length ? '. Há pendências em: ' + dicas.join(', ') : '.'), 'error');
     }
   }
   
@@ -1737,7 +1776,7 @@ function montarNovaFila() {
         <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
         <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>
       </div>
-      <span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);" id="status-${id}">#${idx + 1}${templateSel === 'cobranca' && dadosCobrancaMes(id, mesSel) ? ' · R$ ' + dadosCobrancaMes(id, mesSel).valor : ''}</span>
+      <span class="adm-tag" style="font-size:9px;background:rgba(255,255,255,0.05);color:var(--adm-text-3);" id="status-${id}">#${idx + 1}${templateSel === 'cobranca' && resumoCobranca(id, mesSel) ? ' · R$ ' + fmtValor(resumoCobranca(id, mesSel).valor) : ''}</span>
     `;
     lista.appendChild(item);
   });
@@ -1809,12 +1848,13 @@ window.atualizarPreviewDisparo = function() {
   const primeiroId = Array.from(AppAdmin.alunosSelecionados)[0];
   const a = AppAdmin.alunos.find(x => x.id === primeiroId);
   const nomeEx = a ? a.nome : 'João Silva';
-  const mPrev = a ? dadosCobrancaMes(a.id, mesAtual) : null;
-  const valorEx = (mPrev && mPrev.valor != null) ? mPrev.valor : (a ? (a.valor_mensalidade || 25) : 25);
+  const resumoPrev = (template === 'cobranca' && a) ? resumoCobranca(a.id, mesAtual) : null;
+  const mesEx = resumoPrev ? resumoPrev.mesTxt : (mesAtual === MES_TODOS ? '—' : (mesAtual || '—'));
+  const valorEx = resumoPrev ? fmtValor(resumoPrev.valor) : fmtValor(a ? (a.valor_mensalidade || 25) : 25);
 
   let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
     .replace(/{nome}/g, nomeEx)
-    .replace(/{mes}/g, mes || 'Agosto/2026')
+    .replace(/{mes}/g, mesEx)
     .replace(/{valor}/g, valorEx)
     .replace(/{custom}/g, custom || '—');
 
@@ -1874,15 +1914,12 @@ window.executarPassoFila = function(ids, index) {
     return;
   }
 
-  // ✅ Segurança extra: cobrança só pra quem tem fatura pendente no mês
+  // ✅ Segurança extra: cobrança só pra quem tem fatura pendente (mês ou "todos")
   const templatePasso = $('zap-template')?.value || 'cobranca';
   const mesPasso = ($('zap-mes')?.value || '').trim();
-  if (templatePasso === 'cobranca' && mesPasso) {
-    const mCob = dadosCobrancaMes(a.id, mesPasso);
-    if (!mCob || mCob.status === 'pago') {
-      executarPassoFila(ids, index + 1);
-      return;
-    }
+  if (templatePasso === 'cobranca' && mesPasso && !resumoCobranca(a.id, mesPasso)) {
+    executarPassoFila(ids, index + 1);
+    return;
   }
 
   const tel = a.telefone || '';
@@ -1915,14 +1952,15 @@ window.executarPassoFila = function(ids, index) {
   // Monta mensagem
   const template = $('zap-template')?.value || 'cobranca';
   const custom = $('zap-msg-custom')?.value?.trim() || '';
-  const mes = $('zap-mes')?.value || '';
-  const mFatura = dadosCobrancaMes(a.id, mes);
-  const valor = (mFatura && mFatura.valor != null) ? mFatura.valor : (a.valor_mensalidade || 25);
+  const mesSelPasso = ($('zap-mes')?.value || '').trim();
+  const resumo = template === 'cobranca' ? resumoCobranca(a.id, mesSelPasso) : null;
+  const mesMsg = resumo ? resumo.mesTxt : (mesSelPasso === MES_TODOS ? '' : mesSelPasso);
+  const valorMsg = resumo ? fmtValor(resumo.valor) : fmtValor(a.valor_mensalidade || 25);
 
   let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
     .replace(/{nome}/g, a.nome)
-    .replace(/{mes}/g, mes)
-    .replace(/{valor}/g, valor)
+    .replace(/{mes}/g, mesMsg)
+    .replace(/{valor}/g, valorMsg)
     .replace(/{custom}/g, custom);
 
   if (!tel || numLimpo.length < 10) {
@@ -1989,12 +2027,13 @@ window.exportarCSVDisparo = function() {
   AppAdmin.alunosSelecionados.forEach(id => {
     const a = AppAdmin.alunos.find(x => x.id === id);
     if (!a || !a.telefone) return;
-    const mCsv = dadosCobrancaMes(id, mes);
-    if (template === 'cobranca' && mes && (!mCsv || mCsv.status === 'pago')) return; // pula quem não deve
-    const valor = (mCsv && mCsv.valor != null) ? mCsv.valor : (a.valor_mensalidade || 25);
+    const resumoCsv = template === 'cobranca' ? resumoCobranca(id, mes) : null;
+    if (template === 'cobranca' && mes && !resumoCsv) return; // pula quem não deve
+    const mesCsvTxt = resumoCsv ? resumoCsv.mesTxt : (mes === MES_TODOS ? '' : mes);
+    const valor = resumoCsv ? fmtValor(resumoCsv.valor) : fmtValor(a.valor_mensalidade || 25);
     const msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
       .replace(/{nome}/g, a.nome)
-      .replace(/{mes}/g, mes)
+      .replace(/{mes}/g, mesCsvTxt)
       .replace(/{valor}/g, valor)
       .replace(/{custom}/g, custom)
       .replace(/\n/g, ' ')
