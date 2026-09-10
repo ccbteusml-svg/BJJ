@@ -1,12 +1,13 @@
 // ⚠️ REGRA DE DEPLOY: suba este número (v27 → v28 → ...) a CADA deploy.
 // É ele que apaga o cache antigo e força o celular a baixar o JS/HTML novo.
 // Se esquecer de subir, os alunos continuam rodando a versão velha do app.
-const SW_VERSION = 'v32';
+const SW_VERSION = 'v33';
 const NOME_DO_CACHE = '4l-academy-' + SW_VERSION;
 
 const ARQUIVOS_PARA_SALVAR = [
   './',
   './index.html',
+  './instalar.html',
   './cadastro.html',
   './painel.html',
   './admin.html',
