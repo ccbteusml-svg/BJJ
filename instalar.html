@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Instalar o App — 4L Academy</title>
+<meta name="description" content="Instale o app da 4L Academy no seu Android ou iPhone em menos de 1 minuto. Sem loja, sem cadastro extra.">
+<meta name="theme-color" content="#0a0a0c">
+<style>
+:root{
+  --bg:#0a0a0c; --bg2:#101014; --ink:#f4f4f5; --ink-dim:rgba(244,244,245,.55);
+  --ink-faint:rgba(244,244,245,.32); --red:#E53935; --red-dark:#B71C1C;
+  --line:rgba(255,255,255,.09); --card:#141419;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  background-image:radial-gradient(1200px 600px at 80% -10%,rgba(229,57,53,.09),transparent 60%),
+                   radial-gradient(900px 500px at -10% 40%,rgba(229,57,53,.05),transparent 55%);
+}
+::selection{background:var(--red);color:#fff}
+.wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+
+/* ---------- faixa de faixa (marca) ---------- */
+.beltbar{height:8px;display:flex}
+.beltbar i{flex:1;background:var(--red)}
+.beltbar i:nth-child(2){background:#fff;flex:.18}
+.beltbar i:nth-child(3){background:#000;flex:.18;border-left:2px solid #fff}
+
+/* ---------- topo ---------- */
+header{padding:34px 0 8px;display:flex;align-items:center;gap:14px}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--red),var(--red-dark));
+  display:grid;place-items:center;font-weight:900;font-size:17px;letter-spacing:-.5px;color:#fff;
+  box-shadow:0 6px 24px rgba(229,57,53,.35)}
+.logo-txt{font-weight:800;letter-spacing:2.5px;font-size:14px}
+.logo-txt small{display:block;font-weight:500;letter-spacing:1px;font-size:10px;color:var(--ink-faint);margin-top:2px}
+
+/* ---------- entrada escalonada ---------- */
+[data-animate]{opacity:0;transform:translateY(26px);animation:rise .8s cubic-bezier(.22,1,.36,1) forwards;animation-delay:var(--stagger,0s)}
+@keyframes rise{to{opacity:1;transform:none}}
+
+/* ---------- herói ---------- */
+.hero{padding:64px 0 40px;display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:center}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;letter-spacing:2.2px;font-weight:700;
+  text-transform:uppercase;color:var(--red);border:1px solid rgba(229,57,53,.35);padding:8px 14px;border-radius:2px;margin-bottom:26px}
+.kicker::before{content:"";width:7px;height:7px;background:var(--red);border-radius:50%;box-shadow:0 0 10px var(--red)}
+h1{font-size:clamp(34px,5.4vw,58px);line-height:1.04;letter-spacing:-2px;font-weight:800}
+h1 .r{color:var(--red)}
+.sub{margin-top:20px;font-size:16.5px;line-height:1.65;color:var(--ink-dim);max-width:44ch}
+.hero-ctas{margin-top:34px;display:flex;gap:14px;flex-wrap:wrap}
+
+/* ---------- botões (canto reto, contraste tátil) ---------- */
+.btn{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:15px;text-decoration:none;
+  padding:16px 26px;border-radius:3px;border:none;cursor:pointer;transition:opacity .3s ease,transform .15s ease;
+  font-family:inherit}
+.btn:active{transform:scale(.97)}
+.btn-red{background:var(--red);color:#fff;box-shadow:0 8px 28px rgba(229,57,53,.3)}
+.btn-red:hover{opacity:.88}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.3)}
+.btn svg{flex:none}
+
+/* ---------- mockup do celular ---------- */
+.phone-stage{display:flex;justify-content:center;perspective:1200px}
+.phone{width:270px;height:560px;border-radius:40px;background:#17171c;
+  border:1px solid #2a2a32;padding:11px;position:relative;
+  box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.04) inset;
+  animation:float 7s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-1.2deg)}50%{transform:translateY(-14px) rotate(1.2deg)}}
+.phone::after{ /* brilho */
+  content:"";position:absolute;inset:0;border-radius:40px;pointer-events:none;
+  background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.07) 45%,transparent 60%);
+  mix-blend-mode:overlay}
+.screen{width:100%;height:100%;border-radius:30px;background:#000;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.statusbar{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  font-size:11px;font-weight:600;color:#fff;flex:none}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:86px;height:22px;background:#000;
+  border-radius:12px;z-index:3;border:1px solid rgba(255,255,255,.05)}
+/* mini UI do app dentro do mockup */
+.miniapp{flex:1;background:var(--bg2);display:flex;flex-direction:column}
+.mini-top{background:linear-gradient(135deg,var(--red),var(--red-dark));padding:26px 16px 14px;color:#fff}
+.mini-top b{font-size:13px;letter-spacing:1.5px}
+.mini-top span{display:block;font-size:10px;opacity:.8;margin-top:3px}
+.mini-row{display:flex;align-items:center;gap:10px;margin:10px 12px 0;padding:11px 12px;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;font-size:10.5px;color:var(--ink-dim)}
+.mini-dot{width:26px;height:26px;border-radius:8px;background:rgba(229,57,53,.15);display:grid;place-items:center;flex:none}
+.mini-badge{margin-left:auto;font-size:9px;font-weight:700;padding:3px 8px;border-radius:99px}
+.mini-badge.ok{background:rgba(34,197,94,.15);color:#4ade80}
+.mini-badge.pend{background:rgba(229,57,53,.15);color:#ff6b66}
+
+/* ---------- seletor de plataforma ---------- */
+.platpick{display:flex;gap:10px;margin:54px 0 8px}
+.platbtn{flex:1;max-width:220px;padding:15px;border-radius:3px;border:1px solid var(--line);background:transparent;
+  color:var(--ink-dim);font-weight:700;font-size:14.5px;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;gap:9px;transition:all .25s ease}
+.platbtn.on{background:var(--ink);color:#0a0a0c;border-color:var(--ink)}
+.platbtn:not(.on):hover{border-color:rgba(255,255,255,.3);color:var(--ink)}
+.detected{font-size:12.5px;color:var(--ink-faint);margin-bottom:34px}
+.detected b{color:var(--ink-dim)}
+
+/* ---------- passos ---------- */
+.steps{display:none}
+.steps.show{display:block}
+.step{display:grid;grid-template-columns:56px 1fr;gap:22px;padding:34px 0;border-top:1px solid var(--line);align-items:start}
+.step:last-child{border-bottom:1px solid var(--line)}
+.stepnum{width:56px;height:56px;border-radius:50%;border:1px solid rgba(229,57,53,.5);color:var(--red);
+  display:grid;place-items:center;font-weight:800;font-size:19px;font-variant-numeric:tabular-nums;flex:none}
+.step h3{font-size:19px;font-weight:750;letter-spacing:-.3px;margin-bottom:8px}
+.step p{font-size:14.5px;line-height:1.7;color:var(--ink-dim);max-width:52ch}
+.step p b, .step p strong{color:var(--ink);font-weight:650}
+.step .tip{margin-top:12px;font-size:13px;color:var(--ink-faint);display:flex;gap:8px;line-height:1.6}
+.step .tip::before{content:"—";color:var(--red)}
+/* mini-mockup do navegador em cada passo */
+.ui-shot{margin-top:18px;background:#1c1c22;border:1px solid var(--line);border-radius:14px;overflow:hidden;max-width:400px}
+.ui-shot .bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#26262e;font-size:11.5px;color:rgba(255,255,255,.65)}
+.ui-shot .body{padding:6px 0}
+.ui-item{display:flex;align-items:center;gap:12px;padding:11px 16px;font-size:12.5px;color:rgba(255,255,255,.85)}
+.ui-item.hl{background:rgba(229,57,53,.14);position:relative}
+.ui-item.hl::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--red)}
+.ui-item svg{flex:none;opacity:.9}
+hr.sp{border:none;height:1px;background:var(--line);margin:0 16px}
+
+/* ---------- seção APK ---------- */
+.apk{margin:70px 0;background:var(--card);border:1px solid var(--line);border-radius:20px;
+  padding:38px;display:grid;grid-template-columns:1fr auto;gap:28px;align-items:center}
+.apk h2{font-size:23px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+.apk p{font-size:14px;line-height:1.7;color:var(--ink-dim);max-width:52ch}
+.apk p b{color:var(--ink)}
+.apk .warn{margin-top:14px;font-size:12.5px;color:var(--ink-faint);line-height:1.6;border-left:2px solid var(--red);padding-left:12px}
+
+/* ---------- instalado ---------- */
+.installed{display:none;margin:40px 0;padding:34px;border-radius:20px;text-align:center;
+  background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.3)}
+.installed.show{display:block}
+.installed b{font-size:20px}
+.installed p{margin-top:8px;color:var(--ink-dim);font-size:14px}
+
+/* ---------- rodapé ---------- */
+footer{margin-top:90px;border-top:1px solid var(--line);padding:34px 0 54px;
+  display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+footer .oss{font-size:13px;color:var(--ink-faint);letter-spacing:1px}
+footer a{color:var(--ink-dim);text-decoration:none;font-size:13.5px;border-bottom:1px solid var(--line)}
+footer a:hover{color:var(--ink)}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,80px);background:var(--ink);color:#0a0a0c;
+  font-weight:700;font-size:13.5px;padding:13px 22px;border-radius:99px;opacity:0;transition:all .4s cubic-bezier(.22,1,.36,1);
+  z-index:50;pointer-events:none}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+@media(max-width:860px){
+  .hero{grid-template-columns:1fr;padding-top:44px;gap:44px}
+  .apk{grid-template-columns:1fr}
+  .step{grid-template-columns:44px 1fr;gap:16px}
+  .stepnum{width:44px;height:44px;font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="beltbar" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <header data-animate style="--stagger:0s">
+    <div class="logo">4L</div>
+    <div class="logo-txt">4L ACADEMY<small>BRAZILIAN JIU-JITSU</small></div>
+  </header>
+
+  <section class="hero">
+    <div>
+      <div class="kicker" data-animate style="--stagger:.08s">App Oficial</div>
+      <h1 data-animate style="--stagger:.16s">O app da academia,<br>direto no <span class="r">seu celular.</span></h1>
+      <p class="sub" data-animate style="--stagger:.24s">
+        Mensalidades, Pix em 1 minuto, carteirinha digital, recibos e avisos do professor —
+        tudo instalado na sua tela inicial como um app de verdade. Sem Play Store, sem App Store, sem complicação.
+      </p>
+      <div class="hero-ctas" data-animate style="--stagger:.32s">
+        <a class="btn btn-red" href="#instalar">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>
+          Ver como instalar
+        </a>
+        <a class="btn btn-ghost" href="https://4lacademy.com.br" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+          Abrir no navegador
+        </a>
+      </div>
+    </div>
+
+    <div class="phone-stage" data-animate style="--stagger:.2s">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="statusbar">
+            <span id="hora">9:41</span>
+            <span style="display:flex;gap:5px;align-items:center">
+              <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="4.5" width="3" height="7.5" rx="1"/><rect x="9" y="2" width="3" height="10" rx="1"/><rect x="13" y="0" width="3" height="12" rx="1" opacity=".35"/></svg>
+              <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor"><path d="M8 9.6a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM8 5.4c1.8 0 3.4.7 4.6 1.9l-1.5 1.5A4.4 4.4 0 0 0 8 7.4c-1.2 0-2.3.5-3.1 1.4L3.4 7.3A6.4 6.4 0 0 1 8 5.4zM8 1c2.7 0 5.2 1.1 7 2.9l-1.5 1.5A7.9 7.9 0 0 0 8 3 7.9 7.9 0 0 0 2.5 5.4L1 3.9A9.9 9.9 0 0 1 8 1z"/></svg>
+              <svg width="22" height="11" viewBox="0 0 25 12" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="20" height="11" rx="3"/><rect x="2.5" y="2.5" width="13" height="7" rx="1.5" fill="currentColor" stroke="none"/><path d="M23 4v4" stroke-linecap="round"/></svg>
+            </span>
+          </div>
+          <div class="miniapp">
+            <div class="mini-top"><b>4L ACADEMY</b><span>Oss! Bem-vindo ao tatame digital</span></div>
+            <div class="mini-row"><div class="mini-dot">💳</div>Mensalidade Setembro<span class="mini-badge pend">PENDENTE</span></div>
+            <div class="mini-row"><div class="mini-dot">🥋</div>Carteirinha digital<span class="mini-badge ok">ATIVA</span></div>
+            <div class="mini-row"><div class="mini-dot">🔔</div>Avisos do professor</div>
+            <div class="mini-row"><div class="mini-dot">🧾</div>Meus recibos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- estado: já instalado -->
+  <div id="ja-instalado" class="installed" data-animate style="--stagger:.1s">
+    <b>✅ O app já está instalado neste aparelho!</b>
+    <p>Você está vendo esta página de dentro do app 4L Academy. Não precisa fazer mais nada.</p>
+  </div>
+
+  <section id="instalar" data-animate style="--stagger:.1s">
+    <div class="platpick" role="tablist">
+      <button class="platbtn" id="btn-android" onclick="escolherPlataforma('android')" role="tab">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18a.38.38 0 0 0-.66-.38l-1.86 3.22a11.7 11.7 0 0 0-9.84 0L5.22 5.92a.38.38 0 0 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z"/></svg>
+        Android
+      </button>
+      <button class="platbtn" id="btn-ios" onclick="escolherPlataforma('ios')" role="tab">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.08zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>
+        iPhone
+      </button>
+    </div>
+    <p class="detected" id="detect-msg"></p>
+
+    <!-- ============ ANDROID ============ -->
+    <div class="steps" id="steps-android">
+
+      <div class="step">
+        <div class="stepnum">1</div>
+        <div>
+          <h3>Abra o site no Chrome</h3>
+          <p>No seu Android, abra o <strong>Google Chrome</strong> e acesse <strong>4lacademy.com.br</strong>. Faça login normalmente com seu e-mail e senha.</p>
+          <div class="tip">Tem que ser o Chrome (ou Edge). Links abertos "dentro" do WhatsApp/Instagram não mostram a opção de instalar — toque nos <b>⋮</b> e escolha "Abrir no Chrome".</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">2</div>
+        <div>
+          <h3>Toque no menu ⋮ (três pontinhos)</h3>
+          <p>Fica no <strong>canto superior direito</strong> da tela do Chrome.</p>
+          <div class="ui-shot" aria-hidden="true">
+            <div class="bar">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="3"/></svg>
+              4lacademy.com.br
+              <svg style="margin-left:auto" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+            </div>
+            <div class="body">
+              <div class="ui-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>Nova guia anônima</div>
+              <hr class="sp">
+              <div class="ui-item hl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M12 18h.01"/></svg><b>Instalar app</b> &nbsp;ou&nbsp; <b>Adicionar à tela inicial</b></div>
+              <hr class="sp">
+              <div class="ui-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Compartilhar…</div>
+            </div>
+          </div>
+          <div class="tip">Em alguns celulares aparece <b>"Instalar app"</b>, em outros <b>"Adicionar à tela inicial"</b> — as duas funcionam igual.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">3</div>
+        <div>
+          <h3>Confirme em "Instalar"</h3>
+          <p>O Chrome vai mostrar uma janelinha perguntando se você quer instalar. Toque em <strong>Instalar</strong> e pronto: o ícone da <strong>4L Academy</strong> aparece na sua tela inicial, com direito a tela de abertura e notificações.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">4</div>
+        <div>
+          <h3>Ative as notificações 🔔</h3>
+          <p>Na primeira vez que abrir o app instalado, toque no <strong>sininho</strong> e permita as notificações. Assim você recebe os avisos do professor e o lembrete da mensalidade direto no celular.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ iPHONE ============ -->
+    <div class="steps" id="steps-ios">
+
+      <div class="step">
+        <div class="stepnum">1</div>
+        <div>
+          <h3>Abra o site no Safari</h3>
+          <p>No iPhone, <strong>precisa ser o Safari</strong> (o navegador azulzinho que já vem no aparelho). Acesse <strong>4lacademy.com.br</strong> e faça login.</p>
+          <div class="tip">O Chrome do iPhone <b>não</b> consegue instalar apps — essa opção só existe no Safari.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">2</div>
+        <div>
+          <h3>Toque no botão Compartilhar</h3>
+          <p>É o ícone de <strong>quadradinho com uma seta pra cima</strong>, na barra de baixo do Safari.</p>
+          <div class="ui-shot" aria-hidden="true">
+            <div class="bar">4lacademy.com.br</div>
+            <div class="body">
+              <div class="ui-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Adicionar aos Favoritos</div>
+              <hr class="sp">
+              <div class="ui-item hl"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 8v8M8 12h8"/></svg><b>Adicionar à Tela de Início</b></div>
+              <hr class="sp">
+              <div class="ui-item"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2"/></svg>Histórico</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">3</div>
+        <div>
+          <h3>Role e toque em "Adicionar à Tela de Início"</h3>
+          <p>No menu que abrir, <strong>role pra baixo</strong> até achar essa opção. Depois toque em <strong>Adicionar</strong> no canto superior direito. O ícone da 4L aparece na sua tela inicial.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="stepnum">4</div>
+        <div>
+          <h3>Ative as notificações 🔔</h3>
+          <p>Abra o app pelo ícone novo, toque no <strong>sininho</strong> e permita as notificações. Precisa do iPhone com <strong>iOS 16.4 ou mais novo</strong> pra receber os avisos (Ajustes → Geral → Atualização de Software).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ APK ============ -->
+  <section class="apk" data-animate id="apk-box">
+    <div>
+      <h2>📦 Prefere o arquivo de instalação (APK)?</h2>
+      <p>Para <strong>Android</strong>, também dá pra instalar pelo arquivo direto: baixe, toque nele e permita a instalação quando o celular perguntar. O resultado é o mesmo app, com o mesmo ícone.</p>
+      <p class="warn"><b>Aviso normal do Android:</b> como o app não vem da Play Store, o celular mostra um alerta de "fonte desconhecida" na primeira vez. É seguro — o arquivo é gerado e assinado pela própria academia.</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;min-width:210px">
+      <!-- PROFESSOR: troque o href abaixo pelo link do APK quando subir o arquivo -->
+      <a class="btn btn-red" id="btn-apk" href="https://4lacademy.com.br/4lacademy.apk" style="justify-content:center">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>
+        Baixar APK (Android)
+      </a>
+      <button class="btn btn-ghost" onclick="copiarLink()" style="justify-content:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copiar link desta página
+      </button>
+    </div>
+  </section>
+
+  <footer>
+    <div class="oss">OSS! 🥋 &nbsp;·&nbsp; 4L ACADEMY — BRAZILIAN JIU-JITSU</div>
+    <a href="https://wa.me/5592985589868" target="_blank" rel="noopener">Problemas na instalação? Fala com a gente no WhatsApp →</a>
+  </footer>
+</div>
+
+<div class="toast" id="toast">Link copiado! Manda no grupo da turma 🥋</div>
+
+<script>
+// ---------- relógio do mockup ----------
+(function(){
+  var d = new Date();
+  var h = d.getHours(), m = ('0'+d.getMinutes()).slice(-2);
+  document.getElementById('hora').textContent = h + ':' + m;
+})();
+
+// ---------- detecta plataforma ----------
+var ua = navigator.userAgent || '';
+var ehIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var ehAndroid = /Android/i.test(ua);
+
+// ---------- já está instalado? ----------
+var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+if (standalone) {
+  document.getElementById('ja-instalado').classList.add('show');
+}
+
+function escolherPlataforma(qual){
+  document.getElementById('btn-android').classList.toggle('on', qual === 'android');
+  document.getElementById('btn-ios').classList.toggle('on', qual === 'ios');
+  document.getElementById('steps-android').classList.toggle('show', qual === 'android');
+  document.getElementById('steps-ios').classList.toggle('show', qual === 'ios');
+  var msg = document.getElementById('detect-msg');
+  if (qual === 'android' && ehAndroid) msg.innerHTML = 'Detectamos que você está num <b>Android</b> — é só seguir os passos abaixo 👇';
+  else if (qual === 'ios' && ehIOS) msg.innerHTML = 'Detectamos que você está num <b>iPhone</b> — é só seguir os passos abaixo 👇';
+  else if (qual === 'android') msg.innerHTML = 'Seguindo no <b>Android</b>:';
+  else msg.innerHTML = 'Seguindo no <b>iPhone</b> (use o <b>Safari</b>):';
+}
+
+// escolha automática na abertura
+escolherPlataforma(ehIOS ? 'ios' : 'android');
+
+// esconde caixa de APK no iPhone (não se aplica)
+if (ehIOS) document.getElementById('apk-box').style.display = 'none';
+
+// ---------- copiar link ----------
+function copiarLink(){
+  var url = location.href;
+  var ok = function(){
+    var t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 2600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(ok).catch(function(){ fallback(); });
+  } else fallback();
+  function fallback(){
+    var i = document.createElement('input');
+    i.value = url; document.body.appendChild(i); i.select();
+    try { document.execCommand('copy'); ok(); } catch(e){}
+    document.body.removeChild(i);
+  }
+}
+</script>
+</body>
+</html>
