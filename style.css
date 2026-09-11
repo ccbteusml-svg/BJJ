@@ -1255,3 +1255,35 @@ body:has(#rg-banner-rede.rg-banner-voltou[style*="flex"]) {
     .rg-skeleton { animation: none; background: #2a2a2d; }
     #rg-banner-rede { transition: none; }
 }
+
+
+/* ==========================================
+   MODO TELA GRANDE v41 — MOLDURA DE APP
+   Tablet, notebook e PC: o app vira uma
+   "coluna de celular" elegante e centralizada.
+   (No celular nada muda — esta regra só vale
+   a partir de 768px de largura.)
+   ========================================== */
+@media (min-width: 768px) {
+    html {
+        /* fundo com brilho sutil da marca nas laterais vazias */
+        background:
+            radial-gradient(900px 500px at 15% 20%, rgba(229,57,53,.06), transparent 60%),
+            radial-gradient(900px 500px at 85% 80%, rgba(229,57,53,.05), transparent 60%),
+            #050505;
+    }
+    body {
+        border-left: 1px solid rgba(255,255,255,.09);
+        border-right: 1px solid rgba(255,255,255,.09);
+        box-shadow: 0 0 60px rgba(0,0,0,.85), 0 0 120px rgba(229,57,53,.06);
+    }
+    /* menu lateral com cantos suaves dentro da moldura */
+    .menu-lateral {
+        border-right: 1px solid rgba(255,255,255,.1);
+        border-radius: 0 20px 20px 0;
+    }
+    /* banner do aluno respeita a moldura */
+    .banner-aluno {
+        border-radius: 0;
+    }
+}
