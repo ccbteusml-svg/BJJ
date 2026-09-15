@@ -89,9 +89,16 @@
     };
 
     // ---------- foto (mesmo padrão do upload da home: bucket fotos-perfil, UID-timestamp.ext) ----------
-    async function _trocarFotoAjustes(file) {
-        if (file.size > 2 * 1024 * 1024) {
-            Swal.fire({ icon: 'warning', title: 'Arquivo muito grande', text: 'Limite de 2MB.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+    async function _trocarFotoAjustes(fileOriginal) {
+        // ✅ SEM limite de tamanho: aceita qualquer foto — a compressão resolve o peso
+        // 🗜️ Comprime no celular: qualquer tamanho vira 100-300KB antes de subir
+        let file;
+        try {
+            file = await window.comprimirFoto(fileOriginal);
+        } catch (compErr) {
+            // ⛔ SEM fallback: foto não comprimida NÃO sobe (economia de espaço é a regra)
+            console.error('[foto] Compressão falhou, upload bloqueado:', compErr);
+            Swal.fire({ icon: 'error', title: 'Não foi possível processar a foto', text: 'Tente outra imagem (JPG ou PNG).', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
             return;
         }
         // Preview instantâneo (otimista) antes mesmo de subir

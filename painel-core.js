@@ -548,13 +548,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputFoto = document.getElementById('input-foto');
     if (inputFoto) {
         inputFoto.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
+            let file = e.target.files[0];
             if (!file) return;
-            if (file.size > 2 * 1024 * 1024) {
-                Swal.fire({ icon: 'warning', title: 'Arquivo muito grande', text: 'Limite de 2MB.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+            // ✅ SEM limite de tamanho: aceita qualquer foto — a compressão resolve o peso
+            Swal.fire({ title: 'Otimizando foto...', background: '#161618', color: '#fff', didOpen: () => Swal.showLoading() });
+            try {
+                file = await window.comprimirFoto(file); // 🗜️ 2MB+ vira 100-300KB
+            } catch (compErr) {
+                // ⛔ SEM fallback: foto não comprimida NÃO sobe (economia de espaço é a regra)
+                console.error('[foto] Compressão falhou, upload bloqueado:', compErr);
+                Swal.fire({ icon: 'error', title: 'Não foi possível processar a foto', text: 'Tente outra imagem (JPG ou PNG).', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
                 return;
             }
-            Swal.fire({ title: 'Enviando foto...', background: '#161618', color: '#fff', didOpen: () => Swal.showLoading() });
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error('Sessão expirada');
