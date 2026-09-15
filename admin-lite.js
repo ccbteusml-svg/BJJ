@@ -1116,6 +1116,14 @@ window.publicarAviso = async function() {
     destravarAcao('publicar-aviso');
     if (erroInsert) { Swal.close(); toast('Erro ao publicar: ' + erroInsert.message, 'error'); return; }
     registrarLog('publicar_aviso', 'Publicou aviso: "' + titulo + '"');
+
+    // 🔔 Push do mural: avisa todos os alunos (em segundo plano, não trava a publicação)
+    supabase.functions.invoke('enviar-push-mural', { body: { titulo: titulo, mensagem: mensagem } })
+        .then(({ data, error }) => {
+            if (error) console.warn('[MURAL] Push não enviado:', error);
+            else console.log('[MURAL] Push enviado para', data?.push_enviados ?? 0, 'aparelho(s)');
+        })
+        .catch(e => console.warn('[MURAL] Falha no push:', e));
     tit.value = '';
     msg.value = '';
     await carregarTudo();
