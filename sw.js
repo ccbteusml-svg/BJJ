@@ -1,7 +1,7 @@
 // ⚠️ REGRA DE DEPLOY: suba este número (v27 → v28 → ...) a CADA deploy.
 // É ele que apaga o cache antigo e força o celular a baixar o JS/HTML novo.
 // Se esquecer de subir, os alunos continuam rodando a versão velha do app.
-const SW_VERSION = 'v41';
+const SW_VERSION = 'v42';
 const NOME_DO_CACHE = '4l-academy-' + SW_VERSION;
 
 const ARQUIVOS_PARA_SALVAR = [
@@ -135,7 +135,8 @@ self.addEventListener('push', event => {
     self.registration.showNotification(dados.titulo, {
       body: dados.corpo,
       icon: './icone-192.png',
-      badge: './badge-96.png', // monocromático: o Android pinta com a cor do sistema
+      badge: './badge-96.png', // monocromático: o Android pinta com a cor abaixo
+      color: '#E53935', // círculo do ícone no vermelho 4L
       tag: '4l-academy-cobranca',
       renotify: true,
       data: { url: dados.url }
