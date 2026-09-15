@@ -130,6 +130,20 @@ async function verificarAdmin() {
         if (!perfil || perfil.cargo !== 'professor') { window.location.replace('painel.html'); return; }
         AppAdmin.adminId = session.user.id;
         AppAdmin.adminNome = perfil.nome || 'Admin';
+
+        // 🛡️ SEGURANÇA SILENCIOSA: acesso fora do horário habitual (8h-20h)
+        // dispara um e-mail de alerta pro professor. Não bloqueia, não mostra nada.
+        try {
+            const hora = new Date().getHours();
+            if (hora < 8 || hora >= 20) {
+                fetch('https://qrctbkgmztiebluiyzys.supabase.co/functions/v1/alerta-acesso', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ usuario_id: session.user.id, horario: new Date().toLocaleString('pt-BR') })
+                }).catch(() => {});
+            }
+        } catch (_) {}
+
         if (!AppAdmin.dadosCarregados) await carregarTudo();
     } catch (e) {
         console.error('[ADMIN] Exceção em verificarAdmin:', e);
