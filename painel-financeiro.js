@@ -237,7 +237,7 @@ window.abrirMaquinaCartao = async function() {
         if (mesEl) mesEl.textContent = (_mesOriginal || mesEl.textContent) + " (Pagamento Único)";
 
         const valorEl = document.getElementById('valor-pagamento');
-        const valorNaTela = valorEl ? parseFloat(valorEl.textContent.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 25 : 25;  // ✅ CORREÇÃO: parse robusto de moeda BRL
+        const valorNaTela = valorEl ? parseFloat(valorEl.textContent.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 50.50 : 50.50;  // ✅ CORREÇÃO: parse robusto de moeda BRL
 
         const statusEl = document.getElementById('status-pagamento');
         if (statusEl) {
@@ -246,7 +246,7 @@ window.abrirMaquinaCartao = async function() {
         }
 
         const settings = {
-            initialization: { amount: parseFloat(valorNaTela) || 25 },
+            initialization: { amount: parseFloat(valorNaTela) || 50.50 },
             customization: {
                 visual: { style: { theme: 'dark' }, texts: { formTitle: "Pagar com Cartão" } },
                 paymentMethods: { maxInstallments: 1 }
@@ -521,11 +521,11 @@ if (btnAdiantarFatura) {
         const nomeProxMes = `${meses[proximoMesIndex]}/${ano}`;
 
         const { data: perfil } = await window.supabase.from('perfis').select('valor_mensalidade').eq('id', session.user.id).single();
-        const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 25;
+        const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 50.50;
 
         const result = await Swal.fire({
             title: 'Adiantar Mensalidade?',
-            html: `Deseja gerar a fatura de <b>${nomeProxMes}</b> no valor de <b>R$ ${valorFatura},00</b>?`,
+            html: `Deseja gerar a fatura de <b>${nomeProxMes}</b> no valor de <b>R$ ${Number(valorFatura).toFixed(2).replace('.', ',')}</b>?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#E53935',
