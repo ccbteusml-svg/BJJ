@@ -312,6 +312,8 @@ window.verificarAcesso = async function() {
             if (valEl) valEl.textContent = "—";
             if (opcoesEl) opcoesEl.style.display = "none";
             if (btnAdiantar) btnAdiantar.style.display = "none";
+            const chipR = document.getElementById('dias-vencimento');
+            if (chipR) chipR.style.display = 'none';
             return; // sai sem renderizar estado financeiro falso
         }
     }
@@ -340,6 +342,8 @@ window.verificarAcesso = async function() {
                     const opcoesEl = document.getElementById('opcoes-pagamento');
                     if (statusEl) { statusEl.textContent = "✅ EM DIA"; statusEl.style.color = "#4CAF50"; }
                     if (opcoesEl) opcoesEl.style.display = "none";
+                    const chipV = document.getElementById('dias-vencimento');
+                    if (chipV) chipV.style.display = 'none';
                     // 🧠 Cache: pagamento confirmado = EM DIA na próxima abertura
                     try {
                         const chaveCache = '4l_cache_home_' + usuarioId;
@@ -378,6 +382,28 @@ window.verificarAcesso = async function() {
         if (opcoesEl) opcoesEl.style.display = "flex";
         if (feedbackEl) feedbackEl.innerHTML = "";
         if (btnAdiantar) btnAdiantar.style.display = "none";
+
+        // ⏳ CONTADOR DE VENCIMENTO: mostra quantos dias faltam pro dia 10 da fatura
+        try {
+            const chipVenc = document.getElementById('dias-vencimento');
+            if (chipVenc) {
+                const MESES_IDX = { janeiro:0, fevereiro:1, marco:2, março:2, abril:3, maio:4, junho:5, julho:6, agosto:7, setembro:8, outubro:9, novembro:10, dezembro:11 };
+                const partesMes = String(mens.mes || '').toLowerCase().split('/');
+                const idxMes = MESES_IDX[partesMes[0]];
+                if (idxMes !== undefined && partesMes[1]) {
+                    const vencimento = new Date(parseInt(partesMes[1]), idxMes, 10, 23, 59, 59);
+                    const dias = Math.ceil((vencimento.getTime() - Date.now()) / 86400000);
+                    chipVenc.style.display = 'block';
+                    if (dias > 1)       chipVenc.textContent = '⏳ Faltam ' + dias + ' dias pro vencimento (dia 10)';
+                    else if (dias === 1) chipVenc.textContent = '⏳ Vence amanhã! (dia 10)';
+                    else if (dias === 0) chipVenc.textContent = '⚠️ Vence HOJE! (dia 10)';
+                    else                 chipVenc.textContent = '🚨 Venceu há ' + Math.abs(dias) + ' dia(s) — regularize pra treinar em paz';
+                } else {
+                    chipVenc.style.display = 'none';
+                }
+            }
+        } catch (_) {}
+
         // 🧠 Cache do status financeiro (abertura instantânea)
         try {
             const chaveCache = '4l_cache_home_' + usuarioId;
@@ -395,6 +421,8 @@ window.verificarAcesso = async function() {
         if (opcoesEl) opcoesEl.style.display = "none";
         if (feedbackEl) feedbackEl.innerHTML = "";
         if (btnAdiantar) btnAdiantar.style.display = "block";
+        const chipVencEmDia = document.getElementById('dias-vencimento');
+        if (chipVencEmDia) chipVencEmDia.style.display = 'none'; // em dia = sem contador
         // 🧠 Cache do status financeiro (abertura instantânea)
         try {
             const chaveCache = '4l_cache_home_' + usuarioId;
@@ -413,6 +441,7 @@ window.verificarAcesso = async function() {
         }
     } finally {
         _verificarAcessoRodando = false;
+        if (window._esconderSplash) window._esconderSplash(); // ✨ primeira carga concluída
     }
 };
 
@@ -605,6 +634,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.verificarAcesso();
     window.ligarRadarEmTempoReal();
+
+    // 📳 VIBRAÇÃO TÁTIL: todo toque em botão dá um "clique" físico (10ms).
+    // Ignorado automaticamente em aparelhos sem suporte (iPhone, desktop).
+    try {
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('button, .btn-tactile, [role="button"]')) {
+                if (navigator.vibrate) navigator.vibrate(10);
+            }
+        }, { passive: true });
+    } catch (_) {}
+
+    // 📡 MODO OFFLINE: avisa quando cair a net e re-sincroniza sozinho quando voltar
+    try {
+        const bannerOff = document.getElementById('banner-offline');
+        const attBanner = () => { if (bannerOff) bannerOff.style.display = navigator.onLine ? 'none' : 'block'; };
+        window.addEventListener('offline', attBanner);
+        window.addEventListener('online', () => {
+            attBanner();
+            if (typeof window.verificarAcesso === 'function') window.verificarAcesso(); // re-sync automático
+        });
+        attBanner(); // já entra certo se abrir sem internet
+    } catch (_) {}
+
+    // ✨ SPLASH: some quando a primeira carga terminar (ou em 6s, o que vier primeiro)
+    window._esconderSplash = function() {
+        const sp = document.getElementById('splash-4l');
+        if (!sp || sp.dataset.fechado) return;
+        sp.dataset.fechado = '1';
+        sp.style.opacity = '0';
+        setTimeout(() => sp.remove(), 550);
+    };
+    setTimeout(() => window._esconderSplash(), 6000); // failsafe
+
 
     // ✅ CORREÇÃO: Upload de foto do perfil (handler que estava faltando no painel.html)
     const inputFoto = document.getElementById('input-foto');

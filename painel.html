@@ -12,6 +12,22 @@
 </head>
 <body style="padding-bottom: 30px;">
 
+    <!-- ✨ SPLASH SCREEN: cobre a tela enquanto os dados carregam -->
+    <div id="splash-4l" style="position: fixed; inset: 0; z-index: 9999; background: #0a0a0c; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.5s ease;">
+        <img src="icone-192.png" alt="4L Academy" style="width: 110px; height: 110px; border-radius: 24px; animation: splashPulse 1.6s ease-in-out infinite;">
+        <div style="color: #E53935; font-weight: 800; font-size: 18px; letter-spacing: 2px;">4L ACADEMY</div>
+        <div style="width: 140px; height: 3px; background: #26262a; border-radius: 3px; overflow: hidden;">
+            <div style="width: 40%; height: 100%; background: #E53935; border-radius: 3px; animation: splashBar 1.2s ease-in-out infinite;"></div>
+        </div>
+    </div>
+    <style>
+        @keyframes splashPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+        @keyframes splashBar { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+    </style>
+
+    <!-- 📡 BANNER OFFLINE -->
+    <div id="banner-offline" style="display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9998; background: #FFC107; color: #000; text-align: center; font-size: 13px; font-weight: bold; padding: 8px;">📡 Sem internet — exibindo dados salvos</div>
+
     <div class="banner-aluno"></div>
     <div id="menu-backdrop" class="menu-backdrop" onclick="fecharMenu()"></div>
 
@@ -117,6 +133,9 @@
                     <span id="status-pagamento" style="font-weight: bold; font-size: 16px;">---</span>
                     <span id="valor-pagamento" style="color: white; font-weight: 800; font-size: 22px;">R$ 0,00</span>
                 </div>
+
+                <!-- ⏳ Contador de dias pro vencimento -->
+                <div id="dias-vencimento" style="display: none; margin-top: -15px; margin-bottom: 20px; font-size: 13px; font-weight: bold; padding: 8px 12px; border-radius: 8px; background: rgba(255, 82, 82, 0.1); border: 1px solid rgba(255, 82, 82, 0.3); color: #ff8a80;"></div>
 
                 <div id="opcoes-pagamento" style="display: none; flex-direction: column; gap: 10px;">
                     <button id="btn-pagar" class="btn-tactile" style="background-color: #009ee3; color: white;">⚡ PAGAR COM PIX</button>
@@ -225,7 +244,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="rede-guarda.js?v=1"></script>
     <script src="compress-foto.js?v=1"></script>
-    <script src="painel-core.js?v=64"></script>
+    <script src="painel-core.js?v=65"></script>
     <script src="painel-perfil.js?v=61"></script>
     <script src="painel-financeiro.js?v=59"></script>
     <script src="painel-ajustes.js?v=6"></script>
