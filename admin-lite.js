@@ -525,7 +525,7 @@ function renderDashboard() {
     
         if (!lista) return;
         lista.innerHTML = '';
-    
+
         if (filtrados.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'adm-empty';
@@ -533,8 +533,18 @@ function renderDashboard() {
             lista.appendChild(empty);
             return;
         }
-    
-        filtrados.forEach(a => {
+
+        // 🧠 Paginação: renderiza de 20 em 20 (lista longa não trava o celular)
+        const POR_PAGINA = 20;
+        const chaveFiltro = termo + '|' + (AppAdmin.filtroAluno || '');
+        if (chaveFiltro !== AppAdmin._chaveFiltroAlunos) {
+            AppAdmin._chaveFiltroAlunos = chaveFiltro;
+            AppAdmin._paginaAlunos = 1; // filtro/busca mudou: volta pra primeira página
+        }
+        const pagina = AppAdmin._paginaAlunos || 1;
+        const visiveis = filtrados.slice(0, pagina * POR_PAGINA);
+
+        visiveis.forEach(a => {
             const cor = corFaixa(a.faixa);
             const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
             const mensPendente = AppAdmin.mensalidades.filter(m => m.aluno_id === a.id && m.status === 'pendente')[0];
@@ -602,9 +612,18 @@ function renderDashboard() {
             chevron.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
             chevron.onclick = () => abrirDossie(a.id);
             item.appendChild(chevron);
-    
+
             lista.appendChild(item);
         });
+
+        // Botão "Carregar mais" quando ainda há alunos além da página atual
+        if (filtrados.length > visiveis.length) {
+            const btnMais = document.createElement('button');
+            btnMais.textContent = `▼ Carregar mais (${filtrados.length - visiveis.length} restantes)`;
+            btnMais.style.cssText = 'width:100%;padding:14px;margin-top:4px;border-radius:12px;border:1px dashed rgba(255,255,255,0.15);background:rgba(255,255,255,0.03);color:#aaa;font-size:13px;font-weight:700;cursor:pointer;';
+            btnMais.onclick = () => { AppAdmin._paginaAlunos = pagina + 1; renderAlunos(); };
+            lista.appendChild(btnMais);
+        }
     }
 
 
@@ -1806,7 +1825,7 @@ function montarNovaFila() {
     item.className = 'adm-disparo-item';
     item.id = `fila-item-${id}`;
     item.innerHTML = `
-      <img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+      <img src="${foto}" loading="lazy" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
         <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
         <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>
@@ -1845,7 +1864,7 @@ function restaurarFilaUI(fila) {
     }
     
     item.innerHTML = `
-      <img src="${foto}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;${isEnviado ? 'opacity:0.4;' : ''}">
+      <img src="${foto}" loading="lazy" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;${isEnviado ? 'opacity:0.4;' : ''}">
       <div style="flex:1;min-width:0;${isEnviado ? 'opacity:0.4;' : ''}">
         <h5 style="margin:0;font-size:12px;color:var(--adm-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.nome)}</h5>
         <p style="margin:2px 0 0;font-size:10px;color:var(--adm-text-2);">${a.telefone || 'Sem telefone'}</p>

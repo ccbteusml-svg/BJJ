@@ -108,6 +108,8 @@
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) throw new Error('Sessão expirada');
+            // 🧠 Guarda a URL da foto antiga ANTES de subir a nova (apaga direto, sem listar o bucket)
+            const { data: perfilAntes } = await supabase.from('perfis').select('foto_url').eq('id', session.user.id).single();
             const fileExt = file.name.split('.').pop();
             const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
             const { error: upErr } = await supabase.storage.from('fotos-perfil').upload(fileName, file, { upsert: true, contentType: file.type });
@@ -115,12 +117,14 @@
             const { data: { publicUrl } } = supabase.storage.from('fotos-perfil').getPublicUrl(fileName);
             const { error: updErr } = await supabase.from('perfis').update({ foto_url: publicUrl }).eq('id', session.user.id);
             if (updErr) throw updErr;
-            // 🧹 Apaga as fotos antigas do aluno (mantém só a recém-enviada)
+            // 🧹 Apaga SÓ a foto antiga (a que estava registrada no perfil)
             try {
-                const { data: arquivos } = await supabase.storage.from('fotos-perfil').list('', { search: session.user.id, limit: 100 });
-                const velhas = (arquivos || []).map(f => f.name).filter(n => n.startsWith(session.user.id) && n !== fileName);
-                if (velhas.length > 0) await supabase.storage.from('fotos-perfil').remove(velhas);
-            } catch (limpErr) { console.warn('[foto] Limpeza de fotos antigas falhou (não fatal):', limpErr); }
+                const urlAntiga = perfilAntes?.foto_url || '';
+                if (urlAntiga.includes('/fotos-perfil/')) {
+                    const nomeAntigo = urlAntiga.split('/fotos-perfil/').pop().split('?')[0];
+                    if (nomeAntigo && nomeAntigo !== fileName) await supabase.storage.from('fotos-perfil').remove([nomeAntigo]);
+                }
+            } catch (limpErr) { console.warn('[foto] Limpeza da foto antiga falhou (não fatal):', limpErr); }
             // Espelha na foto da home
             const imgHome = $('foto-perfil-aluno');
             if (imgHome) imgHome.src = publicUrl;

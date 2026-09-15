@@ -180,6 +180,44 @@ window.verificarAcesso = async function() {
         try { window.AndroidApp.registrarUsuarioApp(usuarioId); } catch(e) { console.warn(e); }
     }
 
+    // 🧠 CACHE LOCAL: pinta a home instantaneamente com os dados da última visita
+    // (nome, faixa, foto e status financeiro). A rede atualiza tudo logo em seguida.
+    try {
+        const cacheHome = JSON.parse(localStorage.getItem('4l_cache_home_' + usuarioId) || 'null');
+        if (cacheHome && cacheHome.perfil) {
+            const cp = cacheHome.perfil;
+            const corTemaCache = cp.corTema || '#E53935';
+            document.documentElement.style.setProperty('--cor-destaque', corTemaCache);
+            const saudacaoCache = document.getElementById('saudacao-aluno');
+            if (saudacaoCache && cp.nome) {
+                saudacaoCache.textContent = '';
+                const s1 = document.createElement('span');
+                s1.textContent = `Olá, ${cp.nome}! 👋 `;
+                saudacaoCache.appendChild(s1);
+                saudacaoCache.appendChild(document.createElement('br'));
+                const s2 = document.createElement('span');
+                s2.style.cssText = 'font-size: 14px; color: var(--cor-destaque); font-weight: bold;';
+                s2.textContent = `🥋 ${cp.faixa || 'Branca'}`;
+                saudacaoCache.appendChild(s2);
+            }
+            if (cp.foto_url) {
+                const imgC = document.getElementById('foto-perfil-aluno');
+                if (imgC) imgC.src = cp.foto_url;
+            }
+            if (cacheHome.financeiro) {
+                const cf = cacheHome.financeiro;
+                const mesC = document.getElementById('mes-atual');
+                const valC = document.getElementById('valor-pagamento');
+                const stC = document.getElementById('status-pagamento');
+                const opC = document.getElementById('opcoes-pagamento');
+                if (mesC) mesC.textContent = cf.mes;
+                if (valC) valC.textContent = cf.valorTxt;
+                if (stC) { stC.textContent = cf.statusTxt; stC.style.color = cf.statusCor; }
+                if (opC) opC.style.display = cf.mostrarPagamento ? 'flex' : 'none';
+            }
+        }
+    } catch (eCache) { /* cache corrompido: segue o fluxo normal */ }
+
     // ✅ maybeSingle: não lança exceção se o perfil ainda não existir; erro é checado
     const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('nome, faixa, foto_url, assinante').eq('id', usuarioId).maybeSingle();
     if (erroPerfil) {
@@ -206,6 +244,12 @@ window.verificarAcesso = async function() {
         else if (textoFaixaDB.includes('preta')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('coral') || textoFaixaDB.includes('vermelha')) corTema = '#D32F2F';
         document.documentElement.style.setProperty('--cor-destaque', corTema);
+        // 🧠 Salva perfil no cache local (abertura instantânea na próxima visita)
+        try {
+            const chaveCache = '4l_cache_home_' + usuarioId;
+            const anterior = JSON.parse(localStorage.getItem(chaveCache) || '{}');
+            localStorage.setItem(chaveCache, JSON.stringify({ ...anterior, ts: Date.now(), perfil: { nome: perfil.nome, faixa: perfil.faixa, foto_url: perfil.foto_url, corTema } }));
+        } catch (eCache) { /* sem drama */ }
     }
 
     const saudacao = document.getElementById('saudacao-aluno');
@@ -296,6 +340,12 @@ window.verificarAcesso = async function() {
                     const opcoesEl = document.getElementById('opcoes-pagamento');
                     if (statusEl) { statusEl.textContent = "✅ EM DIA"; statusEl.style.color = "#4CAF50"; }
                     if (opcoesEl) opcoesEl.style.display = "none";
+                    // 🧠 Cache: pagamento confirmado = EM DIA na próxima abertura
+                    try {
+                        const chaveCache = '4l_cache_home_' + usuarioId;
+                        const anterior = JSON.parse(localStorage.getItem(chaveCache) || '{}');
+                        localStorage.setItem(chaveCache, JSON.stringify({ ...anterior, ts: Date.now(), financeiro: { mes: 'Tudo Certo!', valorTxt: 'R$ 0,00', statusTxt: '✅ EM DIA', statusCor: '#4CAF50', mostrarPagamento: false } }));
+                    } catch (eCache) { /* sem drama */ }
                     if (!window._verificandoPagamento) {
                         window._verificandoPagamento = true;
                         // ✅ LIMITE DE RE-CHECAGENS: antes reagendava a cada 1,2s PARA SEMPRE
@@ -326,8 +376,14 @@ window.verificarAcesso = async function() {
             statusEl.style.color = "#ff5252";
         }
         if (opcoesEl) opcoesEl.style.display = "flex";
-        if (feedbackEl) feedbackEl.innerHTML = ""; 
+        if (feedbackEl) feedbackEl.innerHTML = "";
         if (btnAdiantar) btnAdiantar.style.display = "none";
+        // 🧠 Cache do status financeiro (abertura instantânea)
+        try {
+            const chaveCache = '4l_cache_home_' + usuarioId;
+            const anterior = JSON.parse(localStorage.getItem(chaveCache) || '{}');
+            localStorage.setItem(chaveCache, JSON.stringify({ ...anterior, ts: Date.now(), financeiro: { mes: mens.mes, valorTxt: `R$ ${Number(mens.valor).toFixed(2).replace('.', ',')}`, statusTxt: '🔴 EM ABERTO', statusCor: '#ff5252', mostrarPagamento: true } }));
+        } catch (eCache) { /* sem drama */ }
     } else {
         window._tentativasVerificacao = 0;
         if (mesEl) mesEl.textContent = "Tudo Certo!";
@@ -339,6 +395,12 @@ window.verificarAcesso = async function() {
         if (opcoesEl) opcoesEl.style.display = "none";
         if (feedbackEl) feedbackEl.innerHTML = "";
         if (btnAdiantar) btnAdiantar.style.display = "block";
+        // 🧠 Cache do status financeiro (abertura instantânea)
+        try {
+            const chaveCache = '4l_cache_home_' + usuarioId;
+            const anterior = JSON.parse(localStorage.getItem(chaveCache) || '{}');
+            localStorage.setItem(chaveCache, JSON.stringify({ ...anterior, ts: Date.now(), financeiro: { mes: 'Tudo Certo!', valorTxt: 'R$ 0,00', statusTxt: '✅ EM DIA', statusCor: '#4CAF50', mostrarPagamento: false } }));
+        } catch (eCache) { /* sem drama */ }
     }
 
     } catch (e) {
@@ -563,6 +625,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) throw new Error('Sessão expirada');
+                // 🧠 Guarda a URL da foto antiga ANTES de subir a nova (apaga direto, sem listar o bucket)
+                const { data: perfilAntes } = await supabase.from('perfis').select('foto_url').eq('id', session.user.id).single();
                 const fileExt = file.name.split('.').pop();
                 const fileName = `${session.user.id}-${Date.now()}.${fileExt}`;
                 const { error: uploadError } = await supabase.storage.from('fotos-perfil').upload(fileName, file, { upsert: true, contentType: file.type });
@@ -570,12 +634,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { data: { publicUrl } } = supabase.storage.from('fotos-perfil').getPublicUrl(fileName);
                 const { error: updateError } = await supabase.from('perfis').update({ foto_url: publicUrl }).eq('id', session.user.id);
                 if (updateError) throw updateError;
-                // 🧹 Apaga as fotos antigas do aluno (mantém só a recém-enviada)
+                // 🧹 Apaga SÓ a foto antiga (a que estava registrada no perfil)
                 try {
-                    const { data: arquivos } = await supabase.storage.from('fotos-perfil').list('', { search: session.user.id, limit: 100 });
-                    const velhas = (arquivos || []).map(f => f.name).filter(n => n.startsWith(session.user.id) && n !== fileName);
-                    if (velhas.length > 0) await supabase.storage.from('fotos-perfil').remove(velhas);
-                } catch (limpErr) { console.warn('[foto] Limpeza de fotos antigas falhou (não fatal):', limpErr); }
+                    const urlAntiga = perfilAntes?.foto_url || '';
+                    if (urlAntiga.includes('/fotos-perfil/')) {
+                        const nomeAntigo = urlAntiga.split('/fotos-perfil/').pop().split('?')[0];
+                        if (nomeAntigo && nomeAntigo !== fileName) await supabase.storage.from('fotos-perfil').remove([nomeAntigo]);
+                    }
+                } catch (limpErr) { console.warn('[foto] Limpeza da foto antiga falhou (não fatal):', limpErr); }
                 const img = document.getElementById('foto-perfil-aluno');
                 if (img) img.src = publicUrl;
                 Swal.fire({ icon: 'success', title: 'Foto atualizada!', background: '#161618', color: '#fff', showConfirmButton: false, timer: 1500 });
