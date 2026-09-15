@@ -1,20 +1,19 @@
 // ==========================================
-// CARTEIRINHA DIGITAL PREMIUM — 4L ACADEMY
-// Substitua a função abrirCarteirinha() no painel-perfil.js
+// CARTEIRINHA DIGITAL — 4L ACADEMY (v3 · estilo federação)
+// Modelo paisagem: campos etiquetados + foto retangular à direita
 // ==========================================
 
 window.abrirCarteirinha = async function() {
-    Swal.fire({ 
-        title: 'Gerando Carteirinha...', 
-        background: '#161618', 
-        color: '#fff', 
-        didOpen: () => { Swal.showLoading() } 
+    Swal.fire({
+        title: 'Gerando Carteirinha...',
+        background: '#161618',
+        color: '#fff',
+        didOpen: () => { Swal.showLoading() }
     });
 
     try {
         const { data: { session } } = await window.supabase.auth.getSession();
         if (!session) {
-            // ✅ Antes: loading "Gerando Carteirinha..." ficava aberto para sempre
             Swal.close();
             window.location.replace("index.html");
             return;
@@ -22,7 +21,6 @@ window.abrirCarteirinha = async function() {
 
         const usuarioId = session.user.id;
 
-        // Busca perfil + estatísticas
         const { data: perfil } = await window.supabase
             .from('perfis')
             .select('*')
@@ -31,17 +29,7 @@ window.abrirCarteirinha = async function() {
 
         if (!perfil) throw new Error("Perfil não encontrado");
 
-        // Busca contagem de mensalidades pagas (como proxy de "treinos/meses ativos")
-        const { data: mensalidades } = await window.supabase
-            .from('mensalidades')
-            .select('status, criado_em, mes')
-            .eq('aluno_id', usuarioId)
-            .order('criado_em', { ascending: false });
-
-        const pagamentos = (mensalidades || []).filter(m => m.status === 'pago');
-        const mesesAtivos = pagamentos.length;
-
-        // Dados
+        // ===== DADOS =====
         const foto = perfil.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(perfil.nome)}&background=161618&color=fff`;
         const nome = perfil.nome || 'Aluno';
         const faixaRaw = (perfil.faixa || 'Branca').toLowerCase();
@@ -60,7 +48,7 @@ window.abrirCarteirinha = async function() {
         else if (faixaRaw.includes('preta')) corBorda = '#ffffff';
         else if (faixaRaw.includes('coral') || faixaRaw.includes('vermelha')) corBorda = '#D32F2F';
 
-        // Extrai grau numérico
+        // Grau numérico
         let qtdGraus = 0;
         const matchGrau = faixaRaw.match(/(\d+)/);
         if (matchGrau) qtdGraus = parseInt(matchGrau[1]);
@@ -69,39 +57,19 @@ window.abrirCarteirinha = async function() {
         const isAtivo = !perfil.plano_pausado;
         const isVip = perfil.assinante;
         const corStatus = isAtivo ? '#22c55e' : '#ff5252';
-        const textoStatus = isAtivo ? '✅ MEMBRO ATIVO' : '🔴 INATIVO';
+        const textoStatus = isAtivo ? 'ATIVO' : 'INATIVO';
 
-        // Matrícula (gerada a partir do ID se não existir)
+        // Matrícula
         const matricula = perfil.matricula || '4L-' + usuarioId.slice(-4).toUpperCase();
 
         // Validade
         const anoAtual = new Date().getFullYear();
         const validade = `Dez/${anoAtual + 1}`;
 
-        // Aniversariante?
         const hoje = new Date();
-        let seloAniversario = '';
-        if (perfil.data_nascimento && typeof perfil.data_nascimento === 'string') {
-            const mesNasc = parseInt(perfil.data_nascimento.split('-')[1]);
-            if (mesNasc === (hoje.getMonth() + 1)) {
-                seloAniversario = `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">🎂 Aniversariante</span>`;
-            }
-        }
 
-        // Dados médicos (fallback se não tiver no banco)
-        const tipoSanguineo = perfil.tipo_sanguineo || 'Não informado';
-        const emergenciaNome = perfil.contato_emergencia_nome || 'Não informado';
-        const emergenciaTel = perfil.contato_emergencia_telefone || '—';
-
-        // Data de início
-        const dataInicio = perfil.data_inicio 
-            ? new Date(perfil.data_inicio).toLocaleDateString('pt-BR') 
-            : new Date(perfil.created_at || Date.now()).toLocaleDateString('pt-BR');
-
-        // ===== NOVOS DADOS DO ALUNO (v2 — tudo derivado do que já existe no banco) =====
-
-        // Idade + categoria (útil pra campeonato e turma)
-        let nascTxt = 'Não informado';
+        // Nascimento + categoria por idade (estilo federação)
+        let nascTxt = '—';
         let categoriaTxt = '—';
         if (perfil.data_nascimento && typeof perfil.data_nascimento === 'string') {
             const nasc = new Date(perfil.data_nascimento + 'T12:00:00');
@@ -120,33 +88,22 @@ window.abrirCarteirinha = async function() {
                     else if (idade <= 45) cat = 'Master 3';
                     else if (idade <= 50) cat = 'Master 4';
                     else cat = 'Master 5+';
-                    categoriaTxt = `${cat} · ${idade} anos`;
+                    categoriaTxt = cat;
                 }
             }
         }
 
-        // Tempo de casa (desde a data de início/cadastro)
-        const inicioDate = perfil.data_inicio ? new Date(perfil.data_inicio) : new Date(perfil.created_at || Date.now());
-        let mesesCasa = (hoje.getFullYear() - inicioDate.getFullYear()) * 12 + (hoje.getMonth() - inicioDate.getMonth());
-        if (isNaN(mesesCasa) || mesesCasa < 0) mesesCasa = 0;
-        const anosCasa = Math.floor(mesesCasa / 12), restoCasa = mesesCasa % 12;
-        const tempoDeCasa = anosCasa > 0
-            ? `${anosCasa} ano${anosCasa > 1 ? 's' : ''}${restoCasa ? ' e ' + restoCasa + (restoCasa > 1 ? ' meses' : ' mês') : ''}`
-            : `${restoCasa} ${restoCasa === 1 ? 'mês' : 'meses'}`;
+        // Membro desde
+        const dataInicio = perfil.data_inicio
+            ? new Date(perfil.data_inicio).toLocaleDateString('pt-BR')
+            : new Date(perfil.created_at || Date.now()).toLocaleDateString('pt-BR');
+        const desdeTxt = dataInicio.split('/')[2] || dataInicio;
 
-        // Situação financeira do mês atual (visível e relevante pro aluno)
-        const MESES_C4L = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-        const mesAtualC4L = MESES_C4L[hoje.getMonth()] + '/' + hoje.getFullYear();
-        const mensAtual = (mensalidades || []).find(m => m.mes === mesAtualC4L);
-        const situacao = !mensAtual ? { txt: 'Sem cobrança', cor: '#9e9e9e' }
-            : (mensAtual.status === 'pago' ? { txt: 'Em dia ✅', cor: '#22c55e' }
-            : { txt: 'Pendente ⚠️', cor: '#f59e0b' });
-
-        // Faixa visual estilo kimono (barra colorida + ponteira com os graus)
+        // Faixa visual estilo kimono (corpo + ponteira + graus)
         const isPreta = faixaRaw.includes('preta');
-        const corFaixaReal = isPreta ? '#161616' : corBorda; // faixa preta renderiza preta de verdade
-        const corPonteira = isPreta ? '#C62828' : '#141414'; // preta = ponteira vermelha; demais = ponteira preta
-        const larguraPonteira = qtdGraus > 0 ? Math.max(34, 12 + qtdGraus * 9) : 26;
+        const corFaixaReal = isPreta ? '#161616' : corBorda;
+        const corPonteira = isPreta ? '#C62828' : '#141414';
+        const larguraPonteira = qtdGraus > 0 ? Math.max(30, 10 + qtdGraus * 8) : 24;
         const stripesHtml = Array(qtdGraus).fill('<span class="c4l-grau-stripe"></span>').join('');
         const faixaVisualHtml = `
             <div class="c4l-faixa-visual" title="${escapeHtml(faixaDisplay)}${qtdGraus ? ' · ' + qtdGraus + 'º grau' : ''}">
@@ -154,298 +111,176 @@ window.abrirCarteirinha = async function() {
                 <div class="c4l-faixa-ponteira" style="background:${corPonteira};width:${larguraPonteira}px;">${stripesHtml}</div>
             </div>`;
 
-        // Safe escapes
         const safeNome = escapeHtml(nome);
         const safeFaixa = escapeHtml(faixaDisplay);
         const safeMatricula = escapeHtml(matricula);
+        const safeNasc = escapeHtml(nascTxt);
+        const safeCategoria = escapeHtml(categoriaTxt);
 
-        // Guarda os dados pra gerar a imagem da carteirinha em canvas (sem html2canvas)
+        // Dados para o download em canvas
         window._cart4l = {
             nome, faixaDisplay, corBorda, corFaixaReal, corPonteira,
-            qtdGraus, mesesAtivos, validade, matricula,
-            isAtivo, isVip, anoInicio: dataInicio.split('/')[2], foto
+            qtdGraus, validade, matricula, nascTxt, categoriaTxt,
+            isAtivo, isVip, textoStatus, desdeTxt, foto
         };
 
-        // HTML da carteirinha
+        const campo = (label, valor) => `
+            <div class="c4l-campo">
+                <span class="c4l-campo-label">${label}</span>
+                <span class="c4l-campo-valor">${valor}</span>
+            </div>`;
+
+        // ===== HTML (paisagem, estilo carteirinha de federação) =====
         const htmlCarteirinha = `
 <style>
-    #carteirinha-4l-wrapper { perspective: 1000px; width: 100%; max-width: 340px; margin: 0 auto; }
-    #carteirinha-4l-inner { 
-        position: relative; width: 100%; height: 420px; 
-        transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1); 
-        transform-style: preserve-3d; cursor: pointer;
+    #carteirinha-4l { width: 100%; max-width: 360px; margin: 0 auto; }
+    .c4l-card {
+        position: relative; width: 100%; aspect-ratio: 856 / 540;
+        border-radius: 14px; overflow: hidden;
+        background: linear-gradient(150deg, #0c0c0e 0%, #17171b 55%, #100c0d 100%);
+        border: 1px solid rgba(255,255,255,0.10);
+        display: flex; flex-direction: column;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.5);
     }
-    #carteirinha-4l-wrapper.flipped #carteirinha-4l-inner { transform: rotateY(180deg); }
-    .c4l-face { 
-        position: absolute; width: 100%; height: 100%; backface-visibility: hidden; 
-        border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
-        display: flex; flex-direction: column; /* conteúdo ocupa o cartão inteiro (rodapé colado embaixo) */
+    .c4l-card::before { /* textura sutil diagonal */
+        content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
+        background-image: repeating-linear-gradient(-45deg, transparent, transparent 26px, rgba(255,255,255,0.5) 26px, rgba(255,255,255,0.5) 27px);
     }
-    .c4l-front { 
-        background: linear-gradient(160deg, #0c0c0e 0%, #16161a 50%, #0f0f12 100%);
+    /* Cabeçalho estilo federação */
+    .c4l-topo {
+        position: relative; z-index: 2; text-align: center;
+        padding: 10px 12px 8px;
+        background: linear-gradient(90deg, #B71C1C 0%, #E53935 50%, #B71C1C 100%);
+        border-bottom: 2px solid rgba(0,0,0,0.4);
     }
-    .c4l-back { 
-        background: linear-gradient(160deg, #111113 0%, #1a1a1e 100%); 
-        transform: rotateY(180deg); padding: 14px; display: flex; flex-direction: column;
+    .c4l-topo-titulo {
+        font-style: italic; font-weight: 900; font-size: 15px; color: #fff;
+        letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.1;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
     }
-    .c4l-watermark {
-        position: absolute; inset: 0; pointer-events: none; opacity: 0.025;
-        background-image: repeating-linear-gradient(
-            -45deg, transparent, transparent 30px, rgba(255,255,255,0.4) 30px, rgba(255,255,255,0.4) 31px
-        );
+    .c4l-topo-sub {
+        font-size: 8px; font-weight: 700; color: rgba(255,255,255,0.85);
+        letter-spacing: 2.5px; text-transform: uppercase; margin-top: 2px;
     }
-    .c4l-watermark-text {
-        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg);
-        font-size: 42px; font-weight: 900; color: rgba(255,255,255,0.04); text-transform: uppercase;
-        letter-spacing: 4px; white-space: nowrap; pointer-events: none;
+    /* Corpo: campos à esquerda, foto à direita */
+    .c4l-corpo { display: flex; flex: 1; position: relative; z-index: 2; min-height: 0; }
+    .c4l-campos { flex: 1; padding: 10px 4px 8px 12px; display: flex; flex-direction: column; justify-content: center; gap: 5px; min-width: 0; }
+    .c4l-campo { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .c4l-campo-label {
+        flex-shrink: 0; font-size: 7.5px; font-weight: 800; color: #0a0a0c;
+        background: #e8e8e8; border-radius: 3px; padding: 2px 5px;
+        letter-spacing: 0.4px; text-transform: uppercase;
     }
-    .c4l-header { 
-        display: flex; align-items: center; justify-content: space-between; 
-        padding: 12px 14px 8px; border-bottom: 1px solid rgba(255,255,255,0.06); position: relative; z-index: 2;
+    .c4l-campo-valor {
+        font-size: 11.5px; font-weight: 800; color: #fff;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        text-transform: uppercase; letter-spacing: 0.2px;
     }
-    .c4l-logo { font-style: italic; font-weight: 900; font-size: 15px; color: #fff; letter-spacing: -0.3px; }
-    .c4l-logo span { color: #E53935; }
-    .c4l-chip { 
-        width: 30px; height: 20px; border-radius: 4px; 
-        background: linear-gradient(135deg, #d4af37, #f9e076, #d4af37); position: relative; 
+    .c4l-dupla { display: flex; gap: 10px; }
+    .c4l-dupla .c4l-campo { flex: 1; }
+    .c4l-foto-area {
+        flex-shrink: 0; width: 31%; padding: 10px 12px 8px 6px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
     }
-    .c4l-chip::after { content: ''; position: absolute; inset: 3px; border: 1px solid rgba(0,0,0,0.25); border-radius: 2px; }
-    .c4l-body { display: flex; padding: 14px; gap: 14px; flex: 1; position: relative; z-index: 2; align-items: center; }
-    .c4l-photo-wrap { position: relative; flex-shrink: 0; align-self: center; }
-    .c4l-photo { 
-        width: 80px; height: 80px; border-radius: 50%; object-fit: cover; 
-        border: 3px solid ${corBorda}; box-shadow: 0 0 0 4px ${corBorda}22;
+    .c4l-foto {
+        width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 8px;
+        border: 3px solid ${corBorda}; box-shadow: 0 0 0 3px ${corBorda}33, 0 6px 16px rgba(0,0,0,0.5);
+        background: #1c1c20;
     }
-    .c4l-grau-badge { 
-        position: absolute; bottom: -2px; right: -2px; width: 24px; height: 24px; 
-        border-radius: 50%; background: ${corBorda}; border: 2px solid #0c0c0e; 
-        display: flex; align-items: center; justify-content: center; 
-        font-size: 10px; font-weight: 800; color: #000;
+    .c4l-status-pill {
+        font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+        color: ${corStatus}; border: 1px solid ${corStatus}55; background: ${corStatus}18;
+        padding: 2px 10px; border-radius: 20px;
     }
-    .c4l-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
-    .c4l-name { font-size: 16px; font-weight: 800; color: #fff; margin: 0 0 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .c4l-belt-text { font-size: 12px; font-weight: 700; color: ${corBorda}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-    /* Faixa visual estilo kimono: corpo na cor da faixa + ponteira com listras de grau */
+    /* Faixa estilo kimono */
     .c4l-faixa-visual {
-        display: flex; height: 13px; max-width: 175px; border-radius: 3px; overflow: hidden;
-        margin: 0 0 8px; border: 1px solid rgba(255,255,255,0.18);
-        box-shadow: 0 1px 5px rgba(0,0,0,0.55);
+        display: flex; height: 11px; max-width: 150px; border-radius: 3px; overflow: hidden;
+        margin: 1px 0; border: 1px solid rgba(255,255,255,0.18);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.55);
     }
     .c4l-faixa-corpo { flex: 1; }
     .c4l-faixa-ponteira {
         flex-shrink: 0; display: flex; align-items: stretch; justify-content: flex-end;
-        gap: 3px; padding: 0 5px 0 6px; border-left: 1px solid rgba(0,0,0,0.5);
+        gap: 2.5px; padding: 0 4px 0 5px; border-left: 1px solid rgba(0,0,0,0.5);
     }
-    .c4l-grau-stripe { width: 4px; background: #f5f5f5; box-shadow: 0 0 2px rgba(0,0,0,0.7); }
-    .c4l-badges { display: flex; gap: 5px; flex-wrap: wrap; }
-    .c4l-badge { 
-        font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 20px; 
-        text-transform: uppercase; letter-spacing: 0.3px; 
+    .c4l-grau-stripe { width: 3.5px; background: #f5f5f5; box-shadow: 0 0 2px rgba(0,0,0,0.7); }
+    /* Rodapé */
+    .c4l-pe {
+        position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 12px; background: rgba(0,0,0,0.4); border-top: 1px solid rgba(255,255,255,0.06);
     }
-    .c4l-badge.active { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
-    .c4l-badge.vip { background: rgba(59,130,246,0.12); color: #3b82f6; border: 1px solid rgba(59,130,246,0.25); }
-    .c4l-badge.since { background: rgba(255,255,255,0.05); color: #888; border: 1px solid rgba(255,255,255,0.08); }
-    .c4l-stats-bar { 
-        display: flex; gap: 8px; padding: 10px 14px; border-top: 1px solid rgba(255,255,255,0.04); 
-        position: relative; z-index: 2;
-    }
-    .c4l-stat { flex: 1; text-align: center; }
-    .c4l-stat-value { font-size: 16px; font-weight: 800; color: #fff; }
-    .c4l-stat-label { font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-    .c4l-footer-bar { 
-        display: flex; align-items: center; justify-content: space-between; 
-        padding: 10px 14px; background: rgba(0,0,0,0.35); border-top: 1px solid rgba(255,255,255,0.04); 
-        position: relative; z-index: 2;
-    }
-    .c4l-mat { font-size: 10px; color: #555; font-family: monospace; letter-spacing: 0.5px; }
-    .c4l-qr { width: 34px; height: 34px; background: #fff; border-radius: 4px; padding: 3px; }
-    .c4l-back-title { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-    .c4l-back-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-    .c4l-back-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 8px; }
-    .c4l-back-label { font-size: 9px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px; }
-    .c4l-back-value { font-size: 12px; color: #ccc; font-weight: 600; }
-    .c4l-back-full { grid-column: 1 / -1; }
-    .c4l-back-footer { 
-        margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); 
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .c4l-valid { font-size: 10px; color: #555; }
-    .c4l-valid b { color: #888; }
-    .c4l-actions { 
-        display: flex; gap: 8px; margin-top: 14px; justify-content: center;
-    }
-    .c4l-actions button { 
-        padding: 10px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; 
+    .c4l-pe-item { font-size: 8px; color: #777; letter-spacing: 0.5px; text-transform: uppercase; }
+    .c4l-pe-item b { color: #ccc; font-size: 9px; }
+    .c4l-acoes { display: flex; gap: 8px; margin-top: 14px; justify-content: center; }
+    .c4l-acoes button {
+        padding: 10px 18px; border-radius: 8px; font-size: 12px; font-weight: 700;
         cursor: pointer; border: none; transition: all 0.15s;
     }
     .c4l-btn-download { background: linear-gradient(135deg, #E53935, #B71C1C); color: white; }
     .c4l-btn-download:active { transform: scale(0.95); opacity: 0.9; }
-    .c4l-btn-share { background: rgba(255,255,255,0.06); color: #aaa; border: 1px solid rgba(255,255,255,0.1); }
     .c4l-hint { text-align: center; font-size: 11px; color: #555; margin-top: 8px; }
 </style>
 
-<div id="carteirinha-4l-wrapper" onclick="document.getElementById('carteirinha-4l-wrapper').classList.toggle('flipped')">
-    <div id="carteirinha-4l-inner">
-        <!-- FRENTE -->
-        <div class="c4l-face c4l-front">
-            <div class="c4l-watermark"></div>
-            <div class="c4l-watermark-text">4L ACADEMY</div>
+<div id="carteirinha-4l">
+    <div class="c4l-card">
+        <div class="c4l-topo">
+            <div class="c4l-topo-titulo">4L Academy · Jiu-Jitsu</div>
+            <div class="c4l-topo-sub">Carteirinha do Aluno · ${anoAtual}</div>
+        </div>
 
-            <div class="c4l-header">
-                <div class="c4l-logo">4L <span>ACADEMY</span></div>
-                <div class="c4l-chip"></div>
-            </div>
-
-            <div class="c4l-body">
-                <div class="c4l-photo-wrap">
-                    <img src="${foto}" class="c4l-photo" alt="${safeNome}" crossorigin="anonymous">
-                    ${qtdGraus > 0 ? `<div class="c4l-grau-badge">${qtdGraus}º</div>` : ''}
+        <div class="c4l-corpo">
+            <div class="c4l-campos">
+                ${campo('Nome', safeNome)}
+                <div class="c4l-dupla">
+                    ${campo('Faixa', safeFaixa)}
+                    ${campo('Grau', qtdGraus > 0 ? qtdGraus + 'º' : '—')}
                 </div>
-                <div class="c4l-meta">
-                    <h3 class="c4l-name">${safeNome}</h3>
-                    <div class="c4l-belt-text">🥋 ${safeFaixa}</div>
-                    ${faixaVisualHtml}
-                    <div class="c4l-badges">
-                        <span class="c4l-badge active">${textoStatus}</span>
-                        ${isVip ? '<span class="c4l-badge vip">👑 VIP</span>' : ''}
-                        <span class="c4l-badge since">Desde ${dataInicio.split('/')[2]}</span>
-                        ${seloAniversario}
-                    </div>
+                ${faixaVisualHtml}
+                <div class="c4l-dupla">
+                    ${campo('Categ.', safeCategoria)}
+                    ${campo('Nasc.', safeNasc)}
+                </div>
+                <div class="c4l-dupla">
+                    ${campo('Matríc.', safeMatricula)}
+                    ${campo('Desde', escapeHtml(desdeTxt))}
                 </div>
             </div>
-
-            <div class="c4l-stats-bar">
-                <div class="c4l-stat">
-                    <div class="c4l-stat-value">${mesesAtivos}</div>
-                    <div class="c4l-stat-label">Meses</div>
-                </div>
-                <div class="c4l-stat">
-                    <div class="c4l-stat-value">${qtdGraus}</div>
-                    <div class="c4l-stat-label">Graus</div>
-                </div>
-                <div class="c4l-stat">
-                    <div class="c4l-stat-value">${validade.split('/')[1]}</div>
-                    <div class="c4l-stat-label">Validade</div>
-                </div>
-            </div>
-
-            <div class="c4l-footer-bar">
-                <span class="c4l-mat">${safeMatricula}</span>
-                <div class="c4l-qr">
-                    <svg viewBox="0 0 34 34" style="display:block;">
-                        <rect x="0" y="0" width="34" height="34" fill="white"/>
-                        <rect x="2" y="2" width="10" height="10" fill="black"/>
-                        <rect x="4" y="4" width="6" height="6" fill="white"/>
-                        <rect x="5" y="5" width="4" height="4" fill="black"/>
-                        <rect x="22" y="2" width="10" height="10" fill="black"/>
-                        <rect x="24" y="4" width="6" height="6" fill="white"/>
-                        <rect x="25" y="5" width="4" height="4" fill="black"/>
-                        <rect x="2" y="22" width="10" height="10" fill="black"/>
-                        <rect x="4" y="24" width="6" height="6" fill="white"/>
-                        <rect x="5" y="25" width="4" height="4" fill="black"/>
-                        <rect x="16" y="2" width="4" height="4" fill="black"/>
-                        <rect x="16" y="8" width="4" height="2" fill="black"/>
-                        <rect x="14" y="16" width="6" height="2" fill="black"/>
-                        <rect x="16" y="20" width="4" height="4" fill="black"/>
-                        <rect x="22" y="16" width="4" height="4" fill="black"/>
-                        <rect x="28" y="16" width="2" height="6" fill="black"/>
-                        <rect x="22" y="24" width="2" height="6" fill="black"/>
-                        <rect x="26" y="26" width="6" height="6" fill="black"/>
-                        <rect x="28" y="28" width="2" height="2" fill="white"/>
-                        <rect x="2" y="16" width="6" height="2" fill="black"/>
-                        <rect x="8" y="14" width="2" height="6" fill="black"/>
-                    </svg>
-                </div>
+            <div class="c4l-foto-area">
+                <img src="${foto}" class="c4l-foto" alt="${safeNome}" crossorigin="anonymous">
+                <span class="c4l-status-pill">${textoStatus}${isVip ? ' · VIP' : ''}</span>
             </div>
         </div>
 
-        <!-- VERSO -->
-        <div class="c4l-face c4l-back">
-            <div class="c4l-back-title">📋 Dados do Aluno</div>
-            <div class="c4l-back-grid">
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Tipo Sanguíneo</div>
-                    <div class="c4l-back-value" style="color:${tipoSanguineo !== 'Não informado' ? '#E53935' : '#555'};">${escapeHtml(tipoSanguineo)}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Nascimento</div>
-                    <div class="c4l-back-value">${escapeHtml(nascTxt)}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Categoria</div>
-                    <div class="c4l-back-value">${escapeHtml(categoriaTxt)}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Plano</div>
-                    <div class="c4l-back-value">${isVip ? 'VIP Recorrente' : 'Mensal'}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Situação</div>
-                    <div class="c4l-back-value" style="color:${situacao.cor};">${situacao.txt}</div>
-                </div>
-                <div class="c4l-back-item">
-                    <div class="c4l-back-label">Tempo de Casa</div>
-                    <div class="c4l-back-value">${escapeHtml(tempoDeCasa)}</div>
-                </div>
-                <div class="c4l-back-item c4l-back-full">
-                    <div class="c4l-back-label">Contato de Emergência</div>
-                    <div class="c4l-back-value" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(emergenciaNome)} · ${escapeHtml(emergenciaTel)}</div>
-
-                </div>
-            </div>
-
-            <div style="margin-top:6px;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid rgba(255,255,255,0.04);">
-                <div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">📍 ACADEMIA</div>
-                <div style="font-size:10px;color:#777;line-height:1.4;">
-                    4L Academy — Brazilian Jiu-Jitsu<br>
-                    Manaus/AM · WhatsApp: (92) 98558-9868
-                </div>
-            </div>
-
-            <div class="c4l-back-footer">
-                <span class="c4l-valid">Validade: <b>${validade}</b></span>
-                <span style="font-size:8px;color:#333;">4L TEAM · OSS 🥋</span>
-            </div>
+        <div class="c4l-pe">
+            <span class="c4l-pe-item">Validade: <b>${validade}</b></span>
+            <span class="c4l-pe-item">4L Academy · <b>Oss!</b></span>
         </div>
     </div>
-</div>
 
-<div class="c4l-hint">👆 Toque na carteirinha para virar</div>
-
-<div class="c4l-actions">
-    <button class="c4l-btn-download btn-tactile" onclick="baixarCarteirinha(event)" id="btn-salvar-cart" style="flex:1;">
-        💾 Salvar Imagem
-    </button>
-</div>
-
-        `;
+    <div class="c4l-acoes">
+        <button class="c4l-btn-download" onclick="window.baixarCarteirinha(event)">📥 Baixar Carteirinha</button>
+    </div>
+    <p class="c4l-hint">Apresente esta carteirinha na academia</p>
+</div>`;
 
         Swal.fire({
             html: htmlCarteirinha,
-            background: '#0a0a0c',
             showConfirmButton: false,
             showCloseButton: true,
-            padding: '20px 15px',
-            width: '380px',
-            customClass: { popup: 'swal-carteirinha' }
+            background: '#0a0a0c',
+            width: 420,
+            customClass: { popup: 'carteirinha-popup' }
         });
 
-    } catch (error) {
-        console.error(error);
-        Swal.fire({ 
-            icon: 'error', 
-            title: 'Erro', 
-            text: 'Não foi possível gerar a carteirinha.', 
-            background: '#161618', 
-            color: '#fff' 
-        });
+    } catch (err) {
+        console.error("Erro na carteirinha:", err);
+        Swal.fire({ icon: 'error', title: 'Ops!', text: 'Não foi possível carregar a carteirinha.', background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
     }
 };
 
 // ==========================================
-// FUNÇÕES AUXILIARES (adicione também no arquivo)
+// DOWNLOAD — desenha a carteirinha em canvas (paisagem)
 // ==========================================
-
 window.baixarCarteirinha = async function(e) {
     if (e) e.stopPropagation();
 
@@ -463,224 +298,203 @@ window.baixarCarteirinha = async function(e) {
     });
 
     try {
-        // Desenha a carteirinha direto num canvas (sem html2canvas = sem erro de 3D/CORS)
-        const W = 1050, H = 660;
+        const W = 1080, H = 680;
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
 
-        // Fundo do cartão (gradiente escuro)
+        const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+
+        // Fundo
         const bg = ctx.createLinearGradient(0, 0, W, H);
-        bg.addColorStop(0, '#1a1a1e');
-        bg.addColorStop(0.5, '#121214');
-        bg.addColorStop(1, '#1c1114');
+        bg.addColorStop(0, '#0c0c0e');
+        bg.addColorStop(0.55, '#17171b');
+        bg.addColorStop(1, '#100c0d');
         ctx.fillStyle = bg;
-        ctx.beginPath();
-        ctx.roundRect(0, 0, W, H, 36);
-        ctx.fill();
+        rr(0, 0, W, H, 40); ctx.fill();
 
-        // Borda sutil
-        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-        ctx.lineWidth = 3;
-        ctx.stroke();
-
-        // Marca d'água
+        // Textura diagonal
         ctx.save();
-        ctx.globalAlpha = 0.05;
-        ctx.fillStyle = '#fff';
-        ctx.font = 'italic 900 150px Arial';
-        ctx.textAlign = 'center';
-        ctx.translate(W / 2, H / 2);
-        ctx.rotate(-0.12);
-        ctx.fillText('4L', 0, 50);
+        ctx.globalAlpha = 0.03;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        for (let i = -H; i < W + H; i += 80) {
+            ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + H, H); ctx.stroke();
+        }
         ctx.restore();
 
-        // Faixa vermelha superior
+        // Borda
+        ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+        ctx.lineWidth = 3;
+        rr(2, 2, W - 4, H - 4, 38); ctx.stroke();
+
+        // Faixa vermelha do topo
         const top = ctx.createLinearGradient(0, 0, W, 0);
-        top.addColorStop(0, '#E53935');
+        top.addColorStop(0, '#B71C1C');
+        top.addColorStop(0.5, '#E53935');
         top.addColorStop(1, '#B71C1C');
         ctx.fillStyle = top;
         ctx.beginPath();
-        ctx.roundRect(0, 0, W, 14, [36, 36, 0, 0]);
+        ctx.roundRect(0, 0, W, 130, [40, 40, 0, 0]);
         ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(0, 124, W, 6);
 
-        // Logo
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#fff';
-        ctx.font = 'italic 900 52px Arial';
-        ctx.fillText('4L', 48, 92);
-        const w4l = ctx.measureText('4L').width;
-        ctx.fillStyle = '#E53935';
-        ctx.font = 'italic 900 30px Arial';
-        ctx.fillText('ACADEMY', 48 + w4l + 12, 90);
-
-        // Chip
-        ctx.fillStyle = '#d4af37';
-        ctx.beginPath();
-        ctx.roundRect(W - 130, 52, 72, 54, 10);
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(W - 118, 66, 48, 26);
-
-        // Foto (círculo) — com fallback de iniciais se a imagem falhar
-        const cx = 150, cy = 300, r = 95;
-        const desenharFotoFallback = () => {
-            ctx.fillStyle = '#252528';
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
-            const iniciais = d.nome.trim().split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
-            ctx.fillStyle = '#888';
-            ctx.font = 'bold 60px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(iniciais, cx, cy + 20);
-            ctx.textAlign = 'left';
-        };
-        try {
-            const img = await new Promise((res, rej) => {
-                const i = new Image();
-                i.crossOrigin = 'anonymous';
-                i.onload = () => res(i);
-                i.onerror = rej;
-                i.src = d.foto;
-            });
-            ctx.save();
-            ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
-            const lado = Math.min(img.width, img.height);
-            ctx.drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, cx - r, cy - r, r * 2, r * 2);
-            ctx.restore();
-        } catch (_) {
-            desenharFotoFallback();
-        }
-        // Anel da foto na cor da faixa
-        ctx.strokeStyle = d.corBorda;
-        ctx.lineWidth = 8;
-        ctx.beginPath(); ctx.arc(cx, cy, r + 4, 0, Math.PI * 2); ctx.stroke();
-
-        // Badge de grau na foto
-        if (d.qtdGraus > 0) {
-            ctx.fillStyle = '#E53935';
-            ctx.beginPath(); ctx.arc(cx + r - 14, cy + r - 14, 30, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 28px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(d.qtdGraus + 'º', cx + r - 14, cy + r - 4);
-            ctx.textAlign = 'left';
-        }
-
-        // Nome / faixa
-        const nx = 290;
-        ctx.fillStyle = '#fff';
-        ctx.font = '900 44px Arial';
-        let nomeTxt = d.nome;
-        while (ctx.measureText(nomeTxt).width > W - nx - 60 && nomeTxt.length > 3) nomeTxt = nomeTxt.slice(0, -2);
-        if (nomeTxt !== d.nome) nomeTxt = nomeTxt.trim() + '…';
-        ctx.fillText(nomeTxt, nx, 240);
-
-        ctx.fillStyle = '#aaa';
-        ctx.font = 'bold 26px Arial';
-        ctx.fillText('🥋 ' + d.faixaDisplay, nx, 285);
-
-        // Faixa visual (corpo + ponteira + graus)
-        const fy = 310, fh = 26, fw = 340;
-        ctx.fillStyle = d.corFaixaReal;
-        ctx.beginPath(); ctx.roundRect(nx, fy, fw, fh, 6); ctx.fill();
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
-        const pw = d.qtdGraus > 0 ? Math.max(100, 36 + d.qtdGraus * 26) : 78;
-        ctx.fillStyle = d.corPonteira;
-        ctx.fillRect(nx + fw - pw, fy, pw, fh);
-        ctx.fillStyle = '#fff';
-        for (let g = 0; g < d.qtdGraus; g++) {
-            ctx.fillRect(nx + fw - pw + 16 + g * 26, fy + 3, 9, fh - 6);
-        }
-
-        // Badges (status / VIP / desde)
-        let bx = nx;
-        const desenharBadge = (txt, corFundo, corTxt) => {
-            ctx.font = 'bold 20px Arial';
-            const bw = ctx.measureText(txt).width + 36;
-            ctx.fillStyle = corFundo;
-            ctx.beginPath(); ctx.roundRect(bx, 372, bw, 40, 20); ctx.fill();
-            ctx.fillStyle = corTxt;
-            ctx.fillText(txt, bx + 18, 399);
-            bx += bw + 14;
-        };
-        desenharBadge(d.isAtivo ? 'MEMBRO ATIVO' : 'INATIVO', d.isAtivo ? 'rgba(34,197,94,0.18)' : 'rgba(255,82,82,0.18)', d.isAtivo ? '#22c55e' : '#ff5252');
-        if (d.isVip) desenharBadge('👑 VIP', 'rgba(245,158,11,0.18)', '#f59e0b');
-        desenharBadge('Desde ' + d.anoInicio, 'rgba(255,255,255,0.08)', '#bbb');
-
-        // Barra de stats
-        const sy = 470;
-        ctx.fillStyle = 'rgba(255,255,255,0.04)';
-        ctx.beginPath(); ctx.roundRect(48, sy, W - 96, 96, 18); ctx.fill();
-        const stats = [
-            [String(d.mesesAtivos), 'MESES'],
-            [String(d.qtdGraus), 'GRAUS'],
-            [d.validade.split('/')[1], 'VALIDADE']
-        ];
+        // Título
         ctx.textAlign = 'center';
-        stats.forEach((s, i) => {
-            const sx = 48 + (W - 96) * (i + 0.5) / 3;
-            ctx.fillStyle = '#E53935';
-            ctx.font = '900 40px Arial';
-            ctx.fillText(s[0], sx, sy + 44);
-            ctx.fillStyle = '#777';
-            ctx.font = 'bold 17px Arial';
-            ctx.fillText(s[1], sx, sy + 76);
-        });
-        ctx.textAlign = 'left';
-
-        // Rodapé: matrícula + QR decorativo
-        ctx.fillStyle = '#666';
-        ctx.font = 'bold 22px monospace';
-        ctx.fillText(d.matricula, 48, H - 42);
-
-        const qx = W - 116, qy = H - 116, q = 68;
         ctx.fillStyle = '#fff';
-        ctx.fillRect(qx, qy, q, q);
-        ctx.fillStyle = '#000';
-        const olho = (ex, ey) => {
-            ctx.fillRect(ex, ey, 20, 20);
-            ctx.fillStyle = '#fff'; ctx.fillRect(ex + 4, ey + 4, 12, 12);
-            ctx.fillStyle = '#000'; ctx.fillRect(ex + 7, ey + 7, 6, 6);
+        ctx.font = 'italic 900 56px Arial';
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 6;
+        ctx.fillText('4L ACADEMY · JIU-JITSU', W / 2, 66);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '700 22px Arial';
+        const anoTxt = 'CARTEIRINHA DO ALUNO · ' + new Date().getFullYear();
+        ctx.fillText(anoTxt.split('').join('  '), W / 2, 106);
+
+        // Área da foto (direita)
+        const fotoX = W - 330, fotoY = 175, fotoW = 270, fotoH = 360;
+        const desenharMoldura = () => {
+            ctx.strokeStyle = d.corBorda;
+            ctx.lineWidth = 8;
+            rr(fotoX - 8, fotoY - 8, fotoW + 16, fotoH + 16, 18);
+            ctx.stroke();
         };
-        olho(qx + 4, qy + 4);
-        olho(qx + q - 24, qy + 4);
-        olho(qx + 4, qy + q - 24);
-        [[32, 6, 8, 8], [30, 30, 10, 4], [44, 28, 8, 8], [28, 44, 6, 12], [42, 44, 12, 12], [30, 20, 4, 6], [52, 52, 8, 8]].forEach(b => {
-            ctx.fillRect(qx + b[0], qy + b[1], b[2], b[3]);
-        });
+        const desenharFotoFallback = () => {
+            ctx.fillStyle = '#1c1c20';
+            rr(fotoX, fotoY, fotoW, fotoH, 12); ctx.fill();
+            ctx.fillStyle = '#E53935';
+            ctx.font = '900 90px Arial';
+            ctx.textAlign = 'center';
+            const ini = d.nome.split(' ').filter(Boolean).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+            ctx.fillText(ini, fotoX + fotoW / 2, fotoY + fotoH / 2 + 32);
+            desenharMoldura();
+        };
 
-        const dataUrl = canvas.toDataURL('image/png');
+        // Campos (esquerda)
+        const desenharCampos = () => {
+            ctx.textAlign = 'left';
+            const label = (txt, x, y) => {
+                ctx.font = '800 19px Arial';
+                const w = ctx.measureText(txt.toUpperCase()).width + 22;
+                ctx.fillStyle = '#e8e8e8';
+                rr(x, y - 20, w, 28, 5); ctx.fill();
+                ctx.fillStyle = '#0a0a0c';
+                ctx.fillText(txt.toUpperCase(), x + 11, y);
+                return w;
+            };
+            const valor = (txt, x, y, maxW) => {
+                ctx.fillStyle = '#fff';
+                ctx.font = '800 30px Arial';
+                let t = String(txt).toUpperCase();
+                while (ctx.measureText(t).width > maxW && t.length > 3) t = t.slice(0, -2);
+                if (t !== String(txt).toUpperCase()) t += '…';
+                ctx.fillText(t, x, y);
+            };
 
-        // 1) Tenta o download automático
-        try {
-            const link = document.createElement('a');
-            link.download = '4l-academy-carteirinha.png';
-            link.href = dataUrl;
-            link.click();
-        } catch (_) { /* segue pro plano B */ }
+            let y = 210;
+            const LX = 50;
+            // NOME
+            label('Nome', LX, y - 12); valor(d.nome, LX, y + 26, W - 430); y += 92;
+            // FAIXA | GRAU
+            label('Faixa', LX, y - 12); valor(d.faixaDisplay, LX, y + 26, 260);
+            label('Grau', LX + 300, y - 12); valor(d.qtdGraus > 0 ? d.qtdGraus + 'º' : '—', LX + 300, y + 26, 100); y += 92;
 
-        // 2) Plano B garantido (TWA/WebView): mostra a imagem pronta
-        Swal.fire({
-            title: '📥 Carteirinha pronta!',
-            html: `<img src="${dataUrl}" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.12);" alt="Carteirinha 4L Academy">
-                   <p style="color:#888;font-size:12px;margin:12px 0 0;line-height:1.5;">Se o download não começou sozinho:<br><b style="color:#ccc;">pressione e segure a imagem</b> acima e toque em <b style="color:#ccc;">"Salvar imagem"</b> 💾</p>`,
-            background: '#161618',
-            color: '#fff',
-            showCloseButton: true,
-            confirmButtonText: 'Fechar',
-            confirmButtonColor: '#E53935'
-        });
+            // Faixa visual (barra kimono)
+            ctx.save();
+            rr(LX, y - 18, 330, 30, 5); ctx.clip();
+            ctx.fillStyle = d.corFaixaReal; ctx.fillRect(LX, y - 18, 330, 30);
+            ctx.fillStyle = d.corPonteira;
+            const pontW = d.qtdGraus > 0 ? Math.max(60, 20 + d.qtdGraus * 16) : 46;
+            ctx.fillRect(LX + 330 - pontW, y - 18, pontW, 30);
+            ctx.fillStyle = '#f5f5f5';
+            for (let i = 0; i < d.qtdGraus; i++) ctx.fillRect(LX + 330 - 14 - i * 16, y - 18, 7, 30);
+            ctx.restore();
+            ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+            ctx.lineWidth = 2;
+            rr(LX, y - 18, 330, 30, 5); ctx.stroke();
+            y += 62;
+
+            // CATEG | NASC
+            label('Categ.', LX, y - 12); valor(d.categoriaTxt, LX, y + 26, 260);
+            label('Nasc.', LX + 300, y - 12); valor(d.nascTxt, LX + 300, y + 26, 230); y += 92;
+            // MATRÍC | DESDE
+            label('Matríc.', LX, y - 12); valor(d.matricula, LX, y + 26, 260);
+            label('Desde', LX + 300, y - 12); valor(d.desdeTxt, LX + 300, y + 26, 100);
+
+            // Status
+            ctx.font = '800 22px Arial';
+            const stTxt = '● ' + d.textoStatus + (d.isVip ? ' · VIP' : '');
+            ctx.fillStyle = d.isAtivo ? '#22c55e' : '#ff5252';
+            ctx.textAlign = 'center';
+            ctx.fillText(stTxt, fotoX + fotoW / 2, fotoY + fotoH + 45);
+            ctx.textAlign = 'left';
+        };
+
+        // Rodapé
+        const desenharRodape = () => {
+            ctx.fillStyle = 'rgba(0,0,0,0.45)';
+            ctx.beginPath();
+            ctx.roundRect(0, H - 70, W, 70, [0, 0, 40, 40]);
+            ctx.fill();
+            ctx.fillStyle = '#999';
+            ctx.font = '700 22px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('VALIDADE: ' + d.validade.toUpperCase(), 50, H - 27);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#E53935';
+            ctx.font = 'italic 900 24px Arial';
+            ctx.fillText('4L ACADEMY · OSS!', W - 50, H - 27);
+        };
+
+        // Carrega a foto e desenha tudo
+        const finalizar = () => {
+            desenharCampos();
+            desenharRodape();
+
+            const dataUrl = canvas.toDataURL('image/png');
+
+            try {
+                const link = document.createElement('a');
+                link.download = '4l-academy-carteirinha.png';
+                link.href = dataUrl;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (dlErr) { console.warn('Download direto falhou:', dlErr); }
+
+            Swal.fire({
+                title: 'Carteirinha Pronta! 🪪',
+                html: `<img src="${dataUrl}" style="width:100%;border-radius:12px;border:1px solid rgba(255,255,255,0.12);" alt="Carteirinha 4L Academy">
+                       <p style="color:#888;font-size:12px;margin:12px 0 0;line-height:1.5;">Se o download não começou sozinho:<br><b style="color:#ccc;">pressione e segure a imagem</b> acima e toque em <b style="color:#ccc;">"Salvar imagem"</b> 💾</p>`,
+                background: '#161618',
+                color: '#fff',
+                confirmButtonColor: '#E53935',
+                confirmButtonText: 'Fechar'
+            });
+        };
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            try {
+                ctx.save();
+                rr(fotoX, fotoY, fotoW, fotoH, 12); ctx.clip();
+                // cover: preenche o retângulo sem distorcer
+                const escala = Math.max(fotoW / img.width, fotoH / img.height);
+                const dw = img.width * escala, dh = img.height * escala;
+                ctx.drawImage(img, fotoX + (fotoW - dw) / 2, fotoY + (fotoH - dh) / 2, dw, dh);
+                ctx.restore();
+                desenharMoldura();
+            } catch (drawErr) { desenharFotoFallback(); }
+            finalizar();
+        };
+        img.onerror = () => { desenharFotoFallback(); finalizar(); };
+        img.src = d.foto;
+
     } catch (err) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro ao salvar',
-            text: err.message,
-            background: '#161618',
-            color: '#fff'
-        });
+        console.error('Erro ao gerar imagem:', err);
+        Swal.fire({ icon: 'error', title: 'Erro ao gerar imagem', text: String(err && err.message || err), background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
     }
 };
-
-// (função compartilharCarteirinha removida a pedido do professor — o botão
-//  só mandava o link do app, não a imagem, então não tinha utilidade real)
