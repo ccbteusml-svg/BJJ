@@ -115,6 +115,12 @@
             const { data: { publicUrl } } = supabase.storage.from('fotos-perfil').getPublicUrl(fileName);
             const { error: updErr } = await supabase.from('perfis').update({ foto_url: publicUrl }).eq('id', session.user.id);
             if (updErr) throw updErr;
+            // 🧹 Apaga as fotos antigas do aluno (mantém só a recém-enviada)
+            try {
+                const { data: arquivos } = await supabase.storage.from('fotos-perfil').list('', { search: session.user.id, limit: 100 });
+                const velhas = (arquivos || []).map(f => f.name).filter(n => n.startsWith(session.user.id) && n !== fileName);
+                if (velhas.length > 0) await supabase.storage.from('fotos-perfil').remove(velhas);
+            } catch (limpErr) { console.warn('[foto] Limpeza de fotos antigas falhou (não fatal):', limpErr); }
             // Espelha na foto da home
             const imgHome = $('foto-perfil-aluno');
             if (imgHome) imgHome.src = publicUrl;
