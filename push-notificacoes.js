@@ -1,4 +1,4 @@
-// push-notificacoes.js (v5) — Notificações push do aluno.
+// push-notificacoes.js (v6) — Notificações push do aluno.
 // - Corrige "Registration failed - push service error" (inscrição presa com chave antiga)
 // - Pergunta automática ao entrar no app (1x por aparelho, com botão de ação)
 // Depende de: supabase-config.js (cliente "supabase") e do sw.js registrado.
@@ -160,18 +160,63 @@ window.toggleNotificacoes = async function () {
   }
 };
 
-// 🔔 PERGUNTA AUTOMÁTICA: ao entrar no app, se o aluno nunca decidiu sobre
-// notificações neste aparelho, mostra um convite amigável (1x a cada 7 dias).
+// 🔔 VIGIA AUTOMÁTICO: ao entrar no app, verifica a saúde das notificações
+// e age sozinho conforme o cenário:
+//   permissão OK + inscrição PERDIDA (ex.: após atualização do app)
+//     → reconecta em SILÊNCIO (sem popup: a permissão já foi dada um dia)
+//   permissão OK + inscrição existe → garante que está salva no banco (autocura)
+//   permissão NUNCA decidida        → mostra o convite amigável (1x a cada 7 dias)
 async function _pushPerguntaAutomatica() {
   if (!_pushSuportado()) return;
-  if (!window.Swal) return;
 
   try {
-    // Só pergunta se: permissão ainda não decidida E sem inscrição ativa
-    if (Notification.permission !== 'default') return;
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
+
+    // ---------- CENÁRIO 1 e 2: permissão já concedida ----------
+    if (Notification.permission === 'granted') {
+      if (sub) {
+        // Autocura silenciosa: garante que a inscrição atual está no banco
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const json = sub.toJSON();
+            await supabase.from('push_subscriptions').upsert({
+              user_id: user.id, endpoint: json.endpoint,
+              p256dh: json.keys.p256dh, auth: json.keys.auth
+            }, { onConflict: 'endpoint' });
+          }
+        } catch (eCura) { console.warn('[Push] Autocura falhou (não fatal):', eCura); }
+        return;
+      }
+
+      // Inscrição perdida (atualização do app, limpeza do sistema, etc.)
+      // → reconecta SEM perguntar: o aluno já autorizou antes
+      console.warn('[Push] Permissão OK mas inscrição perdida — reconectando...');
+      try {
+        const ok = await window.ativarNotificacoes();
+        if (ok) {
+          console.log('[Push] Notificações reconectadas automaticamente.');
+          if (window.Swal) {
+            Swal.fire({
+              toast: true, position: 'top', icon: 'success',
+              title: '🔔 Notificações reconectadas',
+              showConfirmButton: false, timer: 3000,
+              background: '#161618', color: '#fff'
+            });
+          }
+          await _pushAtualizarBotao();
+        }
+      } catch (eRec) {
+        console.warn('[Push] Reconexão automática falhou (botão continua disponível):', eRec);
+      }
+      return;
+    }
+
+    // ---------- CENÁRIO 3: nunca decidiu → convite (1x a cada 7 dias) ----------
+    if (Notification.permission !== 'default') return; // 'denied': não insiste
     if (sub) return;
+    if (!window.Swal) return;
 
     // Respeita o "agora não" por 7 dias
     const ultimoConvite = parseInt(localStorage.getItem('4l_push_convite') || '0');
