@@ -704,7 +704,7 @@ function renderDossieConteudo() {
     container.innerHTML = '';
 
     if (AppAdmin.abaDossie === 'perfil') {
-        const status = a.plano_pausado ? '🔴 INATIVO' : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO');
+        const status = a.plano_pausado ? (a.motivo_pausa === 'cobranca' ? '🔴 INATIVO (INADIMPLÊNCIA)' : '🔴 INATIVO') : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO');
         const corStatus = a.plano_pausado ? '#ff5252' : (a.assinante ? '#3b82f6' : '#22c55e');
 
         const grid = document.createElement('div');
@@ -881,7 +881,7 @@ window.alternarPlano = async function(id, nome, acao) {
     });
     if (r.isConfirmed) {
         loading('Processando...');
-        const { error: erroUpdate } = await supabase.from('perfis').update({ plano_pausado: cong }).eq('id', id);
+        const { error: erroUpdate } = await supabase.from('perfis').update({ plano_pausado: cong, motivo_pausa: cong ? 'manual' : null }).eq('id', id);
         if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
         registrarLog(cong ? 'inativar_aluno' : 'reativar_aluno', (cong ? 'Inativou ' : 'Reativou ') + nome, id, nome);
         await carregarTudo();

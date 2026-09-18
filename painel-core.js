@@ -219,7 +219,7 @@ window.verificarAcesso = async function() {
     } catch (eCache) { /* cache corrompido: segue o fluxo normal */ }
 
     // ✅ maybeSingle: não lança exceção se o perfil ainda não existir; erro é checado
-    const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('nome, faixa, foto_url, assinante').eq('id', usuarioId).maybeSingle();
+    const { data: perfil, error: erroPerfil } = await supabase.from('perfis').select('nome, faixa, foto_url, assinante, plano_pausado, motivo_pausa').eq('id', usuarioId).maybeSingle();
     if (erroPerfil) {
         console.warn('[APP] Falha ao carregar perfil:', erroPerfil);
         // Sessão expirada/inválida no meio do uso → volta ao login em vez de quebrar
@@ -269,6 +269,30 @@ window.verificarAcesso = async function() {
             const img = document.getElementById('foto-perfil-aluno');
             if (img) img.src = perfil.foto_url;
         }
+
+        // ⛔ CONTA SUSPENSA: banner de regularização no topo da home
+        try {
+            let bannerSusp = document.getElementById('banner-suspenso');
+            if (perfil.plano_pausado) {
+                if (!bannerSusp) {
+                    bannerSusp = document.createElement('div');
+                    bannerSusp.id = 'banner-suspenso';
+                    const saudacaoEl = document.getElementById('saudacao-aluno');
+                    const alvo = saudacaoEl && saudacaoEl.parentElement ? saudacaoEl.parentElement : document.body;
+                    alvo.insertBefore(bannerSusp, alvo.firstChild);
+                }
+                const porCobranca = perfil.motivo_pausa === 'cobranca';
+                bannerSusp.style.cssText = 'background:linear-gradient(135deg,#3d0a0a,#1a0505);border:1px solid #E53935;border-radius:12px;padding:14px 16px;margin-bottom:15px;color:#fff;width:100%;max-width:100%;box-sizing:border-box;overflow-wrap:break-word;';
+                bannerSusp.innerHTML = '<div style="font-weight:800;font-size:clamp(13px, 3.8vw, 15px);margin-bottom:4px;">⛔ Conta suspensa</div>' +
+                    '<div style="font-size:clamp(11px, 3.2vw, 13px);color:#ffb4b4;line-height:1.5;">' +
+                    (porCobranca
+                        ? 'Mensalidade em atraso. <b style="color:#fff;">Quite abaixo e sua conta reativa na hora, automaticamente.</b>'
+                        : 'Sua conta foi suspensa pela academia. Fale com o professor para reativar.') +
+                    '</div>';
+            } else if (bannerSusp) {
+                bannerSusp.remove(); // conta ativa: some com o banner
+            }
+        } catch (_) {}
     }
 
     // Último recibo pago
@@ -420,7 +444,7 @@ window.verificarAcesso = async function() {
         }
         if (opcoesEl) opcoesEl.style.display = "none";
         if (feedbackEl) feedbackEl.innerHTML = "";
-        if (btnAdiantar) btnAdiantar.style.display = "block";
+        if (btnAdiantar) btnAdiantar.style.display = (perfil && perfil.plano_pausado) ? "none" : "block"; // suspenso não adianta fatura
         const chipVencEmDia = document.getElementById('dias-vencimento');
         if (chipVencEmDia) chipVencEmDia.style.display = 'none'; // em dia = sem contador
         // 🧠 Cache do status financeiro (abertura instantânea)

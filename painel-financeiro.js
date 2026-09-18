@@ -520,7 +520,19 @@ if (btnAdiantarFatura) {
 
         const nomeProxMes = `${meses[proximoMesIndex]}/${ano}`;
 
-        const { data: perfil } = await window.supabase.from('perfis').select('valor_mensalidade').eq('id', session.user.id).single();
+        const { data: perfil } = await window.supabase.from('perfis').select('valor_mensalidade, plano_pausado').eq('id', session.user.id).single();
+
+        // ⛔ Conta suspensa não pode gerar fatura adiantada
+        if (perfil && perfil.plano_pausado) {
+            Swal.fire({
+                title: 'Conta suspensa ⛔',
+                text: 'Sua conta está suspensa. Regularize a mensalidade em aberto ou fale com o professor.',
+                icon: 'warning', confirmButtonColor: '#E53935', background: '#161618', color: '#fff'
+            });
+            btnAdiantarFatura.disabled = false;
+            return;
+        }
+
         const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 50.50;
 
         const result = await Swal.fire({
