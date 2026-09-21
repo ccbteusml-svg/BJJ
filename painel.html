@@ -7,7 +7,11 @@
     <meta name="theme-color" content="#E53935">
     <link rel="icon" type="image/png" href="4L.png">
     <link rel="apple-touch-icon" href="4L.png">
-    <link rel="stylesheet" href="style.css?v=41">
+    <link rel="stylesheet" href="style.css?v=42">
+    <script>
+        // 🌞 Anti-flash: aplica o tema salvo ANTES da página pintar
+        try { document.documentElement.dataset.tema = localStorage.getItem('4l_tema') || 'escuro'; } catch (e) {}
+    </script>
     <script src="https://sdk.mercadopago.com/js/v2"></script>
 </head>
 <body style="padding-bottom: 30px;">
@@ -196,6 +200,13 @@
                 <button id="ajs-salvar-senha" class="btn-tactile ajs-btn-sec" onclick="alterarSenha()">🔑 ALTERAR SENHA</button>
             </div>
 
+            <!-- Aparência -->
+            <div class="card-status ajs-card">
+                <h4 class="ajs-titulo">🎨 Aparência</h4>
+                <p style="color:#9e9e9e; font-size:13px; margin:0 0 14px;">Escolha entre o modo noturno (padrão) e o modo dia, com fundo claro.</p>
+                <button class="btn-tactile ajs-btn-sec" id="btn-tema" onclick="window.alternarTema()">🌞 MODO DIA</button>
+            </div>
+
             <!-- Suporte -->
             <div class="card-status ajs-card">
                 <h4 class="ajs-titulo">🆘 Precisa de ajuda?</h4>
@@ -247,7 +258,7 @@
     <script src="painel-core.js?v=66"></script>
     <script src="painel-perfil.js?v=61"></script>
     <script src="painel-financeiro.js?v=60"></script>
-    <script src="painel-ajustes.js?v=6"></script>
+    <script src="painel-ajustes.js?v=7"></script>
     <script src="push-notificacoes.js?v=6"></script>
     <script>
 if ('serviceWorker' in navigator) {

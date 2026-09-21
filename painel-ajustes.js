@@ -342,6 +342,7 @@
         _atualizarBadgeAvisos();
         _ligarRadarAvisos();
         _atualizarCardCobranca();
+        _atualizarBotaoTema();
 
         const inputFotoAjs = $('input-foto-ajustes');
         if (inputFotoAjs) {
@@ -352,4 +353,23 @@
             });
         }
     });
+
+    // ==========================================
+    // 6. MODO DIA / NOITE
+    // ==========================================
+    function _atualizarBotaoTema() {
+        const btn = $('btn-tema');
+        if (!btn) return;
+        const claro = document.documentElement.dataset.tema === 'claro';
+        btn.textContent = claro ? '🌙 MODO NOITE' : '🌞 MODO DIA';
+    }
+
+    window.alternarTema = function () {
+        const claro = document.documentElement.dataset.tema === 'claro';
+        const novo = claro ? 'escuro' : 'claro';
+        document.documentElement.dataset.tema = novo;
+        try { localStorage.setItem('4l_tema', novo); } catch (e) {}
+        _atualizarBotaoTema();
+        if (navigator.vibrate) navigator.vibrate(15);
+    };
 })();

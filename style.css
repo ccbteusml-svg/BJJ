@@ -700,22 +700,11 @@ img[style*="border: 3px solid #424242"] {
    CORREÇÃO v2.2 — ELEMENTOS FIXED EM TELAS GRANDES
    ========================================== */
 @media (min-width: 451px) {
-    /* HOTFIX v2.5 — o .adm-header é STICKY (não fixed): com width:100% ele
-       não tem espaço pra se deslocar, o left:50% é anulado e o translateX(-50%)
-       jogava metade do header pra fora da tela (logo sumia). Por isso ele foi
-       removido desta regra — header sticky já ocupa a largura toda sozinho. */
-    .adm-nav, .adm-toast, .adm-modal-overlay, .adm-fab {
+    .adm-nav, .adm-header, .adm-toast, .adm-modal-overlay, .adm-fab {
         max-width: 450px;
         left: 50% !important;
         right: auto !important;
         transform: translateX(-50%);
-    }
-    /* HOTFIX v2.4 — shrink-to-fit: com left:50% + right:auto e SEM width,
-       o navegador calculava a largura pelo CONTEÚDO (shrink-to-fit).
-       Resultado: o modal do dossiê ficava estreito/largo conforme o nome
-       do aluno. Travando em 100%, todos os modais ficam iguais (450px). */
-    .adm-nav, .adm-modal-overlay {
-        width: 100% !important;
     }
     .adm-modal-overlay {
         align-items: center !important;
@@ -1195,95 +1184,92 @@ header button:has(.fa-bell) {
     .ajs-btn-foto, .ajs-faq-item summary::after { transition: none; }
 }
 
-
 /* ==========================================
-   v5.0 — REDE GUARDA (blindagem internet fraca)
-   ========================================== */
-
-/* Banner global de conexão (criado pelo rede-guarda.js) */
-#rg-banner-rede {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 999998;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 16px;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transform: translateY(0);
-    transition: transform 0.3s ease, opacity 0.3s ease;
+   🌞 MODO DIA (tema claro)
+   Ativado com data-tema="claro" no <html>.
+   Sobrescreve as variáveis e as camadas escuras;
+   as fotos de fundo continuam, mas com degradê claro.
+========================================== */
+[data-tema="claro"] {
+    --cor-fundo: #f2f2f5;
+    --cor-cartao: #ffffff;
+    --cor-texto: #1a1a1c;
+    --cor-texto-secundario: #5a5a62;
+    --cor-borda: rgba(0, 0, 0, 0.10);
 }
 
-#rg-banner-rede.rg-banner-off {
-    background: rgba(183, 28, 28, 0.97);
-    color: #fff;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+/* Fundo geral claro */
+[data-tema="claro"] body { background-color: #f2f2f5 !important; color: #1a1a1c; }
+
+/* Banners: mesma foto, mas derretendo num fundo CLARO */
+[data-tema="claro"] .banner-topo,
+[data-tema="claro"] .banner-aluno {
+    background-image:
+        linear-gradient(to bottom, rgba(242,242,245,0.15) 0%, rgba(242,242,245,0.75) 65%, #f2f2f5 100%),
+        var(--banner-img, none);
+}
+[data-tema="claro"] .banner-topo  { background-image: linear-gradient(to bottom, rgba(242,242,245,0.15) 0%, rgba(242,242,245,0.75) 65%, #f2f2f5 100%), url('4L.png'); }
+[data-tema="claro"] .banner-aluno { background-image: linear-gradient(to bottom, rgba(242,242,245,0.15) 0%, rgba(242,242,245,0.75) 65%, #f2f2f5 100%), url('fundo-aluno.png'); }
+
+/* Vidro dos cartões vira vidro claro */
+[data-tema="claro"] .login-container,
+[data-tema="claro"] .card-status,
+[data-tema="claro"] .secao-admin {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
 }
 
-#rg-banner-rede.rg-banner-voltou {
-    background: rgba(27, 94, 32, 0.97);
-    color: #fff;
+/* Cartão financeiro com fundo inline escuro */
+[data-tema="claro"] #cartao-fundo { background-color: rgba(255, 255, 255, 0.85) !important; }
+
+/* Textos que estavam fixos em branco */
+[data-tema="claro"] .secao-admin h3,
+[data-tema="claro"] .card-status h3,
+[data-tema="claro"] #mes-atual,
+[data-tema="claro"] #valor-pagamento,
+[data-tema="claro"] .ajs-titulo { color: #1a1a1c !important; }
+
+[data-tema="claro"] .card-status p,
+[data-tema="claro"] .ajs-label,
+[data-tema="claro"] .ajs-faq-item p { color: #5a5a62 !important; }
+
+/* Inputs claros */
+[data-tema="claro"] .ajs-input,
+[data-tema="claro"] input[type="text"],
+[data-tema="claro"] input[type="tel"],
+[data-tema="claro"] input[type="email"],
+[data-tema="claro"] input[type="password"],
+[data-tema="claro"] input[type="date"] {
+    background-color: #ffffff !important;
+    color: #1a1a1c !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Empurra o conteúdo pra baixo quando o banner aparece, pra não cobrir o topo */
-body:has(#rg-banner-rede.rg-banner-off[style*="flex"]),
-body:has(#rg-banner-rede.rg-banner-voltou[style*="flex"]) {
-    padding-top: 38px;
+/* Menu lateral e barra inferior claros */
+[data-tema="claro"] .menu-lateral { background-color: #ffffff !important; }
+[data-tema="claro"] .menu-item { color: #1a1a1c !important; }
+[data-tema="claro"] .barra-inferior, [data-tema="claro"] nav { background-color: rgba(255,255,255,0.92) !important; }
+
+/* Botões secundários */
+[data-tema="claro"] .ajs-btn-sec { background: #ececf0 !important; color: #1a1a1c !important; }
+
+/* Banner de suspensão no modo dia */
+[data-tema="claro"] #banner-suspenso {
+    background: linear-gradient(135deg, #ffe5e5, #fff5f5) !important;
+    color: #7f1d1d !important;
+}
+[data-tema="claro"] #banner-suspenso div { color: #7f1d1d !important; }
+
+/* FAQ details */
+[data-tema="claro"] .ajs-faq-item summary { color: #1a1a1c !important; }
+
+/* Chip de vencimento no modo dia */
+[data-tema="claro"] #dias-vencimento {
+    background: rgba(229, 57, 53, 0.10) !important;
+    border-color: rgba(229, 57, 53, 0.35) !important;
+    color: #b71c1c !important;
 }
 
-/* Skeleton shimmer (estado de carregamento de listas em rede lenta) */
-.rg-skeleton {
-    border-radius: 12px;
-    background: linear-gradient(90deg, #1c1c1e 25%, #2a2a2d 50%, #1c1c1e 75%);
-    background-size: 200% 100%;
-    animation: rgShimmer 1.2s ease-in-out infinite;
-}
-
-@keyframes rgShimmer {
-    from { background-position: 200% 0; }
-    to   { background-position: -200% 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .rg-skeleton { animation: none; background: #2a2a2d; }
-    #rg-banner-rede { transition: none; }
-}
-
-
-/* ==========================================
-   MODO TELA GRANDE v41 — MOLDURA DE APP
-   Tablet, notebook e PC: o app vira uma
-   "coluna de celular" elegante e centralizada.
-   (No celular nada muda — esta regra só vale
-   a partir de 768px de largura.)
-   ========================================== */
-@media (min-width: 768px) {
-    html {
-        /* fundo com brilho sutil da marca nas laterais vazias */
-        background:
-            radial-gradient(900px 500px at 15% 20%, rgba(229,57,53,.06), transparent 60%),
-            radial-gradient(900px 500px at 85% 80%, rgba(229,57,53,.05), transparent 60%),
-            #050505;
-    }
-    body {
-        border-left: 1px solid rgba(255,255,255,.09);
-        border-right: 1px solid rgba(255,255,255,.09);
-        box-shadow: 0 0 60px rgba(0,0,0,.85), 0 0 120px rgba(229,57,53,.06);
-    }
-    /* menu lateral com cantos suaves dentro da moldura */
-    .menu-lateral {
-        border-right: 1px solid rgba(255,255,255,.1);
-        border-radius: 0 20px 20px 0;
-    }
-    /* banner do aluno respeita a moldura */
-    .banner-aluno {
-        border-radius: 0;
-    }
-}
+/* Banner offline continua legível */
+[data-tema="claro"] #banner-offline { color: #000 !important; }
