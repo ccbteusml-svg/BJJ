@@ -269,9 +269,13 @@ function getSecaoAtiva() {
 async function carregarTudo() {
     loading('Sincronizando dados...');
     try {
+        // 🚀 ESCALABILIDADE: baixa SÓ as colunas que o ADM usa (nunca '*').
+        // Com 300+ alunos isso reduz drasticamente o download inicial e a banda gasta.
+        const COLUNAS_PERFIS = 'id, nome, telefone, email, faixa, foto_url, assinante, plano_pausado, motivo_pausa, valor_mensalidade, data_nascimento, metadata, cargo';
+        const COLUNAS_MENS = 'id, aluno_id, mes, status, valor, criado_em';
         const [{ data: alunos, error: e1 }, { data: mens, error: e2 }] = await Promise.all([
-            supabase.from('perfis').select('*').neq('cargo', 'professor').order('nome'),
-            supabase.from('mensalidades').select('*').order('criado_em', { ascending: false }).limit(500)
+            supabase.from('perfis').select(COLUNAS_PERFIS).neq('cargo', 'professor').order('nome'),
+            supabase.from('mensalidades').select(COLUNAS_MENS).order('criado_em', { ascending: false }).limit(500)
         ]);
         // ✅ Antes: erros eram engolidos e a tela mostrava tudo zerado como se fosse "vazio"
         if (e1 || e2) {
