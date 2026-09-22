@@ -271,7 +271,7 @@ async function carregarTudo() {
     try {
         // 🚀 ESCALABILIDADE: baixa SÓ as colunas que o ADM usa (nunca '*').
         // Com 300+ alunos isso reduz drasticamente o download inicial e a banda gasta.
-        const COLUNAS_PERFIS = 'id, nome, telefone, email, faixa, foto_url, assinante, plano_pausado, motivo_pausa, valor_mensalidade, data_nascimento, metadata, cargo';
+        const COLUNAS_PERFIS = 'id, nome, telefone, email, faixa, foto_url, assinante, plano_pausado, motivo_pausa, valor_mensalidade, data_nascimento, cargo';
         const COLUNAS_MENS = 'id, aluno_id, mes, status, valor, criado_em';
         const [{ data: alunos, error: e1 }, { data: mens, error: e2 }] = await Promise.all([
             supabase.from('perfis').select(COLUNAS_PERFIS).neq('cargo', 'professor').order('nome'),
