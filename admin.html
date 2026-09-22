@@ -1586,5 +1586,12 @@ document.addEventListener('DOMContentLoaded', function() {
     atualizarTitulo();
 })();
 </script>
+<script>
+// ✅ ADM também registra o Service Worker: sem isso, o painel do professor
+// não tinha cache de fotos (baixava todas de novo) nem modo offline.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
 </body>
 </html>

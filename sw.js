@@ -1,7 +1,7 @@
 // ⚠️ REGRA DE DEPLOY: suba este número (v27 → v28 → ...) a CADA deploy.
 // É ele que apaga o cache antigo e força o celular a baixar o JS/HTML novo.
 // Se esquecer de subir, os alunos continuam rodando a versão velha do app.
-const SW_VERSION = 'v50';
+const SW_VERSION = 'v51';
 const NOME_DO_CACHE = '4l-academy-' + SW_VERSION;
 
 const ARQUIVOS_PARA_SALVAR = [
@@ -70,6 +70,26 @@ self.addEventListener('fetch', event => {
 
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
+
+  // 🖼️ EXCEÇÃO: fotos do storage usam cache-first.
+  // O nome do arquivo tem timestamp (id-1695234...jpg), então foto nova = URL nova =
+  // cache novo automático. Cada foto baixa 1x por celular — economia enorme de banda.
+  if (url.hostname.includes('supabase.co') && url.pathname.includes('/storage/v1/object/public/')) {
+      event.respondWith(
+          caches.open(NOME_DO_CACHE).then(async cache => {
+              const cached = await cache.match(req);
+              if (cached) return cached;
+              try {
+                  const resp = await fetch(req);
+                  if (resp && resp.ok) cache.put(req, resp.clone());
+                  return resp;
+              } catch (e) {
+                  return cached || Response.error();
+              }
+          })
+      );
+      return;
+  }
 
   // Nunca cacheia chamadas de API
   if (url.hostname.includes('supabase.co') || 
