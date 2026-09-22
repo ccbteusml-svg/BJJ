@@ -1259,6 +1259,19 @@
 
         <!-- ===== CONFIG / FERRAMENTAS ===== -->
         <section id="sec-config" class="adm-secao">
+            <!-- 📊 SAÚDE DO SISTEMA (uso do plano gratuito Supabase) -->
+            <div class="adm-card" style="margin-bottom:14px;">
+                <div class="adm-card-header">
+                    <div class="adm-card-title"><i class="fa-solid fa-heart-pulse"></i> Saúde do Sistema</div>
+                    <button class="adm-btn-sm secondary" onclick="renderSaudeSistema(true)" title="Atualizar">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+                <div class="adm-card-body" id="saude-sistema">
+                    <p style="color:var(--adm-text-3);font-size:13px;margin:0;">Toque em 🔄 para medir o uso.</p>
+                </div>
+            </div>
+
             <div class="adm-card">
                 <div class="adm-card-header">
                     <div class="adm-card-title"><i class="fa-solid fa-shield-halved"></i> Segurança</div>
@@ -1536,7 +1549,7 @@
     <script src="supabase-config.js?v=2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=31"></script>
+    <script src="admin-lite.js?v=32"></script>
 
 
 <!-- Máscara de telefone -->

@@ -240,6 +240,7 @@ window.abrirSecao = function(sec) {
     if (sec === 'financeiro') { preencherGerarFinanceiro(); renderFinanceiro(); }
     if (sec === 'mural') renderMural();
     if (sec === 'auditoria') renderAuditoria();
+    if (sec === 'config') renderSaudeSistema();
 };
 
 // ⚡ Pré-preenche "Gerar Mensalidades" do Financeiro: mês atual + valor padrão.
@@ -2141,3 +2142,113 @@ window.exportarCSVDisparo = function() {
     if (horas > 24) limparFila();
   }
 })();
+// ---------- 📊 SAÚDE DO SISTEMA (monitor Supabase) ----------
+// Mede o que dá para medir pelo app: espaço das fotos (storage) e volume de registros (banco).
+// Egress/banda NÃO é medível pelo app — só no painel do Supabase (link no rodapé do card).
+const SAUDE_LIMITES = { storageMB: 1024, bancoMB: 500 }; // limites do plano grátis
+
+function _saudeCor(pct) {
+    if (pct >= 85) return '#E53935'; // vermelho — perigo
+    if (pct >= 60) return '#F9A825'; // amarelo — atenção
+    return '#43A047';                // verde — tranquilo
+}
+
+function _saudeBarra(titulo, icone, usadoTxt, pct, detalhe) {
+    const cor = _saudeCor(pct);
+    const pctBarra = Math.min(pct, 100);
+    return `
+    <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:13px;margin-bottom:5px;">
+            <span><i class="fa-solid ${icone}" style="color:${cor};margin-right:6px;"></i><strong>${titulo}</strong></span>
+            <span style="color:var(--adm-text-3);font-size:12px;">${usadoTxt}</span>
+        </div>
+        <div style="background:var(--adm-surface-2);border-radius:8px;height:10px;overflow:hidden;">
+            <div style="width:${pctBarra}%;height:100%;background:${cor};border-radius:8px;transition:width .6s ease;"></div>
+        </div>
+        ${detalhe ? `<div style="font-size:11px;color:var(--adm-text-3);margin-top:4px;">${detalhe}</div>` : ''}
+    </div>`;
+}
+
+window.renderSaudeSistema = async function(forcar) {
+    const el = $('saude-sistema');
+    if (!el) return;
+    if (el.dataset.carregando === '1') return;
+    el.dataset.carregando = '1';
+    el.innerHTML = '<p style="color:var(--adm-text-3);font-size:13px;margin:0;">⏳ Medindo o uso do sistema...</p>';
+
+    try {
+        // 1) Espaço das fotos (storage) — soma o tamanho de cada arquivo do bucket
+        let fotosBytes = 0, fotosQtd = 0, fotosOk = true;
+        try {
+            const { data: arquivos, error: erroSt } = await supabase.storage.from('fotos-perfil').list('', { limit: 1000 });
+            if (erroSt) throw erroSt;
+            (arquivos || []).forEach(a => {
+                if (a.metadata && a.metadata.size) { fotosBytes += a.metadata.size; fotosQtd++; }
+            });
+        } catch (e) { fotosOk = false; console.warn('[SAÚDE] storage:', e); }
+
+        // 2) Volume do banco — conta registros das tabelas principais
+        const tabelas = [
+            { nome: 'perfis',             rotulo: 'Alunos e professores' },
+            { nome: 'mensalidades',       rotulo: 'Mensalidades' },
+            { nome: 'avisos',             rotulo: 'Avisos do mural' },
+            { nome: 'push_subscriptions', rotulo: 'Inscrições de notificação' },
+            { nome: 'audit_log',          rotulo: 'Registros de auditoria' }
+        ];
+        const contagens = await Promise.all(tabelas.map(async t => {
+            try {
+                const { count, error } = await supabase.from(t.nome).select('id', { count: 'exact', head: true });
+                if (error) return { ...t, count: null };
+                return { ...t, count: count || 0 };
+            } catch (e) { return { ...t, count: null }; }
+        }));
+
+        // 3) Monta a tela
+        const fotosMB = fotosBytes / (1024 * 1024);
+        const pctFotos = (fotosMB / SAUDE_LIMITES.storageMB) * 100;
+        const totalRegistros = contagens.reduce((s, c) => s + (c.count || 0), 0);
+        // Estimativa conservadora: ~2 KB por registro (linha + índices)
+        const bancoMBest = (totalRegistros * 2) / 1024;
+        const pctBanco = (bancoMBest / SAUDE_LIMITES.bancoMB) * 100;
+
+        let html = '';
+        html += _saudeBarra('Fotos dos alunos', 'fa-image',
+            fotosOk ? `${fotosMB.toFixed(1)} MB de ${SAUDE_LIMITES.storageMB} MB` : 'não foi possível medir',
+            fotosOk ? pctFotos : 0,
+            fotosOk ? `${fotosQtd} foto(s) guardadas` : 'Verifique a conexão e toque em 🔄');
+
+        html += _saudeBarra('Banco de dados', 'fa-database',
+            `~${bancoMBest.toFixed(1)} MB de ${SAUDE_LIMITES.bancoMB} MB (estimativa)`,
+            pctBanco,
+            contagens.map(c => `${c.rotulo}: <strong>${c.count === null ? '?' : c.count}</strong>`).join(' · '));
+
+        // Aviso visual conforme o pior indicador
+        const pior = Math.max(fotosOk ? pctFotos : 0, pctBanco);
+        if (pior >= 85) {
+            html += `<div style="background:rgba(229,57,53,.12);border:1px solid rgba(229,57,53,.4);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;">
+                🔴 <strong>Hora de mudar de plano!</strong> Você está perto do limite do plano grátis. O plano Pro (US$ 25/mês) multiplica todos os limites.
+            </div>`;
+        } else if (pior >= 60) {
+            html += `<div style="background:rgba(249,168,37,.12);border:1px solid rgba(249,168,37,.4);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;">
+                🟡 <strong>Atenção:</strong> já passou de 60% em algum recurso. Comece a acompanhar com mais frequência.
+            </div>`;
+        } else {
+            html += `<div style="background:rgba(67,160,71,.12);border:1px solid rgba(67,160,71,.35);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;">
+                🟢 <strong>Tudo tranquilo!</strong> Uso bem abaixo dos limites do plano grátis.
+            </div>`;
+        }
+
+        html += `<div style="font-size:12px;color:var(--adm-text-3);line-height:1.5;">
+            📡 <strong>Banda (egress)</strong> e pausa por inatividade só aparecem no painel do Supabase:
+            <a href="https://supabase.com/dashboard/project/_/settings/usage" target="_blank" rel="noopener" style="color:var(--adm-primary,#E53935);">Abrir página de uso do Supabase ↗</a><br>
+            <span style="font-size:11px;">Medido em ${new Date().toLocaleString('pt-BR')}</span>
+        </div>`;
+
+        el.innerHTML = html;
+    } catch (e) {
+        console.error('[SAÚDE]', e);
+        el.innerHTML = '<p style="color:var(--adm-text-3);font-size:13px;margin:0;">❌ Erro ao medir. Verifique a conexão e toque em 🔄.</p>';
+    } finally {
+        delete el.dataset.carregando;
+    }
+};
