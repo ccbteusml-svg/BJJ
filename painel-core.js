@@ -112,7 +112,8 @@ window.abrirMenu = () => {
     const backdrop = document.getElementById('menu-backdrop');
     if (menu) menu.classList.add('aberto'); 
     if (backdrop) {
-        backdrop.style.display = 'block'; 
+        backdrop.style.display = 'block';
+        backdrop.classList.add('ativo'); // 🔒 SEM isso o fundo continua clicável!
         setTimeout(() => backdrop.style.opacity = '1', 10); 
     }
 };
@@ -122,7 +123,8 @@ window.fecharMenu = () => {
     const backdrop = document.getElementById('menu-backdrop');
     if (menu) menu.classList.remove('aberto'); 
     if (backdrop) {
-        backdrop.style.opacity = '0'; 
+        backdrop.style.opacity = '0';
+        backdrop.classList.remove('ativo'); // libera os toques de novo
         setTimeout(() => backdrop.style.display = 'none', 300); 
     }
 };
