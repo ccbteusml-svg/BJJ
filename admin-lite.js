@@ -1664,16 +1664,38 @@ document.addEventListener('DOMContentLoaded', () => {
 // Substitua a seção antiga no admin-lite.js por esta
 // ==========================================
 
+// ---------- 📨 MENSAGEM DE COBRANÇA (ponto único — pronto p/ automação) ----------
+// 🛤️ PREPARADO PARA O FUTURO: hoje o envio é MANUAL (abre o wa.me um a um).
+// Se um dia o professor quiser pagar uma API de WhatsApp (ex.: Evolution API,
+// WhatsApp Cloud API), basta trocar window.enviarZap() abaixo — TODA a fila,
+// preview e CSV já passam por essas duas funções centrais.
+window.ZAP_MODO = 'manual'; // futuro: 'api'
+
+// Monta o texto da cobrança de UM aluno (nome, meses devidos, valor total)
+window.montarMensagemCobrancaZap = function(a, mesSel, custom) {
+  const resumo = resumoCobranca(a.id, mesSel);
+  const mesMsg = resumo ? resumo.mesTxt : (mesSel === MES_TODOS ? '' : mesSel);
+  const valorMsg = resumo ? fmtValor(resumo.valor) : fmtValor(a.valor_mensalidade || 50.50);
+  return TEMPLATES_ZAP.cobranca
+    .replace(/{nome}/g, a.nome)
+    .replace(/{mes}/g, mesMsg)
+    .replace(/{valor}/g, valorMsg)
+    .replace(/{custom}/g, custom || '');
+};
+
+// Envia a mensagem. Hoje: abre a conversa no WhatsApp do professor.
+// Futuro ('api'): chamar a Edge Function que dispara pela API paga.
+window.enviarZap = async function(telefone, msg) {
+  const num = (telefone || '').replace(/\D/g, '');
+  if (window.ZAP_MODO === 'api') {
+    // FUTURO: await supabase.functions.invoke('enviar-whatsapp', { body: { para: num, mensagem: msg } });
+    throw new Error('Modo API ainda não configurado');
+  }
+  window.open(`https://wa.me/55${num}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
 const TEMPLATES_ZAP = {
-  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor}\n\n📱 *Pague no App (Pix ou Cartão):*\nhttps://4lacademy.com.br/?modo=app\n\nNos vemos no tatame! 🥋`,
-
-  aviso: `Olá, *{nome}*! Oss! 🥋\n\n📢 *Aviso da 4L Academy:*\n\n{custom}\n\nQualquer dúvida, chama no Zap!`,
-
-  parabens: `Olá, *{nome}*! 🥋🎉\n\n{custom}\n\nDesejamos muitas felicidades, saúde e muitos treinos! Oss!`,
-
-  lembrete: `E aí, *{nome}*! 👊🥋\n\nLembrando que hoje tem treino! Não falte!\n\n{custom}\n\nNos vemos no tatame!`,
-
-  convite: `Olá, *{nome}*! 🥋\n\n{custom}\n\nConfirme sua presença pelo app ou responda aqui. Oss!`
+  cobranca: `Olá, *{nome}*! Oss! 🥋\n\nPassando para lembrar da sua mensalidade de *{mes}* na 4L Academy.\n\n💰 *Valor:* R$ {valor}\n\n📱 *Pague no App (Pix ou Cartão):*\nhttps://4lacademy.com.br/?modo=app\n\nNos vemos no tatame! 🥋`
 };
 
 const STORAGE_KEY = '4l_fila_disparo';
@@ -1932,18 +1954,9 @@ window.atualizarPreviewDisparo = function() {
   const mesAtual = ($('zap-mes')?.value || '').trim();
   const primeiroId = Array.from(AppAdmin.alunosSelecionados)[0];
   const a = AppAdmin.alunos.find(x => x.id === primeiroId);
-  const nomeEx = a ? a.nome : 'João Silva';
-  const resumoPrev = (template === 'cobranca' && a) ? resumoCobranca(a.id, mesAtual) : null;
-  const mesEx = resumoPrev ? resumoPrev.mesTxt : (mesAtual === MES_TODOS ? '—' : (mesAtual || '—'));
-  const valorEx = resumoPrev ? fmtValor(resumoPrev.valor) : fmtValor(a ? (a.valor_mensalidade || 50.50) : 50.50);
-
-  let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
-    .replace(/{nome}/g, nomeEx)
-    .replace(/{mes}/g, mesEx)
-    .replace(/{valor}/g, valorEx)
-    .replace(/{custom}/g, custom || '—');
-
-  previewEl.textContent = msg;
+  const alunoEx = a || { id: '__exemplo__', nome: 'João Silva', valor_mensalidade: 50.50 };
+  // Preview usa a MESMA função central da fila — nunca diverge da mensagem real
+  previewEl.textContent = window.montarMensagemCobrancaZap(alunoEx, mesAtual, custom);
 };
 
 // ---------- BOTÕES DA FILA ----------
@@ -2034,19 +2047,11 @@ window.executarPassoFila = function(ids, index) {
   }
   if (itemEl) itemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-  // Monta mensagem
-  const template = $('zap-template')?.value || 'cobranca';
+  // Monta mensagem pela função central (mesma usada no preview e no CSV)
+  const template = 'cobranca';
   const custom = $('zap-msg-custom')?.value?.trim() || '';
   const mesSelPasso = ($('zap-mes')?.value || '').trim();
-  const resumo = template === 'cobranca' ? resumoCobranca(a.id, mesSelPasso) : null;
-  const mesMsg = resumo ? resumo.mesTxt : (mesSelPasso === MES_TODOS ? '' : mesSelPasso);
-  const valorMsg = resumo ? fmtValor(resumo.valor) : fmtValor(a.valor_mensalidade || 50.50);
-
-  let msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
-    .replace(/{nome}/g, a.nome)
-    .replace(/{mes}/g, mesMsg)
-    .replace(/{valor}/g, valorMsg)
-    .replace(/{custom}/g, custom);
+  const msg = window.montarMensagemCobrancaZap(a, mesSelPasso, custom);
 
   if (!tel || numLimpo.length < 10) {
     if (statusEl) {
@@ -2054,17 +2059,17 @@ window.executarPassoFila = function(ids, index) {
       statusEl.style.cssText = 'font-size:9px;background:rgba(255,82,82,0.12);color:#ff5252;';
     }
     // Salva estado e avança para o próximo estar pronto
-    salvarFila({ ids, index: index + 1, template, mes, custom });
+    salvarFila({ ids, index: index + 1, template, mes: mesPasso, custom });
     resetarBotoesFila(ids, index + 1);
     return;
   }
 
-  // Abre WhatsApp
-  window.open(`https://wa.me/55${numLimpo}?text=${encodeURIComponent(msg)}`, '_blank');
+  // Abre WhatsApp (ou API paga no futuro — enviarZap decide)
+  window.enviarZap(tel, msg);
 
   // Salva estado
   const proximo = AppAdmin.alunos.find(x => x.id === ids[index + 1]);
-  salvarFila({ ids, index: index + 1, template, mes, custom, nomeAtual: proximo ? proximo.nome : null });
+  salvarFila({ ids, index: index + 1, template, mes: mesSelPasso, custom, nomeAtual: proximo ? proximo.nome : null });
 
   // Atualiza botão para o próximo
   resetarBotoesFila(ids, index + 1, proximo ? proximo.nome : null);
