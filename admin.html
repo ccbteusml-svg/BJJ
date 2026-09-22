@@ -75,7 +75,12 @@
             -webkit-font-smoothing: antialiased;
             text-rendering: optimizeLegibility;
             padding-bottom: 40px;
+            /* 🔒 Trava anti-overflow: nenhum filho pode esticar a página
+               na horizontal (isso encolhia o modal do dossiê no Android) */
+            overflow-x: hidden;
+            max-width: 100vw;
         }
+        html { overflow-x: hidden; max-width: 100vw; }
 
         /* Scrollbars discretas */
         .adm-body ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -456,6 +461,7 @@
         /* ===== MODAIS (bottom-sheet no mobile, centrado no desktop) ===== */
         .adm-modal-overlay {
             position: fixed; inset: 0;
+            left: 0; right: 0; width: 100vw; /* 🔒 sempre cobre a tela toda */
             background: rgba(5,5,8,0.72);
             backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             z-index: 1000;
@@ -469,11 +475,16 @@
             background: var(--adm-surface);
             border-radius: 20px 20px 0 0;
             width: 100%; max-width: 480px; max-height: 90vh;
-            overflow-y: auto; transform: translateY(100%);
+            min-width: 0; flex-shrink: 0; /* 🔒 o flex não espreme nem estica */
+            overflow-y: auto; overflow-x: hidden;
+            transform: translateY(100%);
             transition: transform 0.32s var(--adm-ease);
             border-top: 1px solid var(--adm-border-strong);
             box-shadow: var(--adm-shadow-3);
         }
+        /* Conteúdo do dossiê nunca pode esticar o modal (e-mail/WhatsApp longos) */
+        .adm-modal-body * { min-width: 0; }
+        .adm-modal-body span, .adm-modal-body div { overflow-wrap: break-word; }
 
         /* Alça visual de sheet (mobile) */
         .adm-modal::before {
@@ -808,6 +819,7 @@
         .adm-mass-bar {
             display: none;
             align-items: center;
+            flex-wrap: wrap; /* 🔒 4 botões em tela estreita quebram linha, não estouram a página */
             gap: 8px;
             padding: 10px 12px;
             background: var(--adm-surface);
