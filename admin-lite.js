@@ -237,9 +237,21 @@ window.abrirSecao = function(sec) {
 
     if (sec === 'dashboard') renderDashboard();
     if (sec === 'alunos') renderAlunos();
-    if (sec === 'financeiro') renderFinanceiro();
+    if (sec === 'financeiro') { preencherGerarFinanceiro(); renderFinanceiro(); }
     if (sec === 'mural') renderMural();
     if (sec === 'auditoria') renderAuditoria();
+};
+
+// ⚡ Pré-preenche "Gerar Mensalidades" do Financeiro: mês atual + valor padrão.
+// Só preenche se o campo estiver vazio — nunca sobrescreve o que o professor digitou.
+window.preencherGerarFinanceiro = function() {
+    const mesEl = $('mes-geral');
+    const valEl = $('valor-geral');
+    const hoje = new Date();
+    if (mesEl && !mesEl.value.trim()) {
+        mesEl.value = MESES_GERAR[hoje.getMonth()] + '/' + hoje.getFullYear();
+    }
+    if (valEl && !valEl.value) valEl.value = '50.50';
 };
 
 
