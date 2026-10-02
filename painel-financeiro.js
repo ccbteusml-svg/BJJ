@@ -237,7 +237,7 @@ window.abrirMaquinaCartao = async function() {
         if (mesEl) mesEl.textContent = (_mesOriginal || mesEl.textContent) + " (Pagamento Único)";
 
         const valorEl = document.getElementById('valor-pagamento');
-        const valorNaTela = valorEl ? parseFloat(valorEl.textContent.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 50.50 : 50.50;  // ✅ CORREÇÃO: parse robusto de moeda BRL
+        const valorNaTela = valorEl ? parseFloat(valorEl.textContent.replace(/[R$\s]/g, '').replace(/\./g, '').replace(',', '.')) || 50 : 50;  // ✅ CORREÇÃO: parse robusto de moeda BRL
 
         const statusEl = document.getElementById('status-pagamento');
         if (statusEl) {
@@ -246,7 +246,7 @@ window.abrirMaquinaCartao = async function() {
         }
 
         const settings = {
-            initialization: { amount: parseFloat(valorNaTela) || 50.50 },
+            initialization: { amount: parseFloat(valorNaTela) || 50 },
             customization: {
                 visual: { style: { theme: 'dark' }, texts: { formTitle: "Pagar com Cartão" } },
                 paymentMethods: { maxInstallments: 1 }
@@ -533,7 +533,7 @@ if (btnAdiantarFatura) {
             return;
         }
 
-        const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 50.50;
+        const valorFatura = perfil && perfil.valor_mensalidade ? perfil.valor_mensalidade : 50;
 
         const result = await Swal.fire({
             title: 'Adiantar Mensalidade?',

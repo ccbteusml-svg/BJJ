@@ -252,7 +252,7 @@ window.preencherGerarFinanceiro = function() {
     if (mesEl && !mesEl.value.trim()) {
         mesEl.value = MESES_GERAR[hoje.getMonth()] + '/' + hoje.getFullYear();
     }
-    if (valEl && !valEl.value) valEl.value = '50.50';
+    if (valEl && !valEl.value) valEl.value = '50';
 };
 
 
@@ -732,7 +732,7 @@ function renderDossieConteudo() {
             { label: 'E-mail', value: a.email || '—', small: true },
             { label: 'Nascimento', value: a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString('pt-BR') : '—' },
             { label: 'Status', value: status, color: corStatus },
-            { label: 'Mensalidade', value: `R$ ${Number(a.valor_mensalidade || 50.50).toFixed(2).replace('.', ',')}` }
+            { label: 'Mensalidade', value: `R$ ${Number(a.valor_mensalidade || 50).toFixed(2).replace('.', ',')}` }
         ];
 
         rows.forEach(r => {
@@ -876,7 +876,7 @@ window.editarAlunoDossie = async function() {
         loading('Salvando...');
         const { error: erroUpdate } = await supabase.from('perfis').update({
             nome: v.nome.trim(), telefone: v.telefone, faixa: v.faixa,
-            valor_mensalidade: v.valor ? parseFloat(v.valor) : (a.valor_mensalidade || 50.50)
+            valor_mensalidade: v.valor ? parseFloat(v.valor) : (a.valor_mensalidade || 50)
         }).eq('id', a.id);
         if (erroUpdate) { Swal.close(); toast('Erro ao salvar: ' + erroUpdate.message, 'error'); return; }
         registrarLog('editar_aluno', 'Editou dados de ' + v.nome.trim() + ' (faixa: ' + v.faixa + ', valor: ' + (v.valor || 'sem valor') + ')', a.id, v.nome.trim());
@@ -1249,7 +1249,7 @@ window.cadastrarAluno = async function() {
         telefone: $('novo-telefone').value.replace(/\D/g, ''),
         faixa: $('novo-faixa').value,
         data_nascimento: $('novo-nascimento').value,
-        valor_mensalidade: parseFloat($('novo-valor').value) || 50.50
+        valor_mensalidade: parseFloat($('novo-valor').value) || 50
     };
     if (await doCadastrar(dados)) {
         $('form-novo-aluno').reset();
@@ -1675,7 +1675,7 @@ window.ZAP_MODO = 'manual'; // futuro: 'api'
 window.montarMensagemCobrancaZap = function(a, mesSel, custom) {
   const resumo = resumoCobranca(a.id, mesSel);
   const mesMsg = resumo ? resumo.mesTxt : (mesSel === MES_TODOS ? '' : mesSel);
-  const valorMsg = resumo ? fmtValor(resumo.valor) : fmtValor(a.valor_mensalidade || 50.50);
+  const valorMsg = resumo ? fmtValor(resumo.valor) : fmtValor(a.valor_mensalidade || 50);
   return TEMPLATES_ZAP.cobranca
     .replace(/{nome}/g, a.nome)
     .replace(/{mes}/g, mesMsg)
@@ -1954,7 +1954,7 @@ window.atualizarPreviewDisparo = function() {
   const mesAtual = ($('zap-mes')?.value || '').trim();
   const primeiroId = Array.from(AppAdmin.alunosSelecionados)[0];
   const a = AppAdmin.alunos.find(x => x.id === primeiroId);
-  const alunoEx = a || { id: '__exemplo__', nome: 'João Silva', valor_mensalidade: 50.50 };
+  const alunoEx = a || { id: '__exemplo__', nome: 'João Silva', valor_mensalidade: 50 };
   // Preview usa a MESMA função central da fila — nunca diverge da mensagem real
   previewEl.textContent = window.montarMensagemCobrancaZap(alunoEx, mesAtual, custom);
 };
@@ -2120,7 +2120,7 @@ window.exportarCSVDisparo = function() {
     const resumoCsv = template === 'cobranca' ? resumoCobranca(id, mes) : null;
     if (template === 'cobranca' && mes && !resumoCsv) return; // pula quem não deve
     const mesCsvTxt = resumoCsv ? resumoCsv.mesTxt : (mes === MES_TODOS ? '' : mes);
-    const valor = resumoCsv ? fmtValor(resumoCsv.valor) : fmtValor(a.valor_mensalidade || 50.50);
+    const valor = resumoCsv ? fmtValor(resumoCsv.valor) : fmtValor(a.valor_mensalidade || 50);
     const msg = (TEMPLATES_ZAP[template] || TEMPLATES_ZAP.cobranca)
       .replace(/{nome}/g, a.nome)
       .replace(/{mes}/g, mesCsvTxt)
