@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#E53935">
     <link rel="icon" type="image/png" href="4L.png">
     <link rel="apple-touch-icon" href="4L.png">
-    <link rel="stylesheet" href="style.css?v=42">
+    <link rel="stylesheet" href="style.css?v=43">
     <script>
         // 🌞 Anti-flash: aplica o tema salvo ANTES da página pintar
         try { document.documentElement.dataset.tema = localStorage.getItem('4l_tema') || 'escuro'; } catch (e) {}
@@ -94,17 +94,17 @@
 
         <section id="aba-home" class="secao-admin">
 
-            <button onclick="window.abrirCarteirinha()" class="btn-tactile" style="background: linear-gradient(135deg, #161618 0%, #0a0a0a 100%); color: white; width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #E53935; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2); cursor: pointer; transition: transform 0.2s;">
+            <button onclick="window.abrirCarteirinha()" class="btn-tactile home-btn-carteirinha" style="background: linear-gradient(135deg, #161618 0%, #0a0a0a 100%); color: white; width: 100%; padding: 18px; border-radius: 12px; border: 1px solid #E53935; margin-bottom: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(229, 57, 53, 0.2); cursor: pointer; transition: transform 0.2s;">
                 <span style="font-size: 24px;">🪪</span>
                 <span style="font-weight: 800; letter-spacing: 1px;">MINHA CARTEIRINHA</span>
             </button>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px;">
-                <div onclick="window.trocarAbaAluno('aba-mensalidade', document.querySelectorAll('.menu-item')[1])" style="background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
+                <div onclick="window.trocarAbaAluno('aba-mensalidade', document.querySelectorAll('.menu-item')[1])" class="home-atalho" style="background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
                     <span style="font-size: 24px; display: block; margin-bottom: 8px;">💳</span>
                     <span style="color: white; font-size: 12px; font-weight: bold;">FINANCEIRO</span>
                 </div>
-                <div onclick="window.trocarAbaAluno('aba-avisos', document.querySelectorAll('.menu-item')[2])" style="background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
+                <div onclick="window.trocarAbaAluno('aba-avisos', document.querySelectorAll('.menu-item')[2])" class="home-atalho" style="background: #161618; border: 1px solid #333; padding: 15px; border-radius: 12px; text-align: center; cursor: pointer;">
                     <span style="font-size: 24px; display: block; margin-bottom: 8px;">📢</span>
                     <span style="color: white; font-size: 12px; font-weight: bold;">MURAL</span>
                 </div>
@@ -255,10 +255,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="rede-guarda.js?v=1"></script>
     <script src="compress-foto.js?v=1"></script>
-    <script src="painel-core.js?v=67"></script>
+    <script src="painel-core.js?v=68"></script>
     <script src="painel-perfil.js?v=61"></script>
     <script src="painel-financeiro.js?v=61"></script>
-    <script src="painel-ajustes.js?v=7"></script>
+    <script src="painel-ajustes.js?v=8"></script>
     <script src="push-notificacoes.js?v=6"></script>
     <script>
 if ('serviceWorker' in navigator) {

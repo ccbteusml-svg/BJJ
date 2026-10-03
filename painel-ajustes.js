@@ -272,7 +272,8 @@
 
             if (pend && pend.length > 0) {
                 titulo.textContent = `Mensalidade: ${pend[0].mes}`;
-                titulo.style.color = '#fff';
+                // 🌞 No modo dia o cartão é branco — título precisa ser escuro
+                titulo.style.color = document.documentElement.dataset.tema === 'claro' ? '#1a1a1c' : '#fff';
                 sub.textContent = `R$ ${Number(pend[0].valor).toFixed(2).replace('.', ',')} · em aberto`;
                 sub.style.color = '#ff5252';
                 btn.textContent = 'PAGAR';

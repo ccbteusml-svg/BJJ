@@ -1273,3 +1273,52 @@ header button:has(.fa-bell) {
 
 /* Banner offline continua legível */
 [data-tema="claro"] #banner-offline { color: #000 !important; }
+
+/* ==========================================
+   🌞 MODO DIA — refinamento visual (home do aluno)
+========================================== */
+
+/* Saudação: texto escuro sobre o banner claro */
+[data-tema="claro"] #saudacao-aluno { color: #1a1a1c !important; text-shadow: 0 1px 2px rgba(255,255,255,0.6); }
+
+/* Overlay do banner mais claro no topo (onde fica a saudação) */
+[data-tema="claro"] .banner-topo,
+[data-tema="claro"] .banner-aluno {
+    background-image:
+        linear-gradient(to bottom, rgba(242,242,245,0.45) 0%, rgba(242,242,245,0.85) 60%, #f2f2f5 100%),
+        var(--banner-img, none) !important;
+}
+
+/* Botão MINHA CARTEIRINHA: escuro no modo noite, claro no modo dia */
+[data-tema="claro"] .home-btn-carteirinha {
+    background: #ffffff !important;
+    color: #1a1a1c !important;
+    border: 1px solid rgba(229, 57, 53, 0.5) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Atalhos FINANCEIRO / MURAL: cartões brancos */
+[data-tema="claro"] .home-atalho {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.10) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+}
+[data-tema="claro"] .home-atalho span { color: #1a1a1c !important; }
+
+/* Cards de status da home (cobrança / recibo) */
+[data-tema="claro"] #card-proxima-cobranca,
+[data-tema="claro"] #card-recibo-home {
+    background: #ffffff !important;
+    border: 1px solid rgba(0, 0, 0, 0.10) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+}
+[data-tema="claro"] #card-proxima-cobranca h5,
+[data-tema="claro"] #card-recibo-home h5 { color: #1a1a1c !important; }
+[data-tema="claro"] #card-proxima-cobranca p,
+[data-tema="claro"] #card-recibo-home p { color: #5a5a62 !important; }
+
+/* Botão de trocar foto: borda clara para combinar com o fundo */
+[data-tema="claro"] label[for="input-foto"] {
+    border-color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+}

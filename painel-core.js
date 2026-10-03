@@ -188,7 +188,9 @@ window.verificarAcesso = async function() {
         const cacheHome = JSON.parse(localStorage.getItem('4l_cache_home_' + usuarioId) || 'null');
         if (cacheHome && cacheHome.perfil) {
             const cp = cacheHome.perfil;
-            const corTemaCache = cp.corTema || '#E53935';
+            let corTemaCache = cp.corTema || '#E53935';
+            // 🌞 Modo dia: branco sobre fundo claro some → cinza seguro
+            if (document.documentElement.dataset.tema === 'claro' && corTemaCache.toLowerCase() === '#ffffff') corTemaCache = '#6b6b73';
             document.documentElement.style.setProperty('--cor-destaque', corTemaCache);
             const saudacaoCache = document.getElementById('saudacao-aluno');
             if (saudacaoCache && cp.nome) {
@@ -245,6 +247,8 @@ window.verificarAcesso = async function() {
         else if (textoFaixaDB.includes('marrom')) corTema = '#8d6e63';
         else if (textoFaixaDB.includes('preta')) corTema = '#ffffff'; 
         else if (textoFaixaDB.includes('coral') || textoFaixaDB.includes('vermelha')) corTema = '#D32F2F';
+        // 🌞 Modo dia: faixa branca/preta usa cor branca, que some no fundo claro → cinza seguro
+        if (document.documentElement.dataset.tema === 'claro' && corTema.toLowerCase() === '#ffffff') corTema = '#6b6b73';
         document.documentElement.style.setProperty('--cor-destaque', corTema);
         // 🧠 Salva perfil no cache local (abertura instantânea na próxima visita)
         try {
