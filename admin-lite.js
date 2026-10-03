@@ -445,7 +445,7 @@ function renderDashboard() {
 
     // Aniversariantes — construído via DOM
     const mesAtual = hoje.getMonth() + 1;
-    const anivs = AppAdmin.alunos.filter(a => a.data_nascimento && parseInt(a.data_nascimento.split('-')[1]) === mesAtual);
+    const anivs = AppAdmin.alunos.filter(a => a.data_nascimento && parseInt(a.data_nascimento.split('T')[0].split('-')[1]) === mesAtual);
     const cardAniv = $('card-aniversarios');
     const listaAniv = $('lista-aniversarios');
     if (cardAniv && listaAniv) {
@@ -453,7 +453,7 @@ function renderDashboard() {
             cardAniv.style.display = 'block';
             listaAniv.innerHTML = '';
             anivs.forEach(a => {
-                const dia = a.data_nascimento.split('-')[2];
+                const dia = a.data_nascimento.split('T')[0].split('-')[2];
                 const num = a.telefone ? a.telefone.replace(/\D/g, '') : '';
                 const link = num ? `https://wa.me/55${num}?text=${encodeURIComponent('Parabéns, ' + a.nome + '! 🎉 Oss! 🥋')}` : '#';
                 const foto = a.foto_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.nome)}&background=161618&color=fff`;
@@ -730,7 +730,7 @@ function renderDossieConteudo() {
         const rows = [
             { label: 'WhatsApp', value: a.telefone || '—' },
             { label: 'E-mail', value: a.email || '—', small: true },
-            { label: 'Nascimento', value: a.data_nascimento ? new Date(a.data_nascimento).toLocaleDateString('pt-BR') : '—' },
+            { label: 'Nascimento', value: a.data_nascimento ? a.data_nascimento.split('T')[0].split('-').reverse().join('/') : '—' },
             { label: 'Status', value: status, color: corStatus },
             { label: 'Mensalidade', value: `R$ ${Number(a.valor_mensalidade || 50).toFixed(2).replace('.', ',')}` }
         ];
