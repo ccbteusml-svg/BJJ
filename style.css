@@ -1322,3 +1322,82 @@ header button:has(.fa-bell) {
     border-color: #ffffff !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
 }
+
+/* ==========================================
+   🔔 CENTRAL DE NOTIFICAÇÕES (sino do aluno)
+========================================== */
+.sino-painel {
+    position: fixed;
+    top: 64px;
+    right: 5%;
+    width: 90%;
+    max-width: 360px;
+    max-height: 70vh;
+    background: #1c1c1e;
+    border: 1px solid #333;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    z-index: 900;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+.sino-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #333;
+    font-weight: bold;
+    color: #fff;
+    font-size: 14px;
+}
+.sino-limpar {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 11px;
+    cursor: pointer;
+    width: auto;
+    padding: 4px;
+}
+.sino-limpar:active { color: #fff; }
+.sino-lista { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.sino-vazio { padding: 26px 16px; text-align: center; color: #666; font-size: 13px; }
+.sino-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #2a2a2c;
+    cursor: pointer;
+    position: relative;
+}
+.sino-item:active { background: #262628; }
+.sino-item.lida { opacity: 0.55; }
+.sino-icone { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.sino-corpo { flex: 1; min-width: 0; }
+.sino-titulo { color: #fff; font-size: 13px; font-weight: bold; }
+.sino-sub { color: #999; font-size: 12px; margin-top: 2px; }
+.sino-data { color: #666; font-size: 10px; margin-top: 4px; }
+.sino-dot {
+    width: 8px; height: 8px;
+    background: #E53935;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+}
+
+/* 🌞 Modo dia */
+[data-tema="claro"] .sino-painel {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.10);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+[data-tema="claro"] .sino-cab { color: #1a1a1c; border-bottom-color: rgba(0, 0, 0, 0.10); }
+[data-tema="claro"] .sino-item { border-bottom-color: rgba(0, 0, 0, 0.07); }
+[data-tema="claro"] .sino-item:active { background: #f0f0f3; }
+[data-tema="claro"] .sino-titulo { color: #1a1a1c; }
+[data-tema="claro"] .sino-sub { color: #5a5a62; }
+[data-tema="claro"] .sino-vazio { color: #8a8a92; }
+[data-tema="claro"] .sino-limpar { color: #8a8a92; }

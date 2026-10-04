@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#E53935">
     <link rel="icon" type="image/png" href="4L.png">
     <link rel="apple-touch-icon" href="4L.png">
-    <link rel="stylesheet" href="style.css?v=43">
+    <link rel="stylesheet" href="style.css?v=44">
     <script>
         // 🌞 Anti-flash: aplica o tema salvo ANTES da página pintar
         try { document.documentElement.dataset.tema = localStorage.getItem('4l_tema') || 'escuro'; } catch (e) {}
@@ -74,7 +74,7 @@
                 <span style="color: var(--cor-destaque); font-size: 18px;">🔺</span>
                 <h2 style="font-style: italic; font-size: 18px; margin: 0; color: white;">4L <span style="color: var(--cor-destaque);">ACADEMY</span></h2>
             </div>
-            <span style="color:white; font-size:20px; opacity:0.3;">🔔</span>
+            <button id="btn-sino" onclick="window.toggleCentralNotificacoes()" style="background:none; border:none; color:white; font-size:20px; padding:0; cursor:pointer; position:relative; width:auto;">🔔<span id="sino-badge" style="display:none; position:absolute; top:-6px; right:-9px; background:#E53935; color:#fff; font-size:10px; font-weight:bold; min-width:16px; height:16px; border-radius:9px; align-items:center; justify-content:center; padding:0 4px; line-height:1;">0</span></button>
 
         </header>
 
@@ -259,6 +259,7 @@
     <script src="painel-perfil.js?v=61"></script>
     <script src="painel-financeiro.js?v=61"></script>
     <script src="painel-ajustes.js?v=8"></script>
+    <script src="painel-notificacoes.js?v=1"></script>
     <script src="push-notificacoes.js?v=6"></script>
     <script>
 if ('serviceWorker' in navigator) {
