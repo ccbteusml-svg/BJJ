@@ -186,6 +186,15 @@
         }
 
         .adm-btn-icon:active { transform: scale(0.92); background: var(--adm-surface-2); }
+
+        /* 🔔 Sino: destaque dourado (clicável) e esconde "4L ACADEMY" em telas
+           pequenas para o "Olá, Prof." não ficar cortado */
+        #btn-sino-adm { color: #ffd54a; }
+        #btn-sino-adm:active { color: #ffe082; }
+        @media (max-width: 700px) {
+            .adm-header-brand h1 { display: none; }
+            #adm-ola { margin-left: 2px; font-size: 13px; }
+        }
         @media (hover: hover) {
             .adm-btn-icon:hover { background: var(--adm-surface-2); color: var(--adm-text); border-color: var(--adm-border-strong); }
         }
@@ -1059,7 +1068,7 @@
         <div class="adm-header-brand">
             <img src="4L.png" alt="4L">
             <h1>4L <span>ACADEMY</span></h1>
-            <span id="adm-ola" style="font-size:12px; color:#a1a1aa; font-weight:600; margin-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;"></span>
+            <span id="adm-ola" style="font-size:12px; color:#a1a1aa; font-weight:600; margin-left:6px; white-space:nowrap;"></span>
         </div>
         <span class="adm-header-title" id="adm-header-title">Dashboard</span>
         <div class="adm-header-actions">
