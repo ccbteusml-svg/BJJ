@@ -131,6 +131,11 @@ async function verificarAdmin() {
         AppAdmin.adminId = session.user.id;
         AppAdmin.adminNome = perfil.nome || 'Admin';
 
+        // 👋 Identidade no topo: com vários ADMs, fica claro quem está logado
+        const olaEl = $('adm-ola');
+        if (olaEl) olaEl.textContent = 'Olá, ' + (AppAdmin.adminNome.split(' ')[0] || 'Prof.') + ' 👋';
+        document.title = 'ADM · ' + AppAdmin.adminNome.split(' ')[0] + ' — 4L Academy';
+
         // 🛡️ SEGURANÇA SILENCIOSA: acesso fora do horário habitual (8h-20h)
         // dispara um e-mail de alerta pro professor. Não bloqueia, não mostra nada.
         try {

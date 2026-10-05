@@ -115,6 +115,38 @@
 
         .adm-header-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
+        /* ===== 🔔 CENTRAL DE NOTIFICAÇÕES DO ADM ===== */
+        .sino-adm-painel {
+            position: fixed; top: 64px; right: 12px;
+            width: min(92vw, 380px); max-height: 70vh;
+            background: #16161c; border: 1px solid var(--adm-border, #2a2a30);
+            border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+            z-index: 900; overflow: hidden; display: none; flex-direction: column;
+        }
+        .sino-adm-cab {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 14px; border-bottom: 1px solid #2a2a30;
+            font-weight: 700; color: #fff; font-size: 14px;
+        }
+        .sino-adm-limpar { background: none; border: none; color: #888; font-size: 11px; cursor: pointer; width: auto; padding: 4px; }
+        .sino-adm-limpar:active { color: #fff; }
+        .sino-adm-lista { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .sino-adm-vazio { padding: 26px 16px; text-align: center; color: #666; font-size: 13px; }
+        .sino-adm-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px; border-bottom: 1px solid #232328;
+            cursor: pointer; position: relative;
+        }
+        .sino-adm-item:active { background: #1e1e24; }
+        .sino-adm-item.lida { opacity: 0.55; }
+        .sino-adm-icone { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .sino-adm-corpo { flex: 1; min-width: 0; }
+        .sino-adm-titulo { color: #fff; font-size: 13px; font-weight: 700; }
+        .sino-adm-sub { color: #999; font-size: 12px; margin-top: 2px; }
+        .sino-adm-data { color: #666; font-size: 10px; margin-top: 4px; }
+        .sino-adm-dot { width: 8px; height: 8px; background: #E53935; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+
+
         .adm-header-brand img {
             width: 38px; height: 38px; border-radius: 50%; object-fit: cover;
             border: 2px solid var(--adm-red);
@@ -1027,9 +1059,14 @@
         <div class="adm-header-brand">
             <img src="4L.png" alt="4L">
             <h1>4L <span>ACADEMY</span></h1>
+            <span id="adm-ola" style="font-size:12px; color:#a1a1aa; font-weight:600; margin-left:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;"></span>
         </div>
         <span class="adm-header-title" id="adm-header-title">Dashboard</span>
         <div class="adm-header-actions">
+            <button class="adm-btn-icon" id="btn-sino-adm" onclick="window.toggleCentralNotificacoesAdm()" title="Notificações" aria-label="Abrir notificações" style="position:relative;">
+                <i class="fa-solid fa-bell"></i>
+                <span id="sino-adm-badge" style="display:none; position:absolute; top:2px; right:2px; background:#E53935; color:#fff; font-size:9px; font-weight:bold; min-width:15px; height:15px; border-radius:8px; align-items:center; justify-content:center; padding:0 3px; line-height:1;">0</span>
+            </button>
             <button class="adm-btn-icon" onclick="abrirSecao('config')" title="Configurações" aria-label="Abrir configurações">
                 <i class="fa-solid fa-gear"></i>
             </button>
@@ -1537,7 +1574,8 @@
     <script src="supabase-config.js?v=2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=37"></script>
+    <script src="admin-lite.js?v=38"></script>
+    <script src="admin-notificacoes.js?v=1"></script>
 
 
 <!-- Máscara de telefone -->
