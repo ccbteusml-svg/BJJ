@@ -44,10 +44,17 @@
         return d.toLocaleDateString('pt-BR');
     }
 
-    function _mesNome(isoMes) {
-        try {
-            return new Date(isoMes + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-        } catch (e) { return isoMes; }
+    // ✅ A coluna mes é TEXTO no formato "Outubro/2026" (não é data!)
+    const MESES_NOMES_SINO = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    function _mesAtualStr() {
+        const d = new Date();
+        return MESES_NOMES_SINO[d.getMonth()] + '/' + d.getFullYear();
+    }
+    function _mesBonito(mesTexto) {
+        // "Outubro/2026" → "outubro de 2026" (se vier em outro formato, devolve como está)
+        const p = String(mesTexto || '').split('/');
+        if (p.length === 2 && p[0]) return p[0].toLowerCase() + ' de ' + p[1];
+        return mesTexto || '';
     }
 
     // ---------- Montagem dos itens ----------
@@ -84,7 +91,7 @@
                 .limit(10);
             (mens || []).forEach(m => {
                 const valor = `R$ ${Number(m.valor || 0).toFixed(2).replace('.', ',')}`;
-                const mesN = _mesNome(m.mes);
+                const mesN = _mesBonito(m.mes);
                 if (m.status === 'pago') {
                     itens.push({
                         id: 'paga-' + m.id,
@@ -109,7 +116,7 @@
             // ⏰ Lembrete: fatura do mês atual em aberto (aparece a partir do dia 8)
             const agora = new Date();
             if (agora.getDate() >= 8) {
-                const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-01`;
+                const mesAtual = _mesAtualStr(); // formato "Outubro/2026" (texto)
                 const aberta = (mens || []).find(m => m.mes === mesAtual && m.status === 'pendente');
                 // se a fatura é antiga (criada fora da janela), busca direto
                 let alvo = aberta;
@@ -127,7 +134,7 @@
                         id: 'venc-' + alvo.id,
                         icone: '⏰',
                         titulo: 'Mensalidade em aberto',
-                        sub: `R$ ${Number(alvo.valor || 0).toFixed(2).replace('.', ',')} · ${_mesNome(mesAtual)} — pague pelo Pix no app`,
+                        sub: `R$ ${Number(alvo.valor || 0).toFixed(2).replace('.', ',')} · ${_mesBonito(mesAtual)} — pague pelo Pix no app`,
                         data: agora.toISOString(),
                         acao: 'financeiro',
                         fixo: true

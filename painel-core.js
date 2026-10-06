@@ -421,8 +421,12 @@ window.verificarAcesso = async function() {
                 const partesMes = String(mens.mes || '').toLowerCase().split('/');
                 const idxMes = MESES_IDX[partesMes[0]];
                 if (idxMes !== undefined && partesMes[1]) {
-                    const vencimento = new Date(parseInt(partesMes[1]), idxMes, 10, 23, 59, 59);
-                    const dias = Math.ceil((vencimento.getTime() - Date.now()) / 86400000);
+                    // ✅ Conta DIAS DE CALENDÁRIO (meia-noite a meia-noite), não horas:
+                    // antes usava 23:59:59 + Math.ceil, o que inflava 1 dia
+                    // (dia 5 mostrava "faltam 6" em vez de 5)
+                    const hoje0 = new Date(); hoje0.setHours(0, 0, 0, 0);
+                    const venc0 = new Date(parseInt(partesMes[1]), idxMes, 10, 0, 0, 0);
+                    const dias = Math.round((venc0.getTime() - hoje0.getTime()) / 86400000);
                     chipVenc.style.display = 'block';
                     if (dias > 1)       chipVenc.textContent = '⏳ Faltam ' + dias + ' dias pro vencimento (dia 10)';
                     else if (dias === 1) chipVenc.textContent = '⏳ Vence amanhã! (dia 10)';
