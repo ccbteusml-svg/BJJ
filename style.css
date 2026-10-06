@@ -964,12 +964,8 @@ body {
     opacity: 1;
 }
 
-/* 12. Ícone de notificação desativado visualmente */
-header button:has(.fa-bell) {
-    opacity: 0.3;
-    pointer-events: none;
-    cursor: default;
-}
+/* 12. (removida) — a regra antiga que desativava o sino (pointer-events:none)
+   foi apagada: o sino do ADM agora abre a Central de Notificações. */
 
 /* 13. Menu lateral — item li corrigido para parecer div */
 .menu-items li.menu-item {
