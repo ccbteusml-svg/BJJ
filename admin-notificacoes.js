@@ -263,26 +263,39 @@
     }
 
     window.toggleCentralNotificacoesAdm = function () {
+        // 🛡️ Se o painel ainda não montou (sessão lenta na 1ª abertura),
+        // monta na hora e tenta iniciar de novo — o sino nunca fica "morto"
+        if (!document.getElementById('sino-adm-painel')) {
+            _montarPainel();
+            if (!_userId) _iniciar();
+        }
         if (_aberto) _fechar(); else _abrir();
     };
 
     async function _iniciar() {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-            _userId = session.user.id;
-            _montarPainel();
-            _itens = await _buscar();
-            _badge();
-            if (_timer) clearInterval(_timer);
-            _timer = setInterval(async () => {
-                if (document.hidden) return;
-                _itens = await _buscar();
-                _badge();
-            }, 5 * 60 * 1000);
-        } catch (e) {
-            console.warn('[SINO ADM] init falhou:', e);
+        // Espera a sessão estar pronta (até ~10s), tentando a cada 1s
+        for (let tentativa = 0; tentativa < 10; tentativa++) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    _userId = session.user.id;
+                    _montarPainel();
+                    _itens = await _buscar();
+                    _badge();
+                    if (_timer) clearInterval(_timer);
+                    _timer = setInterval(async () => {
+                        if (document.hidden) return;
+                        _itens = await _buscar();
+                        _badge();
+                    }, 5 * 60 * 1000);
+                    return;
+                }
+            } catch (e) {
+                console.warn('[SINO ADM] tentativa', tentativa, e);
+            }
+            await new Promise(r => setTimeout(r, 1000));
         }
+        console.warn('[SINO ADM] sem sessão após 10s — sino inativo neste carregamento');
     }
 
     if (document.readyState === 'loading') {

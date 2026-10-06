@@ -65,6 +65,13 @@
         ::selection { background: rgba(229,57,53,0.35); color: #fff; }
 
         .adm-body {
+            /* 🛡️ BLINDAGEM: o style.css global (app do aluno) coloca o body em
+               flex/max-width 450px, o que esmaga o header do ADM. Aqui o ADM
+               volta a ser bloco normal de largura total. */
+            display: block !important;
+            max-width: none !important;
+            align-items: initial !important;
+            box-shadow: none !important;
             background:
                 radial-gradient(1100px 480px at 50% -220px, rgba(229,57,53,0.07), transparent 60%),
                 var(--adm-bg);
@@ -1584,7 +1591,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
     <script src="admin-lite.js?v=38"></script>
-    <script src="admin-notificacoes.js?v=1"></script>
+    <script src="admin-notificacoes.js?v=2"></script>
 
 
 <!-- Máscara de telefone -->
