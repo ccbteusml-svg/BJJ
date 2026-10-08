@@ -1397,3 +1397,145 @@ body {
 [data-tema="claro"] .sino-sub { color: #5a5a62; }
 [data-tema="claro"] .sino-vazio { color: #8a8a92; }
 [data-tema="claro"] .sino-limpar { color: #8a8a92; }
+
+
+/* ==========================================================
+   v46 — MODO TABLET (somente painel do ALUNO, 768px a 1023px)
+   ----------------------------------------------------------
+   Decisões de segurança:
+   - Regras vivem APENAS nesta media query: celular (<768px) e
+     desktop (>1023px) ficam 100% intocados.
+   - Escopo por body:has(.painel-container): só o painel do aluno
+     tem esse container — login, cadastro e ADM não são afetados.
+   - Nenhum JS/ID/classe alterado. Onde o JS escreve display inline
+     (troca de abas), usamos o seletor :not([style*="display: none"])
+     para o grid só valer quando a aba está visível.
+   ========================================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+
+    /* 1. Destrava a "carcaça" de celular: o app do aluno passa de
+          450px para uma coluna confortável de 720px centralizada */
+    body:has(.painel-container) {
+        max-width: 720px;
+    }
+
+    /* 2. Container interno acompanha (o HTML trava em 400px inline,
+          então precisa do !important — sem mexer no HTML) */
+    body:has(.painel-container) .painel-container {
+        max-width: 660px !important;
+        width: 92% !important;
+    }
+
+    /* 3. Menu lateral e backdrop ficam ancorados na nova carcaça de
+          720px (antes estavam presos nos 450px antigos) */
+    body:has(.painel-container) .menu-lateral {
+        margin-left: -360px; /* metade de 720px */
+        max-width: 300px;
+        /* o recuo original (-105%) deixava uma fatia visível na carcaça
+           de 720px; calc garante o menu 100% fora da tela quando fechado */
+        transform: translateX(calc(-100% - 60px));
+    }
+    body:has(.painel-container) .menu-lateral.aberto {
+        transform: translateX(0); /* aberto: desliza para dentro normalmente */
+    }
+    body:has(.painel-container) .menu-backdrop {
+        max-width: 720px;
+    }
+
+    /* 4. Central de notificações (sino) acompanha a borda direita
+          da carcaça, em vez de grudar na borda da tela do tablet */
+    body:has(.painel-container) .sino-painel {
+        right: max(20px, calc(50% - 340px));
+    }
+
+    /* 5. Saudação um pouco maior e foto de perfil proporcional ao
+          espaço novo */
+    body:has(.painel-container) #saudacao-aluno {
+        font-size: 24px;
+    }
+
+    /* ---------- ABA INÍCIO: grade de 2 colunas ---------- */
+
+    /* 6. A aba vira grid SÓ quando visível (o JS alterna as abas com
+          display inline; este seletor respeita o "none" sem tocar JS) */
+    #aba-home:not([style*="display: none"]) {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+
+    /* 7. Carteirinha: botão-destaque ocupa a largura toda (CTA principal) */
+    #aba-home .home-btn-carteirinha {
+        grid-column: 1 / -1;
+        margin-bottom: 0 !important;
+        padding: 22px;
+        font-size: 16px;
+    }
+
+    /* 8. Atalhos (Financeiro/Mural): faixa horizontal logo abaixo da
+          carteirinha, como "menu de app" — o container dos atalhos é o
+          div irmão imediato do botão carteirinha (não tem classe própria) */
+    #aba-home .home-btn-carteirinha + div {
+        grid-column: 1 / -1;
+        gap: 18px !important;
+        margin-bottom: 0 !important;
+    }
+    #aba-home .home-atalho {
+        padding: 22px 15px !important; /* alvos de toque maiores no tablet */
+    }
+
+    /* 9. Cobrança (esquerda) e Recibo (direita) lado a lado; o grid
+          ignora automaticamente o que estiver oculto (display:none) */
+    #aba-home #card-proxima-cobranca {
+        grid-column: 1;
+        margin-bottom: 0 !important;
+        align-self: stretch;
+    }
+    #aba-home #card-recibo-home {
+        grid-column: 2;
+        align-self: stretch;
+    }
+
+    /* ---------- ABA FINANCEIRO ---------- */
+
+    /* 10. Card de pagamento centralizado com largura máxima — evita
+           botões Pix/Cartão espichados num tablet deitado */
+    #aba-mensalidade .card-status {
+        max-width: 560px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* ---------- ABAS AVISOS E HISTÓRICO ---------- */
+
+    /* 11. Listas em 2 colunas: mais avisos visíveis sem rolagem longa */
+    #lista-avisos,
+    #lista-historico {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        align-items: start;
+    }
+
+    /* ---------- ABA AJUSTES ---------- */
+
+    /* 12. Cards de ajustes em 2 colunas (mesmo seletor anti-display:none) */
+    #aba-ajustes:not([style*="display: none"]) {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        align-items: start;
+    }
+    /* 13. Título da aba ocupa a linha inteira acima das colunas */
+    #aba-ajustes > h3 {
+        grid-column: 1 / -1;
+        margin-bottom: 0;
+    }
+    /* 14. Zera margens internas dos cards para o gap do grid comandar */
+    #aba-ajustes .ajs-card {
+        margin-bottom: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+}
