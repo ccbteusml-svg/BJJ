@@ -1,5 +1,5 @@
 // ==========================================
-// 4L ACADEMY — LOGIN (app.js) — v13
+// 4L ACADEMY — LOGIN (app.js) — v14
 // Correções mecânicas:
 // - Anti double-submit (botão desabilitado + trava de fluxo)
 // - Try/catch/finally em todas as operações assíncronas
@@ -9,6 +9,10 @@
 // - Checagem de erro/null em TODAS as chamadas Supabase
 // - Recuperação de senha com validação de mínimo 6 dígitos
 // - Aviso amigável quando offline
+// - v14: LOGIN DIZ O MOTIVO REAL — distingue "e-mail não confirmado" de
+//   "senha errada" e oferece REENVIAR o e-mail de confirmação na hora.
+//   (Antes: todo erro virava "E-mail ou senha incorretos!", o que empurrava
+//   o aluno para o "esqueci a senha" sem necessidade.)
 // ==========================================
 
 // Trava global: impede que o auto-redirect e o submit compitam entre si
@@ -124,6 +128,54 @@ supabase.auth.onAuthStateChange(async (event, session) => {
 });
 
 // ==========================================
+// 2.5. REENVIAR E-MAIL DE CONFIRMAÇÃO DE CADASTRO
+// (caso o aluno não tenha clicado no link do primeiro e-mail)
+// ==========================================
+async function _oferecerReenvioConfirmacao(email) {
+    try {
+        const { isConfirmed } = await Swal.fire({
+            icon: 'warning',
+            title: 'E-mail ainda não confirmado 📩',
+            html: 'Sua conta foi criada, mas falta confirmar o e-mail.<br><br>' +
+                  'Abra sua caixa de entrada (e a pasta de <b>SPAM</b>) e clique no link que enviamos quando você se cadastrou.<br><br>' +
+                  'Não achou? Podemos reenviar agora.',
+            background: '#161618',
+            color: '#ffffff',
+            confirmButtonColor: '#E53935',
+            confirmButtonText: 'REENVIAR E-MAIL',
+            showCancelButton: true,
+            cancelButtonText: 'Agora não',
+            cancelButtonColor: '#333'
+        });
+
+        if (!isConfirmed) return;
+
+        Swal.fire({ title: 'Reenviando...', background: '#161618', color: '#fff', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+        const { error } = await supabase.auth.resend({
+            type: 'signup',
+            email: email,
+            options: {
+                emailRedirectTo: window.location.origin + window.location.pathname
+            }
+        });
+
+        if (error) {
+            console.error('[LOGIN] Erro ao reenviar confirmação:', error);
+            let msg = error.message || 'Não foi possível reenviar.';
+            if (/rate limit|too many/i.test(msg)) {
+                msg = 'Muitas tentativas seguidas. Aguarde 1 minuto e tente de novo.';
+            }
+            Swal.fire({ icon: 'error', title: 'Erro', text: msg, background: '#161618', color: '#fff', confirmButtonColor: '#E53935' });
+        } else {
+            Swal.fire({ icon: 'success', title: 'E-mail reenviado! 🥋', text: 'Confira a caixa de entrada e o SPAM. Depois de clicar no link, volte aqui e faça login.', background: '#161618', color: '#fff', confirmButtonColor: '#4CAF50' });
+        }
+    } catch (e) {
+        console.warn('[LOGIN] Exceção no reenvio de confirmação:', e);
+    }
+}
+
+// ==========================================
 // 3. CAPTURAR O ENVIO DO FORMULÁRIO DE LOGIN
 // ==========================================
 const formLogin = document.getElementById('form-login');
@@ -163,6 +215,22 @@ if (formLogin) {
 
             if (error) {
                 console.error("Erro no login:", error);
+                const motivo = error.message || '';
+
+                // ✅ E-mail cadastrado, mas ainda não confirmado → orienta e oferece reenvio
+                if (/email not confirmed|not confirmed/i.test(motivo)) {
+                    _msgErro("Seu e-mail ainda não foi confirmado.");
+                    await _oferecerReenvioConfirmacao(email);
+                    return;
+                }
+
+                // Muitas tentativas seguidas (bloqueio temporário do Supabase)
+                if (/rate limit|too many/i.test(motivo)) {
+                    _msgErro("Muitas tentativas seguidas. Aguarde 1 minuto e tente novamente.");
+                    return;
+                }
+
+                // Senha errada ou e-mail inexistente
                 _msgErro("E-mail ou senha incorretos!");
                 return;
             }
