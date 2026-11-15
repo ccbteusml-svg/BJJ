@@ -276,7 +276,7 @@ async function carregarTudo() {
     try {
         // 🚀 ESCALABILIDADE: baixa SÓ as colunas que o ADM usa (nunca '*').
         // Com 300+ alunos isso reduz drasticamente o download inicial e a banda gasta.
-        const COLUNAS_PERFIS = 'id, nome, telefone, email, faixa, foto_url, assinante, plano_pausado, motivo_pausa, valor_mensalidade, data_nascimento, cargo';
+        const COLUNAS_PERFIS = 'id, nome, telefone, email, faixa, foto_url, assinante, plano_pausado, motivo_pausa, valor_mensalidade, data_nascimento, cargo, cortesia';
         const COLUNAS_MENS = 'id, aluno_id, mes, status, valor, criado_em';
         const [{ data: alunos, error: e1 }, { data: mens, error: e2 }] = await Promise.all([
             supabase.from('perfis').select(COLUNAS_PERFIS).neq('cargo', 'professor').order('nome'),
@@ -377,10 +377,10 @@ function renderDashboard() {
     if (cardAlertas && listaAlertas) {
         const alertas = [];
         const mesAtual = mesAtualStr();
-        const alunosCobraveis = ativos.filter(a => !a.assinante);
+        const alunosCobraveis = ativos.filter(a => !a.assinante && !a.cortesia);
         const semValor = alunosCobraveis.filter(a => a.valor_mensalidade == null);
         if (semValor.length > 0) {
-            alertas.push({ cor: '#f97316', txt: semValor.length + ' aluno(s) ativo(s) sem valor de mensalidade cadastrado: ' + semValor.map(a => a.nome).join(', ') + '. A cobrança automática do dia 10 não inclui esses alunos.' });
+            alertas.push({ cor: '#f97316', txt: semValor.length + ' aluno(s) ativo(s) sem valor de mensalidade cadastrado: ' + semValor.map(a => a.nome).join(', ') + '. A cobrança automática do dia 1º não inclui esses alunos.' });
         }
         const idsComMensAtual = new Set(AppAdmin.mensalidades.filter(m => m.mes === mesAtual).map(m => m.aluno_id));
         const semMens = alunosCobraveis.filter(a => a.valor_mensalidade != null && !idsComMensAtual.has(a.id));
@@ -625,6 +625,12 @@ function renderDashboard() {
                 h4.appendChild(document.createTextNode(' '));
                 h4.appendChild(tagIna);
             }
+            if (a.cortesia) {
+                const tagCor = document.createElement('span');
+                tagCor.className = 'adm-tag cortesia'; tagCor.textContent = '🎁 CORTESIA';
+                h4.appendChild(document.createTextNode(' '));
+                h4.appendChild(tagCor);
+            }
             if (mensPendente) {
                 const tagDeb = document.createElement('span');
                 tagDeb.className = 'adm-tag pendente'; tagDeb.textContent = 'DÉBITO';
@@ -726,8 +732,8 @@ function renderDossieConteudo() {
     container.innerHTML = '';
 
     if (AppAdmin.abaDossie === 'perfil') {
-        const status = a.plano_pausado ? (a.motivo_pausa === 'cobranca' ? '🔴 INATIVO (INADIMPLÊNCIA)' : '🔴 INATIVO') : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO');
-        const corStatus = a.plano_pausado ? '#ff5252' : (a.assinante ? '#3b82f6' : '#22c55e');
+        const status = a.plano_pausado ? (a.motivo_pausa === 'cobranca' ? '🔴 INATIVO (INADIMPLÊNCIA)' : '🔴 INATIVO') : (a.cortesia ? '🎁 CORTESIA (ISENTO)' : (a.assinante ? '💳 VIP RECORRENTE' : '✅ ATIVO'));
+        const corStatus = a.plano_pausado ? '#ff5252' : (a.cortesia ? '#eab308' : (a.assinante ? '#3b82f6' : '#22c55e'));
 
         const grid = document.createElement('div');
         grid.className = 'adm-info-grid';
@@ -826,6 +832,15 @@ function renderDossieConteudo() {
         btnPause.onclick = () => alternarPlano(a.id, a.nome, acao);
         wrap.appendChild(btnPause);
 
+        // Botão de cortesia (isento de mensalidades)
+        const btnCortesia = document.createElement('button');
+        btnCortesia.className = 'adm-btn-full btn-tactile';
+        const corCort = a.cortesia ? '#eab308' : '#9e9e9e';
+        btnCortesia.style.cssText = `background:transparent;border:1px solid ${corCort};color:${corCort};`;
+        btnCortesia.innerHTML = a.cortesia ? '<i class="fa-solid fa-gift"></i> Remover Cortesia' : '<i class="fa-solid fa-gift"></i> Tornar Cortesia';
+        btnCortesia.onclick = () => alternarCortesia(a.id, a.nome, !a.cortesia);
+        wrap.appendChild(btnCortesia);
+
         if (a.assinante) {
             const btnCancel = document.createElement('button');
             btnCancel.className = 'adm-btn-full btn-tactile';
@@ -909,6 +924,66 @@ window.alternarPlano = async function(id, nome, acao) {
         await carregarTudo();
         fecharModalDossie();
         toast(cong ? 'Aluno inativado' : 'Aluno reativado!');
+    }
+};
+
+// 🎁 Cortesia: aluno isento — nunca gera fatura, e-mail, lembrete ou push
+window.alternarCortesia = async function(id, nome, ligar) {
+    if (ligar) {
+        const r = await Swal.fire({
+            title: '🎁 Tornar Cortesia?',
+            html: `<b>${escapeHtml(nome)}</b> ficará <b>isento(a)</b>: o app não vai mais gerar faturas nem enviar cobranças (e-mail, lembrete ou push) para esse aluno.`,
+            icon: 'question', showCancelButton: true,
+            confirmButtonColor: '#eab308', cancelButtonColor: '#333',
+            confirmButtonText: 'Sim, tornar cortesia', cancelButtonText: 'Cancelar',
+            background: '#0a0a0c', color: '#fff'
+        });
+        if (!r.isConfirmed) return;
+        loading('Salvando...');
+        const { error: erroUpdate } = await supabase.from('perfis').update({ cortesia: true }).eq('id', id);
+        if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
+        registrarLog('cortesia_on', 'Tornou ' + nome + ' cortesia (isento)', id, nome);
+        await carregarTudo();
+        fecharModalDossie();
+        toast('🎁 ' + nome + ' agora é cortesia!');
+
+        // Oferece a faxina: apagar as faturas PENDENTES que já existiam
+        const pendentes = AppAdmin.mensalidades.filter(m => m.aluno_id === id && m.status === 'pendente');
+        if (pendentes.length > 0) {
+            const r2 = await Swal.fire({
+                title: 'Apagar faturas pendentes?',
+                html: `<b>${escapeHtml(nome)}</b> tem <b>${pendentes.length} fatura(s) pendente(s)</b>. Apagar agora?<br><small style="color:#888;">Faturas já pagas são mantidas no histórico.</small>`,
+                icon: 'warning', showCancelButton: true,
+                confirmButtonColor: '#ff5252', cancelButtonColor: '#333',
+                confirmButtonText: 'Sim, apagar', cancelButtonText: 'Manter',
+                background: '#0a0a0c', color: '#fff'
+            });
+            if (r2.isConfirmed) {
+                loading('Apagando...');
+                const { error: eDel } = await supabase.from('mensalidades').delete().eq('aluno_id', id).eq('status', 'pendente');
+                if (eDel) { Swal.close(); toast('Erro ao apagar: ' + eDel.message, 'error'); return; }
+                registrarLog('cortesia_limpar_faturas', pendentes.length + ' fatura(s) pendente(s) apagada(s) de ' + nome, id, nome);
+                await carregarTudo();
+                toast('Faturas pendentes apagadas!');
+            }
+        }
+    } else {
+        const r = await Swal.fire({
+            title: 'Remover Cortesia?',
+            text: `${nome} volta a receber faturas normalmente a partir do próximo ciclo.`,
+            icon: 'question', showCancelButton: true,
+            confirmButtonColor: '#22c55e', cancelButtonColor: '#333',
+            confirmButtonText: 'Sim, remover', cancelButtonText: 'Cancelar',
+            background: '#0a0a0c', color: '#fff'
+        });
+        if (!r.isConfirmed) return;
+        loading('Salvando...');
+        const { error: erroUpdate } = await supabase.from('perfis').update({ cortesia: false }).eq('id', id);
+        if (erroUpdate) { Swal.close(); toast('Erro: ' + erroUpdate.message, 'error'); return; }
+        registrarLog('cortesia_off', 'Removeu cortesia de ' + nome, id, nome);
+        await carregarTudo();
+        fecharModalDossie();
+        toast('Cortesia removida — ' + nome + ' volta a ser cobrado.');
     }
 };
 
@@ -1293,9 +1368,9 @@ window.gerarMensalidades = async function() {
     loading('Verificando...');
     try {
         // ✅ CORRIGIDO: Busca TODOS os alunos (incluindo assinante=null) e filtra no JS
-        const { data: alm, error: eAlm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado,assinante').neq('cargo', 'professor');
+        const { data: alm, error: eAlm } = await supabase.from('perfis').select('id,valor_mensalidade,plano_pausado,assinante,cortesia').neq('cargo', 'professor');
         if (eAlm) throw eAlm;
-        const atv = (alm || []).filter(a => !a.plano_pausado && !a.assinante);
+        const atv = (alm || []).filter(a => !a.plano_pausado && !a.assinante && !a.cortesia);
 
         if (atv.length === 0) { Swal.close(); toast('Nenhum aluno ativo sem VIP', 'error'); return; }
 
@@ -1584,7 +1659,7 @@ window.confirmarGerarMensalidade = async function() {
         const al = AppAdmin.alunos.find(a => a.id === AppAdmin.modoGerarIndividual);
         if (al) alvos = [al];
     } else {
-        alvos = AppAdmin.alunos.filter(a => AppAdmin.alunosSelecionados.has(a.id) && !a.plano_pausado && !a.assinante);
+        alvos = AppAdmin.alunos.filter(a => AppAdmin.alunosSelecionados.has(a.id) && !a.plano_pausado && !a.assinante && !a.cortesia);
     }
 
     if (alvos.length === 0) {
