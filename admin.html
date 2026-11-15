@@ -431,6 +431,9 @@
         .adm-tag.inativo { background: rgba(255,255,255,0.06); color: var(--adm-text-3); border: 1px solid var(--adm-border); }
         .adm-tag.pendente { background: var(--adm-red-soft); color: var(--adm-red); border: 1px solid rgba(229,57,53,0.28); }
         .adm-tag.cortesia { background: rgba(234,179,8,0.12); color: #eab308; border: 1px solid rgba(234,179,8,0.30); }
+        /* Card de KPI clicável (histórico do Recebido) */
+        .adm-kpi.clicavel { cursor: pointer; }
+        .adm-kpi.clicavel:active { transform: scale(0.98); }
         .adm-tag.pago { background: var(--adm-green-dim); color: var(--adm-green); border: 1px solid rgba(34,197,94,0.28); }
         .adm-tag.faixa {
             width: 10px; height: 10px; border-radius: 50%; padding: 0;
@@ -1102,8 +1105,8 @@
                     <div class="adm-kpi-value" id="kpi-ativos">0</div>
                     <div class="adm-kpi-delta up" id="kpi-ativos-delta">+0 este mês</div>
                 </div>
-                <div class="adm-kpi green">
-                    <div class="adm-kpi-label"><i class="fa-solid fa-sack-dollar"></i> Recebido</div>
+                <div class="adm-kpi green clicavel" onclick="abrirModalHistoricoRecebido()">
+                    <div class="adm-kpi-label"><i class="fa-solid fa-sack-dollar"></i> Recebido <i class="fa-solid fa-chart-simple" style="font-size:10px;opacity:.6;" title="Toque para ver o histórico"></i></div>
                     <div class="adm-kpi-value" id="kpi-recebido">R$ 0</div>
                     <div class="adm-kpi-delta up" id="kpi-recebido-delta">+0% vs mês passado</div>
                 </div>
@@ -1477,6 +1480,20 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL HISTÓRICO DE RECEBIDO (abre ao tocar no KPI "Recebido") -->
+    <div class="adm-modal-overlay" id="modal-historico-recebido" onclick="fecharModalHistoricoRecebido(event)">
+        <div class="adm-modal" onclick="event.stopPropagation()">
+            <div class="adm-modal-header">
+                <button class="adm-modal-close" onclick="fecharModalHistoricoRecebido()" aria-label="Fechar"><i class="fa-solid fa-xmark"></i></button>
+                <h2 class="adm-modal-name" style="margin-top:10px;"><i class="fa-solid fa-chart-simple"></i> Recebido por mês</h2>
+                <p class="adm-modal-belt" style="font-size:12px;">Barra verde cheia = mês atual</p>
+            </div>
+            <div class="adm-modal-body" style="max-height:60vh;overflow-y:auto;">
+                <div id="historico-recebido-lista"></div>
+            </div>
+        </div>
+    </div>
     <!-- MODAL GERAR MENSALIDADE EM MASSA / INDIVIDUAL -->
     <div class="adm-modal-overlay" id="modal-gerar-mens" onclick="fecharModalGerar(event)">
         <div class="adm-modal" onclick="event.stopPropagation()">
@@ -1591,7 +1608,7 @@
     <script src="supabase-config.js?v=2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="rede-guarda.js?v=1"></script>
-    <script src="admin-lite.js?v=39"></script>
+    <script src="admin-lite.js?v=40"></script>
     <script src="admin-notificacoes.js?v=2"></script>
 
 

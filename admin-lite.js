@@ -338,7 +338,15 @@ function renderDashboard() {
     const inativos = AppAdmin.alunos.filter(a => a.plano_pausado);
     const vips = AppAdmin.alunos.filter(a => a.assinante && !a.plano_pausado);
 
-    const recebido = AppAdmin.mensalidades.filter(m => m.status === 'pago').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    // ✅ RECEBIDO = só o MÊS ATUAL (zera a cada mês). O histórico completo
+    // de todos os meses abre ao tocar no card (abrirModalHistoricoRecebido).
+    const mesAtualKpi = mesAtualStr();
+    const pagoMes = AppAdmin.mensalidades.filter(m => m.status === 'pago' && m.mes === mesAtualKpi);
+    const recebido = pagoMes.reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+    // Mês passado (para a comparação ▲/▼ no rodapé do card)
+    const _hj = new Date();
+    const _mesPassadoStr = MESES_NOMES[(_hj.getMonth() + 11) % 12] + '/' + (_hj.getMonth() === 0 ? _hj.getFullYear() - 1 : _hj.getFullYear());
+    const recebidoMesPassado = AppAdmin.mensalidades.filter(m => m.status === 'pago' && m.mes === _mesPassadoStr).reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
     const pendente = AppAdmin.mensalidades.filter(m => m.status === 'pendente').reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
 
     const elAtivos = $('kpi-ativos');
@@ -357,7 +365,15 @@ function renderDashboard() {
     const elVipsD = $('kpi-vips-delta');
 
     if (elAtivosD) elAtivosD.textContent = `${inativos.length} inativo${inativos.length !== 1 ? 's' : ''}`;
-    if (elRecD) elRecD.textContent = `${AppAdmin.mensalidades.filter(m => m.status === 'pago').length} pagamentos`;
+    if (elRecD) {
+        let txt = `${pagoMes.length} pagamento${pagoMes.length !== 1 ? 's' : ''} em ${mesAtualKpi.split('/')[0]}`;
+        if (recebidoMesPassado > 0) {
+            const diff = recebido - recebidoMesPassado;
+            const pct = Math.min(Math.round(Math.abs(diff) / recebidoMesPassado * 100), 999);
+            txt += ` · ${diff >= 0 ? '▲' : '▼'} ${pct}% vs mês passado`;
+        }
+        elRecD.textContent = txt;
+    }
     const _pendentes = AppAdmin.mensalidades.filter(m => m.status === 'pendente');
     const _vencidas = _pendentes.filter(isVencida);
     const _aVencer = _pendentes.length - _vencidas.length;
@@ -679,6 +695,82 @@ window.setFiltroAluno = function(f) {
     });
     renderAlunos();
 };
+
+// ========== HISTÓRICO DE RECEBIDO (todos os meses, em barras) ==========
+window.abrirModalHistoricoRecebido = function() {
+    renderHistoricoRecebido();
+    const modal = $('modal-historico-recebido');
+    if (modal) modal.classList.add('aberto');
+};
+
+window.fecharModalHistoricoRecebido = function(e) {
+    if (e && e.target !== $('modal-historico-recebido')) return;
+    const modal = $('modal-historico-recebido');
+    if (modal) modal.classList.remove('aberto');
+};
+
+function renderHistoricoRecebido() {
+    const lista = $('historico-recebido-lista');
+    if (!lista) return;
+    lista.innerHTML = '';
+
+    // Agrupa os pagamentos por mês
+    const porMes = {};
+    AppAdmin.mensalidades.forEach(m => {
+        if (m.status !== 'pago' || !m.mes) return;
+        porMes[m.mes] = (porMes[m.mes] || 0) + (parseFloat(m.valor) || 0);
+    });
+    const meses = Object.keys(porMes);
+
+    if (meses.length === 0) {
+        lista.innerHTML = '<div class="adm-empty"><i class="fa-solid fa-chart-simple"></i><p>Nenhum pagamento registrado ainda</p></div>';
+        return;
+    }
+
+    // Ordena do mais antigo para o mais recente (pelo helper parseMesNum)
+    meses.sort((a, b) => parseMesNum(a) - parseMesNum(b));
+    const maior = Math.max(...meses.map(mm => porMes[mm]), 1);
+    const mesAtual = mesAtualStr();
+
+    meses.forEach(mm => {
+        const ehAtual = mm === mesAtual;
+        const row = document.createElement('div');
+        row.style.cssText = 'margin-bottom:14px;';
+
+        const head = document.createElement('div');
+        head.style.cssText = 'display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:5px;';
+        const nome = document.createElement('span');
+        nome.style.cssText = 'color:var(--adm-text);font-weight:' + (ehAtual ? '800' : '500') + ';';
+        nome.textContent = (ehAtual ? '👉 ' : '') + mm;
+        const val = document.createElement('span');
+        val.style.cssText = 'font-weight:800;color:' + (ehAtual ? '#22c55e' : 'var(--adm-text)') + ';';
+        val.textContent = formatCurrency(porMes[mm]);
+        head.appendChild(nome);
+        head.appendChild(val);
+        row.appendChild(head);
+
+        const trilho = document.createElement('div');
+        trilho.style.cssText = 'height:14px;border-radius:7px;background:rgba(255,255,255,0.06);overflow:hidden;';
+        const barra = document.createElement('div');
+        barra.style.cssText = `height:100%;width:${Math.max(Math.round((porMes[mm] / maior) * 100), 2)}%;border-radius:7px;background:${ehAtual ? '#22c55e' : 'rgba(34,197,94,0.45)'};`;
+        trilho.appendChild(barra);
+        row.appendChild(trilho);
+
+        lista.appendChild(row);
+    });
+
+    const total = meses.reduce((s, mm) => s + porMes[mm], 0);
+    const rodape = document.createElement('div');
+    rodape.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid var(--adm-border);display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--adm-text-2);';
+    const lbl = document.createElement('span');
+    lbl.textContent = `Total acumulado (${meses.length} ${meses.length > 1 ? 'meses' : 'mês'})`;
+    const vlr = document.createElement('b');
+    vlr.style.color = 'var(--adm-text)';
+    vlr.textContent = formatCurrency(total);
+    rodape.appendChild(lbl);
+    rodape.appendChild(vlr);
+    lista.appendChild(rodape);
+}
 
 window.abrirDossie = async function(id) {
     const aluno = AppAdmin.alunos.find(a => a.id === id);
