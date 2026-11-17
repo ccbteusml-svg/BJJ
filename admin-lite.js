@@ -136,17 +136,11 @@ async function verificarAdmin() {
         if (olaEl) olaEl.textContent = 'Olá, ' + (AppAdmin.adminNome.split(' ')[0] || 'Prof.') + ' 👋';
         document.title = 'ADM · ' + AppAdmin.adminNome.split(' ')[0] + ' — 4L Academy';
 
-        // 🛡️ SEGURANÇA SILENCIOSA: acesso fora do horário habitual (8h-20h)
-        // dispara um e-mail de alerta pro professor. Não bloqueia, não mostra nada.
+        // 🛡️ SEGURANÇA SILENCIOSA: a função confere o JWT do professor e o
+        // horário em Manaus no SERVIDOR. Não bloqueia nem mostra nada no app.
+        // O invoke envia automaticamente a sessão; nenhum ID precisa ser confiado ao celular.
         try {
-            const hora = new Date().getHours();
-            if (hora < 8 || hora >= 20) {
-                fetch('https://qrctbkgmztiebluiyzys.supabase.co/functions/v1/alerta-acesso', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ usuario_id: session.user.id, horario: new Date().toLocaleString('pt-BR') })
-                }).catch(() => {});
-            }
+            supabase.functions.invoke('alerta-acesso', { body: {} }).catch(() => {});
         } catch (_) {}
 
         if (!AppAdmin.dadosCarregados) await carregarTudo();
